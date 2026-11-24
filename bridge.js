@@ -1,8 +1,9 @@
-/* bridge.js (v4) — Đồng Bộ User & SSO Tuyệt Đối Cho Tab Điện Nước, Sổ Duty & Checklist */
+/* bridge.js (v5) — SSO bằng Tài khoản Duty/Admin, Ánh xạ Người Thực Hiện HOÀN TOÀN theo Bảng Phân Ca */
 (function () {
   let isApplyingFromMaster = false;
   let lastMasterData = null;
   let powerSwitchPageHooked = false;
+  let dutyHooksApplied = false;
   let lastChecklistWeeklyRaw = localStorage.getItem('dailycheck_weekly_shifts_v1') || '';
 
   const POWER_STATE_KEY = 'RESORT_UTILITY_OS_STATE_V5';
@@ -54,12 +55,15 @@
   }
 
   // ==================== 1. SỔ DUTY (duty.html) ====================
+  // - Đăng nhập SSO theo `data.staff` (Admin / Duty dùng chung)
+  // - Ánh xạ người thực hiện, lịch trực, giao/nhận ca HOÀN TOÀN theo `data.rosterStaff` + `data.dutyScheduleToday`
   function applyToDuty(data) {
     if (!isDutyModule() || !data || !data.currentUser) return;
     const u = data.currentUser;
     const isAdmin = u.role === 'admin';
 
-    appState.users = (data.staff || []).map(s => ({
+    // 1. Tài khoản đăng nhập (dùng cho SSO)
+    const loginUsers = (data.staff || []).map(s => ({
       id: s.id,
       name: s.name,
       username: s.username,
@@ -67,12 +71,15 @@
       role: s.role === 'admin' ? 'Admin' : 'Kỹ thuật',
       status: 'Hoạt động'
     }));
+    appState.users = loginUsers;
 
-    if (Array.isArray(data.dutyScheduleToday) && data.dutyScheduleToday.length > 0) {
-      const nonSynced = (appState.schedule || []).filter(x => !String(x.id).startsWith('SCH-SYNC-'));
-      appState.schedule = [...data.dutyScheduleToday, ...nonSynced];
-    }
+    // 2. Đồng bộ lịch trực hôm nay từ BẢNG PHÂN CA (rosterStaff)
+    const today = getTodayStr();
+    const nonSyncedToday = (appState.schedule || []).filter(x => !String(x.id).startsWith('SCH-SYNC-') && x.date !== today);
+    const syncedToday = Array.isArray(data.dutyScheduleToday) ? data.dutyScheduleToday : [];
+    appState.schedule = [...syncedToday, ...nonSyncedToday];
 
+    // 3. Tự động đăng nhập bằng tài khoản SSO (Admin hoặc Duty dùng chung)
     const matchedUser =
       appState.users.find(x => x.username.toLowerCase() === String(u.username || '').toLowerCase()) ||
       appState.users.find(x => x.id === u.id) ||
@@ -84,6 +91,66 @@
     if (loginScreen) {
       loginScreen.classList.add('opacity-0', 'pointer-events-none', 'hidden');
       loginScreen.style.display = 'none';
+    }
+
+    // 4. Hook các dropdown chọn người thực hiện & giao/nhận ca để LUÔN lấy theo BẢNG PHÂN CA (không lấy tên tài khoản Duty)
+    if (!dutyHooksApplied) {
+      dutyHooksApplied = true;
+
+      if (typeof window.updateAssigneeDropdown === 'function') {
+        const origUpdateAssignee = window.updateAssigneeDropdown;
+        window.updateAssigneeDropdown = function () {
+          origUpdateAssignee.apply(this, arguments);
+          const sel = document.getElementById('task-assignee');
+          if (!sel || !lastMasterData) return;
+          const shift = document.getElementById('task-shift')?.value || '';
+          const date = document.getElementById('filter-date')?.value || getTodayStr();
+          const scheduled = (appState.schedule || []).filter(s => s.shift === shift && s.date === date).map(s => s.staffName);
+          const allRosterNames = (lastMasterData.rosterStaff || []).map(r => r.name);
+          const names = scheduled.length > 0 ? [...new Set(scheduled)] : [...new Set(allRosterNames)];
+          if (names.length > 0) {
+            sel.innerHTML = names.map(n => `<option value="${n}">${n}</option>`).join('');
+          }
+        };
+      }
+
+      if (typeof window.updateHandoverStaffOptions === 'function') {
+        const origUpdateHandover = window.updateHandoverStaffOptions;
+        window.updateHandoverStaffOptions = function () {
+          origUpdateHandover.apply(this, arguments);
+          if (!lastMasterData) return;
+          const allRosterNames = (lastMasterData.rosterStaff || []).map(r => r.name);
+          if (allRosterNames.length === 0) return;
+
+          const currentShift = appState.activeShiftSession?.shift || 'Ca Sáng';
+          const currentDate = appState.activeShiftSession?.date || getTodayStr();
+          const nextSession = typeof window.getNextShiftSession === 'function'
+            ? window.getNextShiftSession(currentShift, currentDate)
+            : { shift: 'Ca Chiều', date: currentDate };
+
+          const curStaff = (appState.schedule || []).filter(s => s.date === currentDate && s.shift === currentShift).map(s => s.staffName);
+          const nextStaff = (appState.schedule || []).filter(s => s.date === nextSession.date && s.shift === nextSession.shift).map(s => s.staffName);
+
+          const buildRosterOptions = (scheduledNames) => {
+            const uniq = [...new Set(scheduledNames)];
+            let html = '';
+            if (uniq.length > 1) html += `<option value="${uniq.join(', ')}">Cả ca: ${uniq.join(', ')}</option>`;
+            if (uniq.length > 0) {
+              html += `<optgroup label="Đang trực theo Bảng Phân Ca">` + uniq.map(n => `<option value="${n}">${n}</option>`).join('') + `</optgroup>`;
+            }
+            const others = allRosterNames.filter(n => !uniq.includes(n));
+            if (others.length > 0) {
+              html += `<optgroup label="Nhân sự khác (Bảng Phân Ca)">` + others.map(n => `<option value="${n}">${n}</option>`).join('') + `</optgroup>`;
+            }
+            return html;
+          };
+
+          const fromSel = document.getElementById('handover-staff-name');
+          const recSel = document.getElementById('handover-receiver-name');
+          if (fromSel) fromSel.innerHTML = buildRosterOptions(curStaff);
+          if (recSel) recSel.innerHTML = buildRosterOptions(nextStaff);
+        };
+      }
     }
 
     if (typeof window.renderLoginQuickUsers === 'function') window.renderLoginQuickUsers();
@@ -106,7 +173,6 @@
       const st = document.createElement('style');
       st.id = 'unified-power-user-css';
       st.textContent = `
-        /* Ẩn các mục ngoài Chỉ số công tơ & Thiết bị cho User nhân viên */
         #nav-dashboard, #nav-sld, #nav-accounts,
         #mnav-dashboard, #mnav-sld, #mnav-accounts,
         #page-dashboard, #page-sld, #page-accounts,
@@ -117,9 +183,7 @@
           display: none !important;
         }
         @media (max-width: 1023px) {
-          body {
-            padding-bottom: 160px !important;
-          }
+          body { padding-bottom: 160px !important; }
           nav.fixed.bottom-0 {
             bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px)) !important;
             left: 50% !important;
@@ -165,7 +229,6 @@
     const u = data.currentUser;
     const isAdmin = u.role === 'admin';
 
-    // 1. Lấy danh sách powerUsers (đã băm SHA-256 chuẩn) và ghi đồng nhất vào localStorage
     const powerUsers = await resolvePowerUsers(data);
     const incomingSig = getUsersSignature(powerUsers, u.username);
 
@@ -179,13 +242,10 @@
         parsed.lastUpdated = Date.now();
         localStorage.setItem(POWER_STATE_KEY, JSON.stringify(parsed));
       }
-    } catch (e) {
-      console.warn('Power localStorage sync warning:', e);
-    }
+    } catch {}
 
     localStorage.setItem(POWER_SESSION_KEY, JSON.stringify({ username: u.username }));
 
-    // 2. Kiểm tra trạng thái hiện tại trong DOM của power.html
     const overlay = document.getElementById('authOverlay');
     const isOverlayVisible = overlay && !overlay.classList.contains('hidden');
     const displayedUserEl = document.getElementById('accProfileUsername');
@@ -193,11 +253,8 @@
     const isDifferentUser = displayedUser && displayedUser !== String(u.username || '').toLowerCase();
     const isUsersListChanged = localSigBefore && localSigBefore !== incomingSig;
 
-    // Nếu overlay đang hiện (chưa đăng nhập / vừa khởi tạo users rỗng) hoặc danh sách user/tài khoản vừa thay đổi
-    // -> Nạp lại iframe power.html đúng 1 lần (chống lặp bằng sessionStorage theo chữ ký) để module nhận appState.users mới nhất
-    const lastReloadedSig = sessionStorage.getItem('power_synced_sig_v4');
+    const lastReloadedSig = sessionStorage.getItem('power_synced_sig_v5');
     if ((isOverlayVisible || isDifferentUser || isUsersListChanged) && lastReloadedSig !== incomingSig) {
-      // Thử đăng nhập trực tiếp trước nếu danh sách user không đổi và form login đang sẵn sàng
       if (isOverlayVisible && !isUsersListChanged) {
         const userInp = document.getElementById('loginUsername');
         const passInp = document.getElementById('loginPassword');
@@ -211,15 +268,14 @@
         const ovNow = document.getElementById('authOverlay');
         const stillBlocked = ovNow && !ovNow.classList.contains('hidden');
         if (stillBlocked || isDifferentUser || isUsersListChanged) {
-          sessionStorage.setItem('power_synced_sig_v4', incomingSig);
+          sessionStorage.setItem('power_synced_sig_v5', incomingSig);
           location.reload();
         }
       }, 250);
       return;
     }
 
-    // Đã đồng bộ xong -> cập nhật bảng user & phân quyền giao diện
-    sessionStorage.setItem('power_synced_sig_v4', incomingSig);
+    sessionStorage.setItem('power_synced_sig_v5', incomingSig);
     if (typeof window.renderUsersTable === 'function') window.renderUsersTable();
 
     if (!isAdmin) {
@@ -230,16 +286,22 @@
   }
 
   // ==================== 3. CHECKLIST (checklist.html) ====================
+  // Khi tài khoản dùng chung (Duty) đăng nhập, mặc định chọn nhân sự đang trực ca hiện tại từ Bảng Phân Ca
   function applyToChecklist(data) {
     if (!isChecklistModule() || !data || !data.currentUser) return;
     const u = data.currentUser;
     const isAdmin = u.role === 'admin';
 
+    // Nếu là tài khoản Duty dùng chung và có nhân sự đang trực ca hiện tại trong Bảng Phân Ca -> tự ánh xạ sang ID nhân sự trực ca đầu tiên (vẫn giữ quyền user)
+    // Nếu chưa có ai trực ca này -> dùng ID tài khoản Duty để mở Checklist
+    const onDutyNow = Array.isArray(data.onDutyNow) ? data.onDutyNow : [];
+    const targetChecklistUserId = (!isAdmin && onDutyNow.length > 0) ? onDutyNow[0].id : u.id;
+
     const curStoredId = localStorage.getItem('dailycheck_current_user_id_real_v1');
-    if (curStoredId !== u.id) {
-      localStorage.setItem('dailycheck_current_user_id_real_v1', u.id);
-      if (!sessionStorage.getItem('checklist_sso_reloaded_' + u.id)) {
-        sessionStorage.setItem('checklist_sso_reloaded_' + u.id, '1');
+    if (curStoredId !== targetChecklistUserId) {
+      localStorage.setItem('dailycheck_current_user_id_real_v1', targetChecklistUserId);
+      if (!sessionStorage.getItem('checklist_sso_reloaded_' + targetChecklistUserId)) {
+        sessionStorage.setItem('checklist_sso_reloaded_' + targetChecklistUserId, '1');
         location.reload();
         return;
       }
@@ -312,7 +374,6 @@
             window.parent.postMessage({
               type: 'MODULE_TO_MASTER_SYNC',
               source: 'duty',
-              users: appState.users || [],
               todaySchedule
             }, '*');
           }
