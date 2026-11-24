@@ -2,21 +2,80 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Engineering Unified OS — Đồng Bộ 2 Chiều Real-time</title>
+
+  <!-- Cấu hình PWA & Màn hình chính iPhone (iOS Standalone) -->
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/png" href="logo.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="logo.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Eng OS" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0b1120" />
+
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
   <style>
-    :root { --glass-bg: rgba(15, 23, 42, 0.72); --glass-border: rgba(255, 255, 255, 0.14); }
-    body { background: #0b1120; color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
-    .glass { background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--glass-border); }
-    .view-panel { position: absolute; inset: 0; opacity: 0; transform: scale(0.985); pointer-events: none; transition: opacity 320ms cubic-bezier(.4,0,.2,1), transform 320ms cubic-bezier(.4,0,.2,1); }
-    .view-panel.active { opacity: 1; transform: scale(1); pointer-events: auto; z-index: 10; }
-    .stardock { box-shadow: 0 20px 45px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.18); }
-    .dock-btn { transition: transform 220ms ease, background 220ms ease, color 220ms ease; }
-    .dock-btn.active { background: rgba(56, 189, 248, 0.22); color: #38bdf8; transform: translateY(-2px); }
-    iframe.mod-frame { width: 100%; height: 100%; border: 0; background: #fff; }
+    :root {
+      --glass-bg: rgba(15, 23, 42, 0.72);
+      --glass-border: rgba(255, 255, 255, 0.14);
+    }
+    body {
+      background: #0b1120;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .glass {
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+    }
+    .view-panel {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transform: scale(0.985);
+      pointer-events: none;
+      transition: opacity 320ms cubic-bezier(.4, 0, .2, 1), transform 320ms cubic-bezier(.4, 0, .2, 1);
+    }
+    .view-panel.active {
+      opacity: 1;
+      transform: scale(1);
+      pointer-events: auto;
+      z-index: 10;
+    }
+    .stardock {
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    }
+    .dock-btn {
+      transition: transform 220ms ease, background 220ms ease, color 220ms ease;
+    }
+    .dock-btn.active {
+      background: rgba(56, 189, 248, 0.22);
+      color: #38bdf8;
+      transform: translateY(-2px);
+    }
+    iframe.mod-frame {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: #fff;
+    }
+    /* Căn lề an toàn cho màn hình iPhone khi mở chế độ PWA toàn màn hình */
+    header {
+      padding-top: env(safe-area-inset-top);
+      height: calc(3.5rem + env(safe-area-inset-top));
+    }
+    #userStardock {
+      bottom: calc(1rem + env(safe-area-inset-bottom));
+    }
   </style>
 </head>
 <body class="h-screen w-screen flex flex-col">
@@ -25,7 +84,10 @@
   <div id="ssoOverlay" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-xl p-4">
     <div class="glass w-full max-w-md rounded-3xl p-7 shadow-2xl">
       <div class="flex items-center gap-3 mb-6">
-        <div class="w-12 h-12 rounded-2xl bg-sky-500/20 border border-sky-400/40 flex items-center justify-center text-sky-400">
+        <img src="logo.png" alt="Logo Dự Án"
+          onerror="this.style.display='none'; document.getElementById('ssoLogoFallback').classList.remove('hidden');"
+          class="w-12 h-12 rounded-2xl object-contain bg-white/10 p-1.5 border border-white/15 shrink-0" />
+        <div id="ssoLogoFallback" class="hidden w-12 h-12 rounded-2xl bg-sky-500/20 border border-sky-400/40 flex items-center justify-center text-sky-400 shrink-0">
           <i data-lucide="layers" class="w-6 h-6"></i>
         </div>
         <div>
@@ -37,12 +99,12 @@
       <form id="ssoForm" class="space-y-4">
         <div>
           <label class="block text-xs font-semibold text-slate-300 mb-1.5">Tên đăng nhập / Mã NV</label>
-          <input id="ssoUser" type="text" required placeholder="vd: admin hoặc tranb"
+          <input id="ssoUser" type="text" required placeholder="vd: admin hoặc tranb" autocomplete="username"
             class="w-full px-4 py-3 rounded-2xl bg-slate-900/80 border border-slate-700 text-sm focus:outline-none focus:border-sky-400" />
         </div>
         <div>
           <label class="block text-xs font-semibold text-slate-300 mb-1.5">Mật khẩu</label>
-          <input id="ssoPass" type="password" required placeholder="••••••"
+          <input id="ssoPass" type="password" required placeholder="••••••" autocomplete="current-password"
             class="w-full px-4 py-3 rounded-2xl bg-slate-900/80 border border-slate-700 text-sm focus:outline-none focus:border-sky-400" />
         </div>
         <p id="ssoErr" class="hidden text-xs text-rose-400 font-medium"></p>
@@ -58,9 +120,111 @@
     </div>
   </div>
 
+  <!-- MODAL THÊM / SỬA THÀNH VIÊN -->
+  <div id="memberModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4">
+    <div class="glass w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 id="memberModalTitle" class="text-base font-bold text-white flex items-center gap-2">
+          <i data-lucide="user-plus" class="w-4 h-4 text-sky-400"></i> Thêm Thành Viên Mới
+        </h3>
+        <button onclick="closeMemberModal()" class="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white cursor-pointer">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <form id="memberModalForm" class="space-y-3 text-xs">
+        <input type="hidden" id="mmId" />
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-slate-400 font-semibold">Mã NV</label>
+            <input id="mmCode" required placeholder="KT-004" class="w-full mt-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 focus:outline-none focus:border-sky-400" />
+          </div>
+          <div>
+            <label class="text-slate-400 font-semibold">Cấp Quyền</label>
+            <select id="mmRole" class="w-full mt-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 focus:outline-none focus:border-sky-400">
+              <option value="user">User (Kỹ thuật)</option>
+              <option value="admin">Admin (Quản trị)</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="text-slate-400 font-semibold">Họ và Tên</label>
+          <input id="mmName" required placeholder="Nguyễn Văn D" class="w-full mt-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 focus:outline-none focus:border-sky-400" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-slate-400 font-semibold">Tên đăng nhập</label>
+            <input id="mmUser" required placeholder="vand" class="w-full mt-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 focus:outline-none focus:border-sky-400" />
+          </div>
+          <div>
+            <label class="text-slate-400 font-semibold">Mật khẩu</label>
+            <input id="mmPass" required value="123456" class="w-full mt-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 focus:outline-none focus:border-sky-400" />
+          </div>
+        </div>
+        <p id="mmErr" class="hidden text-rose-400 font-medium"></p>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeMemberModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold cursor-pointer">Hủy</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold cursor-pointer">Lưu Thành Viên</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL ĐỔI THÔNG TIN ĐĂNG NHẬP ADMIN -->
+  <div id="adminCredsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4">
+    <div class="glass w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4 border-amber-500/30">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-bold text-amber-300 flex items-center gap-2">
+          <i data-lucide="shield-check" class="w-5 h-5"></i> Đổi Thông Tin Đăng Nhập Admin
+        </h3>
+        <button onclick="closeAdminCredsModal()" class="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white cursor-pointer">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <p class="text-[11px] text-slate-400">Thay đổi tài khoản/mật khẩu Admin sẽ được đồng bộ 2 chiều lên Cloud và tự cập nhật trên cả 3 hệ thống.</p>
+      <form id="adminCredsForm" class="space-y-3 text-xs">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-slate-400 font-semibold">Mã NV Admin</label>
+            <input id="acCode" required class="w-full mt-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 focus:outline-none focus:border-amber-400" />
+          </div>
+          <div>
+            <label class="text-slate-400 font-semibold">Họ và Tên hiển thị</label>
+            <input id="acName" required class="w-full mt-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 focus:outline-none focus:border-amber-400" />
+          </div>
+        </div>
+        <div>
+          <label class="text-slate-400 font-semibold">Tên đăng nhập (Username mới)</label>
+          <input id="acUser" required class="w-full mt-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 focus:outline-none focus:border-amber-400" />
+        </div>
+        <div>
+          <label class="text-slate-400 font-semibold">Mật khẩu hiện tại (Xác thực)</label>
+          <input id="acOldPass" type="password" required placeholder="Nhập mật khẩu đang dùng" class="w-full mt-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 focus:outline-none focus:border-amber-400" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-slate-400 font-semibold">Mật khẩu mới</label>
+            <input id="acNewPass" type="password" placeholder="Để trống nếu giữ cũ" class="w-full mt-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 focus:outline-none focus:border-amber-400" />
+          </div>
+          <div>
+            <label class="text-slate-400 font-semibold">Nhập lại mật khẩu mới</label>
+            <input id="acConfirmPass" type="password" placeholder="Xác nhận mật khẩu" class="w-full mt-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 focus:outline-none focus:border-amber-400" />
+          </div>
+        </div>
+        <p id="acErr" class="hidden text-rose-400 font-medium"></p>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeAdminCredsModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold cursor-pointer">Hủy</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold cursor-pointer">Cập Nhật Admin</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- THANH TRẠNG THÁI TRÊN CÙNG -->
-  <header class="h-14 px-3 sm:px-4 flex items-center justify-between bg-slate-900/95 border-b border-slate-800 shrink-0 z-30 gap-2">
+  <header class="px-3 sm:px-4 flex items-center justify-between bg-slate-900/95 border-b border-slate-800 shrink-0 z-30 gap-2">
     <div class="flex items-center gap-2.5 min-w-0">
+      <img src="logo.png" alt="Logo"
+        onerror="this.style.display='none';"
+        class="w-8 h-8 rounded-xl object-contain bg-white/10 p-1 border border-white/15 shrink-0" />
       <span class="w-8 h-8 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center font-bold text-sm shrink-0" id="hdrAvatar">AD</span>
       <div class="leading-tight truncate">
         <div class="flex items-center gap-1.5">
@@ -85,7 +249,7 @@
         <span id="cloudDot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
         <span id="cloudLabel" class="hidden sm:inline">Đang kết nối...</span>
       </div>
-      <button id="btnAdminQuick" onclick="openTab('admin')" class="hidden lg:hidden px-2.5 py-1.5 rounded-xl bg-indigo-500/20 text-indigo-300 text-xs font-semibold">Admin</button>
+      <button id="btnAdminQuick" onclick="openTab('admin')" class="hidden lg:hidden px-2.5 py-1.5 rounded-xl bg-indigo-500/20 text-indigo-300 text-xs font-semibold cursor-pointer">Admin</button>
       <button onclick="logoutSSO()" class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 text-xs font-semibold flex items-center gap-1.5 cursor-pointer">
         <i data-lucide="log-out" class="w-3.5 h-3.5"></i><span class="hidden sm:inline">Thoát</span>
       </button>
@@ -101,13 +265,16 @@
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 class="text-xl font-bold">Trung Tâm Quản Trị Hợp Nhất (Admin)</h2>
-            <p class="text-xs text-slate-400">Đồng bộ 2 chiều Real-time qua Firebase — Thay đổi từ Admin hoặc từ các module con sẽ tự cập nhật trên mọi thiết bị.</p>
+            <p class="text-xs text-slate-400">Quản lý thành viên, phân ca liên kết và bảo mật tài khoản Admin — Đồng bộ 2 chiều Real-time.</p>
           </div>
-          <div class="flex gap-2">
-            <button onclick="syncAllModulesNow(true)" class="px-3.5 py-2 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer">
+          <div class="flex flex-wrap gap-2">
+            <button onclick="openAdminCredsModal()" class="px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer">
+              <i data-lucide="key-round" class="w-3.5 h-3.5"></i> Đổi TT Đăng Nhập Admin
+            </button>
+            <button onclick="syncAllModulesNow(true)" class="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer">
               <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Đẩy Đồng Bộ Ngay
             </button>
-            <button onclick="exportMasterExcel()" class="px-3.5 py-2 rounded-xl bg-sky-500/20 text-sky-300 border border-sky-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer">
+            <button onclick="exportMasterExcel()" class="px-3.5 py-2 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer">
               <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i> Xuất Excel (.xlsx)
             </button>
           </div>
@@ -143,7 +310,7 @@
                 <option value="user">User (Kỹ thuật)</option>
                 <option value="admin">Admin (Quản trị)</option>
               </select>
-              <button type="submit" class="px-4 py-2 rounded-xl bg-sky-500 text-slate-950 font-bold text-xs cursor-pointer">Thêm</button>
+              <button type="submit" class="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs cursor-pointer">Thêm</button>
             </div>
           </form>
 
@@ -160,11 +327,18 @@
           </div>
         </div>
 
-        <!-- SUB 2: BẢNG PHÂN CA TUẦN -->
+        <!-- SUB 2: BẢNG PHÂN CA TUẦN (CÓ THÊM / BỚT THÀNH VIÊN TRỰC TIẾP) -->
         <div id="adminSub-roster" class="hidden space-y-4">
-          <div class="glass p-4 rounded-2xl flex flex-wrap items-center justify-between gap-2 text-xs text-slate-300">
+          <div class="glass p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs text-slate-300">
             <span>Chọn ca trực tuần cho từng nhân sự. Hệ thống tự ánh xạ 2 chiều: <b>Ca Sáng (Ca 1)</b> • <b>Ca Chiều (Ca 2)</b> • <b>Ca Đêm (Ca 3)</b> • <b>OFF</b>.</span>
-            <button onclick="saveRosterAndSync()" class="px-4 py-2 rounded-xl bg-emerald-500 text-slate-950 font-bold cursor-pointer">Lưu & Đồng Bộ 2 Chiều</button>
+            <div class="flex flex-wrap items-center gap-2">
+              <button onclick="openMemberModal()" class="px-3.5 py-2 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 font-bold flex items-center gap-1.5 cursor-pointer">
+                <i data-lucide="user-plus" class="w-3.5 h-3.5"></i> Thêm Thành Viên
+              </button>
+              <button onclick="saveRosterAndSync()" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold flex items-center gap-1.5 cursor-pointer">
+                <i data-lucide="save" class="w-3.5 h-3.5"></i> Lưu & Đồng Bộ 2 Chiều
+              </button>
+            </div>
           </div>
           <div class="glass rounded-2xl overflow-x-auto">
             <table class="w-full text-left text-xs">
@@ -173,6 +347,7 @@
                   <th class="p-3">Nhân Sự</th>
                   <th class="p-3">Thứ 2</th><th class="p-3">Thứ 3</th><th class="p-3">Thứ 4</th>
                   <th class="p-3">Thứ 5</th><th class="p-3">Thứ 6</th><th class="p-3">Thứ 7</th><th class="p-3">Chủ Nhật</th>
+                  <th class="p-3 text-right">Bớt NV</th>
                 </tr>
               </thead>
               <tbody id="rosterTableBody" class="divide-y divide-slate-800/80"></tbody>
@@ -219,7 +394,7 @@
   </main>
 
   <!-- THANH STARDOCK ĐÁY MÀN HÌNH: ĐÚNG 3 MỤC CÔNG VIỆC CHÍNH CHO CẤP USER -->
-  <div id="userStardock" class="hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[94%] max-w-md">
+  <div id="userStardock" class="hidden fixed left-1/2 -translate-x-1/2 z-40 w-[94%] max-w-md">
     <div class="glass stardock rounded-3xl p-1.5 grid grid-cols-3 gap-1">
       <button onclick="openTab('checklist')" data-dock="checklist" class="dock-btn flex flex-col items-center justify-center py-2.5 px-2 rounded-2xl text-slate-300 cursor-pointer">
         <i data-lucide="clipboard-check" class="w-5 h-5 mb-1"></i>
@@ -243,7 +418,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 
-    // Sử dụng Firebase Realtime Database của dự án dutylogbook-2df88
     const firebaseConfig = {
       apiKey: "AIzaSyCSGbsD1v5Y_p3bdI51CQU4idBgUSBfYDA",
       authDomain: "dutylogbook-2df88.firebaseapp.com",
@@ -329,7 +503,7 @@
 
     function getTodayDateStr() {
       const d = new Date();
-      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     }
 
     // KHỞI TẠO FIREBASE RTDB 2 CHIỀU
@@ -352,7 +526,6 @@
               lastHash = remoteHash;
               localStorage.setItem(MASTER_KEY, JSON.stringify(masterData));
 
-              // Tự động làm mới thông tin User đang đăng nhập (không cần đăng nhập lại)
               if (currentUser) {
                 const updatedMe = masterData.staff.find(u => u.id === currentUser.id || u.username === currentUser.username);
                 if (updatedMe) {
@@ -419,7 +592,7 @@
       const dutyScheduleToday = masterData.staff.map((u, idx) => {
         const sh = (masterData.weeklyRoster[u.id] || {})[todayKey] || '';
         if (!sh || sh === 'OFF') return null;
-        return { id: `SCH-SYNC-${idx+1}`, date: todayStr, shift: sh, staffName: u.name, note: `Đồng bộ (${u.employeeCode})` };
+        return { id: `SCH-SYNC-${idx + 1}`, date: todayStr, shift: sh, staffName: u.name, note: `Đồng bộ (${u.employeeCode})` };
       }).filter(Boolean);
 
       const payload = {
@@ -444,7 +617,6 @@
 
       let changed = false;
 
-      // 1. Cập nhật từ Sổ Duty (duty.html)
       if (msg.source === 'duty') {
         if (Array.isArray(msg.users) && msg.users.length > 0) {
           msg.users.forEach(du => {
@@ -463,7 +635,7 @@
                 name: du.name, username: du.username, password: du.password || '123456',
                 role: du.role === 'Admin' ? 'admin' : 'user', department: 'Kỹ Thuật', title: du.role, status: 'active'
               });
-              masterData.weeklyRoster[newId] = { mon:'', tue:'', wed:'', thu:'', fri:'', sat:'', sun:'' };
+              masterData.weeklyRoster[newId] = { mon: '', tue: '', wed: '', thu: '', fri: '', sat: '', sun: '' };
               changed = true;
             }
           });
@@ -483,7 +655,6 @@
         }
       }
 
-      // 2. Cập nhật từ Daily Checklist (checklist.html)
       if (msg.source === 'checklist') {
         if (msg.weeklyShifts && typeof msg.weeklyShifts === 'object') {
           Object.entries(msg.weeklyShifts).forEach(([uid, daysObj]) => {
@@ -564,59 +735,243 @@
       completeSSO(found);
     });
 
+    function canDeleteMember(u) {
+      if (currentUser && u.id === currentUser.id) return false;
+      if (u.role === 'admin') {
+        const adminCount = masterData.staff.filter(x => x.role === 'admin').length;
+        if (adminCount <= 1) return false;
+      }
+      return true;
+    }
+
     function renderStaffTable() {
       const tb = document.getElementById('staffTableBody');
-      tb.innerHTML = masterData.staff.map(u => `
+      tb.innerHTML = masterData.staff.map(u => {
+        const isMe = currentUser && u.id === currentUser.id;
+        const deletable = canDeleteMember(u);
+        return `
         <tr class="hover:bg-slate-900/50">
           <td class="p-3 font-mono text-sky-300">${u.employeeCode}</td>
-          <td class="p-3 font-semibold">${u.name}</td>
+          <td class="p-3 font-semibold">${u.name} ${isMe ? '<span class="ml-1 text-[10px] text-amber-300">(Bạn)</span>' : ''}</td>
           <td class="p-3 text-slate-400">@${u.username}</td>
-          <td class="p-3"><span class="px-2 py-0.5 rounded-lg text-[10px] font-bold ${u.role==='admin'?'bg-amber-500/20 text-amber-300':'bg-sky-500/20 text-sky-300'}">${u.role.toUpperCase()}</span></td>
+          <td class="p-3"><span class="px-2 py-0.5 rounded-lg text-[10px] font-bold ${u.role === 'admin' ? 'bg-amber-500/20 text-amber-300' : 'bg-sky-500/20 text-sky-300'}">${u.role.toUpperCase()}</span></td>
           <td class="p-3 text-emerald-400">Hoạt động</td>
-          <td class="p-3 text-right">
-            ${u.username !== 'admin' ? `<button onclick="deleteStaff('${u.id}')" class="px-2.5 py-1 rounded-lg bg-rose-500/15 text-rose-300 hover:bg-rose-500/30 cursor-pointer">Xóa</button>` : '<span class="text-slate-500">Mặc định</span>'}
+          <td class="p-3 text-right whitespace-nowrap space-x-1">
+            ${isMe
+              ? `<button onclick="openAdminCredsModal()" class="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 cursor-pointer">Đổi TT Admin</button>`
+              : `<button onclick="openMemberModal('${u.id}')" class="px-2.5 py-1 rounded-lg bg-sky-500/15 text-sky-300 hover:bg-sky-500/30 cursor-pointer">Sửa</button>`
+            }
+            ${deletable
+              ? `<button onclick="deleteStaff('${u.id}')" class="px-2.5 py-1 rounded-lg bg-rose-500/15 text-rose-300 hover:bg-rose-500/30 cursor-pointer">Xóa</button>`
+              : ''
+            }
           </td>
-        </tr>`).join('');
+        </tr>`;
+      }).join('');
     }
 
     function renderRosterTable() {
       const tb = document.getElementById('rosterTableBody');
       tb.innerHTML = masterData.staff.map(u => {
         const row = masterData.weeklyRoster[u.id] || {};
-        return `<tr>
-          <td class="p-3 font-semibold whitespace-nowrap">${u.name} <span class="text-slate-500 font-normal">(${u.employeeCode})</span></td>
+        const deletable = canDeleteMember(u);
+        return `<tr class="hover:bg-slate-900/40">
+          <td class="p-3 font-semibold whitespace-nowrap">
+            <div>${u.name} <span class="text-slate-500 font-normal">(${u.employeeCode})</span></div>
+            <div class="text-[10px] text-slate-400">@${u.username} • ${u.role.toUpperCase()}</div>
+          </td>
           ${DAYS.map(d => `
             <td class="p-2">
               <select data-uid="${u.id}" data-day="${d}" class="roster-sel w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs">
-                ${SHIFT_OPTS.map(opt => `<option value="${opt}" ${row[d]===opt?'selected':''}>${opt||'--'}</option>`).join('')}
+                ${SHIFT_OPTS.map(opt => `<option value="${opt}" ${row[d] === opt ? 'selected' : ''}>${opt || '--'}</option>`).join('')}
               </select>
             </td>`).join('')}
+          <td class="p-2 text-right whitespace-nowrap">
+            ${deletable
+              ? `<button onclick="deleteStaff('${u.id}')" title="Xóa thành viên này" class="px-2.5 py-1.5 rounded-lg bg-rose-500/15 text-rose-300 hover:bg-rose-500/30 cursor-pointer">Xóa</button>`
+              : `<span class="text-[10px] text-slate-500 px-2">Admin</span>`
+            }
+          </td>
         </tr>`;
       }).join('');
     }
 
+    // Thêm nhanh ở tab Danh Sách Nhân Sự
     document.getElementById('addStaffForm').addEventListener('submit', e => {
       e.preventDefault();
+      const uname = document.getElementById('stUser').value.trim().toLowerCase();
+      if (masterData.staff.some(u => u.username.toLowerCase() === uname)) {
+        alert('Tên đăng nhập @' + uname + ' đã tồn tại!');
+        return;
+      }
       const id = 'emp-' + Date.now();
+      const role = document.getElementById('stRole').value;
       masterData.staff.push({
         id,
         employeeCode: document.getElementById('stCode').value.trim(),
         name: document.getElementById('stName').value.trim(),
-        username: document.getElementById('stUser').value.trim().toLowerCase(),
+        username: uname,
         password: document.getElementById('stPass').value.trim(),
-        role: document.getElementById('stRole').value,
-        department: 'Kỹ Thuật', title: document.getElementById('stRole').value === 'admin' ? 'Admin' : 'Kỹ thuật viên',
+        role,
+        department: 'Kỹ Thuật',
+        title: role === 'admin' ? 'Admin' : 'Kỹ thuật viên',
         status: 'active'
       });
-      masterData.weeklyRoster[id] = { mon:'', tue:'', wed:'', thu:'', fri:'', sat:'', sun:'' };
+      masterData.weeklyRoster[id] = { mon: '', tue: '', wed: '', thu: '', fri: '', sat: '', sun: '' };
       e.target.reset();
       document.getElementById('stPass').value = '123456';
       renderStaffTable(); renderRosterTable();
       pushMasterToCloud(); broadcastToIframes();
-      showToast('Đã thêm nhân sự và đồng bộ lên Cloud!');
+      showToast('Đã thêm thành viên và đồng bộ lên Cloud!');
     });
 
-    // Gắn các hàm gọi từ HTML vào window
+    // Modal Thêm / Sửa thành viên (dùng được ngay tại tab Bảng Phân Ca & tab Nhân Sự)
+    window.openMemberModal = (editId = null) => {
+      const modal = document.getElementById('memberModal');
+      const title = document.getElementById('memberModalTitle');
+      const err = document.getElementById('mmErr');
+      err.classList.add('hidden');
+
+      if (editId) {
+        const u = masterData.staff.find(x => x.id === editId);
+        if (!u) return;
+        title.innerHTML = '<i data-lucide="user-pen" class="w-4 h-4 text-sky-400"></i> Sửa Thông Tin Thành Viên';
+        document.getElementById('mmId').value = u.id;
+        document.getElementById('mmCode').value = u.employeeCode;
+        document.getElementById('mmName').value = u.name;
+        document.getElementById('mmUser').value = u.username;
+        document.getElementById('mmPass').value = u.password;
+        document.getElementById('mmRole').value = u.role;
+      } else {
+        title.innerHTML = '<i data-lucide="user-plus" class="w-4 h-4 text-sky-400"></i> Thêm Thành Viên Mới';
+        document.getElementById('memberModalForm').reset();
+        document.getElementById('mmId').value = '';
+        document.getElementById('mmCode').value = 'KT-' + String(masterData.staff.length + 1).padStart(3, '0');
+        document.getElementById('mmPass').value = '123456';
+        document.getElementById('mmRole').value = 'user';
+      }
+      modal.classList.remove('hidden');
+      lucide.createIcons();
+    };
+
+    window.closeMemberModal = () => {
+      document.getElementById('memberModal').classList.add('hidden');
+    };
+
+    document.getElementById('memberModalForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const id = document.getElementById('mmId').value.trim();
+      const code = document.getElementById('mmCode').value.trim();
+      const name = document.getElementById('mmName').value.trim();
+      const uname = document.getElementById('mmUser').value.trim().toLowerCase();
+      const pass = document.getElementById('mmPass').value.trim();
+      const role = document.getElementById('mmRole').value;
+      const err = document.getElementById('mmErr');
+
+      const dup = masterData.staff.find(u => u.username.toLowerCase() === uname && u.id !== id);
+      if (dup) {
+        err.textContent = `Tên đăng nhập @${uname} đã được sử dụng!`;
+        err.classList.remove('hidden');
+        return;
+      }
+
+      if (id) {
+        const target = masterData.staff.find(u => u.id === id);
+        if (target) {
+          target.employeeCode = code;
+          target.name = name;
+          target.username = uname;
+          target.password = pass;
+          target.role = role;
+          target.title = role === 'admin' ? 'Admin' : 'Kỹ thuật viên';
+        }
+        showToast('Đã cập nhật thông tin thành viên!');
+      } else {
+        const newId = 'emp-' + Date.now();
+        masterData.staff.push({
+          id: newId, employeeCode: code, name, username: uname, password: pass,
+          role, department: 'Kỹ Thuật', title: role === 'admin' ? 'Admin' : 'Kỹ thuật viên', status: 'active'
+        });
+        masterData.weeklyRoster[newId] = { mon: '', tue: '', wed: '', thu: '', fri: '', sat: '', sun: '' };
+        showToast('Đã thêm thành viên mới vào bảng phân ca!');
+      }
+
+      window.closeMemberModal();
+      renderStaffTable(); renderRosterTable();
+      pushMasterToCloud(); broadcastToIframes();
+    });
+
+    // Modal Đổi thông tin đăng nhập Admin
+    window.openAdminCredsModal = () => {
+      if (!currentUser || currentUser.role !== 'admin') return;
+      document.getElementById('acCode').value = currentUser.employeeCode || 'QL-001';
+      document.getElementById('acName').value = currentUser.name || '';
+      document.getElementById('acUser').value = currentUser.username || '';
+      document.getElementById('acOldPass').value = '';
+      document.getElementById('acNewPass').value = '';
+      document.getElementById('acConfirmPass').value = '';
+      document.getElementById('acErr').classList.add('hidden');
+      document.getElementById('adminCredsModal').classList.remove('hidden');
+      lucide.createIcons();
+    };
+
+    window.closeAdminCredsModal = () => {
+      document.getElementById('adminCredsModal').classList.add('hidden');
+    };
+
+    document.getElementById('adminCredsForm').addEventListener('submit', e => {
+      e.preventDefault();
+      if (!currentUser || currentUser.role !== 'admin') return;
+      const err = document.getElementById('acErr');
+      err.classList.add('hidden');
+
+      const code = document.getElementById('acCode').value.trim();
+      const name = document.getElementById('acName').value.trim();
+      const uname = document.getElementById('acUser').value.trim().toLowerCase();
+      const oldPass = document.getElementById('acOldPass').value.trim();
+      const newPass = document.getElementById('acNewPass').value.trim();
+      const confirmPass = document.getElementById('acConfirmPass').value.trim();
+
+      if (oldPass !== currentUser.password) {
+        err.textContent = 'Mật khẩu hiện tại không chính xác!';
+        err.classList.remove('hidden');
+        return;
+      }
+      if (newPass && newPass.length < 4) {
+        err.textContent = 'Mật khẩu mới cần ít nhất 4 ký tự!';
+        err.classList.remove('hidden');
+        return;
+      }
+      if (newPass !== confirmPass) {
+        err.textContent = 'Xác nhận mật khẩu mới không khớp!';
+        err.classList.remove('hidden');
+        return;
+      }
+      const dup = masterData.staff.find(u => u.username.toLowerCase() === uname && u.id !== currentUser.id);
+      if (dup) {
+        err.textContent = `Tên đăng nhập @${uname} đã tồn tại cho nhân sự khác!`;
+        err.classList.remove('hidden');
+        return;
+      }
+
+      const target = masterData.staff.find(u => u.id === currentUser.id);
+      if (target) {
+        target.employeeCode = code;
+        target.name = name;
+        target.username = uname;
+        if (newPass) target.password = newPass;
+        currentUser = target;
+      }
+
+      window.closeAdminCredsModal();
+      updateHeaderUI();
+      renderStaffTable();
+      renderRosterTable();
+      pushMasterToCloud();
+      broadcastToIframes();
+      showToast('Đã cập nhật thông tin đăng nhập Admin & đồng bộ Cloud!');
+    });
+
     window.syncAllModulesNow = (notify = false) => {
       pushMasterToCloud();
       broadcastToIframes();
@@ -656,12 +1011,17 @@
     };
 
     window.deleteStaff = (id) => {
-      if (!confirm('Xác nhận xóa nhân sự này khỏi toàn bộ 3 hệ thống?')) return;
+      const target = masterData.staff.find(u => u.id === id);
+      if (!target || !canDeleteMember(target)) {
+        alert('Không thể xóa tài khoản Admin đang đăng nhập hoặc Admin duy nhất!');
+        return;
+      }
+      if (!confirm(`Xác nhận xóa thành viên "${target.name}" (@${target.username}) khỏi bảng phân ca và toàn bộ 3 hệ thống?`)) return;
       masterData.staff = masterData.staff.filter(u => u.id !== id);
       delete masterData.weeklyRoster[id];
       renderStaffTable(); renderRosterTable();
       pushMasterToCloud(); broadcastToIframes();
-      showToast('Đã xóa nhân sự và đồng bộ Cloud!');
+      showToast(`Đã xóa thành viên ${target.name} và đồng bộ Cloud!`);
     };
 
     window.saveRosterAndSync = () => {
@@ -679,12 +1039,11 @@
     window.exportMasterExcel = () => {
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(masterData.staff), 'NhanSu');
-      const rosterRows = masterData.staff.map(u => ({ MaNV: u.employeeCode, HoTen: u.name, ...(masterData.weeklyRoster[u.id]||{}) }));
+      const rosterRows = masterData.staff.map(u => ({ MaNV: u.employeeCode, HoTen: u.name, ...(masterData.weeklyRoster[u.id] || {}) }));
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rosterRows), 'PhanCa');
       XLSX.writeFile(wb, `Unified_NhanSu_PhanCa_${getTodayDateStr()}.xlsx`);
     };
 
-    // Khởi chạy
     window.addEventListener('DOMContentLoaded', () => {
       lucide.createIcons();
       lastHash = computeHash(masterData);
