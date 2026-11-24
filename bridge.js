@@ -1,4 +1,4 @@
-/* bridge-v7.js — SSO Tài khoản Duty/Admin, Ánh xạ Phân Ca, Ẩn Admin Tối Cao & Tối Giản Tab Điện Nước */
+/* bridge-v9.js — Cầu nối SSO, Phân Ca & Đồng Bộ 2 Chiều cho cả 4 Module (Checklist, Duty, Điện Nước, Chiller & Bồn Nước) */
 (function () {
   let isApplyingFromMaster = false;
   let lastMasterData = null;
@@ -41,6 +41,10 @@
 
   function isChecklistModule() {
     return !!document.getElementById('root') && !document.getElementById('authOverlay') && !document.getElementById('login-screen');
+  }
+
+  function isBmsLogModule() {
+    return !!document.getElementById('chiller-grid') && !!document.getElementById('tank-grid') && typeof datalogs !== 'undefined';
   }
 
   async function hashPowerPasswordLocal(plainText, usernameSalt) {
@@ -570,6 +574,94 @@
     }
   }
 
+  // ==================== 4. GIÁM SÁT CHILLER & BỒN NƯỚC (log.html) ====================
+  let lastBmsSyncedHash = '';
+
+  function applyToBmsLog(data) {
+    if (!isBmsLogModule() || !data || !data.currentUser) return;
+    const u = data.currentUser;
+    const isAdmin = u.role === 'admin';
+
+    // 1. Phân quyền giao diện: User (duty) ẩn nút Xóa Datalog; Admin giữ toàn quyền
+    const existingCss = document.getElementById('unified-bms-user-css');
+    if (!isAdmin) {
+      if (!existingCss) {
+        const st = document.createElement('style');
+        st.id = 'unified-bms-user-css';
+        st.textContent = `
+          button[onclick*="openClearModal"] {
+            display: none !important;
+          }
+          body {
+            padding-bottom: 48px !important;
+          }
+        `;
+        document.head.appendChild(st);
+      }
+    } else if (existingCss) {
+      existingCss.remove();
+    }
+
+    // 2. Ánh xạ nhân viên thao tác từ BẢNG PHÂN CA (rosterStaff + onDutyNow)
+    const onDutyNow = Array.isArray(data.onDutyNow) ? data.onDutyNow : [];
+    const rosterStaff = Array.isArray(data.rosterStaff) ? data.rosterStaff : [];
+    const currentShift = data.currentShift || '';
+
+    let dl = document.getElementById('unified-bms-operators');
+    if (!dl) {
+      dl = document.createElement('datalist');
+      dl.id = 'unified-bms-operators';
+      document.body.appendChild(dl);
+    }
+
+    const opts = [];
+    const seen = new Set();
+    onDutyNow.forEach(r => {
+      const label = currentShift ? `${r.name} (${currentShift})` : r.name;
+      if (!seen.has(label)) { seen.add(label); opts.push(label); }
+    });
+    rosterStaff.forEach(r => {
+      if (!seen.has(r.name)) { seen.add(r.name); opts.push(r.name); }
+    });
+    if (isAdmin && u.name && !seen.has(u.name)) {
+      opts.push(u.name);
+    }
+    dl.innerHTML = opts.map(o => `<option value="${o.replace(/"/g, '&quot;')}"></option>`).join('');
+
+    ['chiller-operator', 'tank-operator', 'valve-operator'].forEach(id => {
+      const inp = document.getElementById(id);
+      if (inp) inp.setAttribute('list', 'unified-bms-operators');
+    });
+
+    // Gợi ý sẵn nhân viên đang trực ca từ Bảng Phân Ca vào localStorage của log.html
+    const defaultOp = (!isAdmin && onDutyNow.length > 0)
+      ? (currentShift ? `${onDutyNow[0].name} (${currentShift})` : onDutyNow[0].name)
+      : (isAdmin ? u.name : '');
+    if (defaultOp) {
+      try { localStorage.setItem('bms_scada_last_operator_v1', defaultOp); } catch {}
+    }
+  }
+
+  function applyBmsCloudSync(data) {
+    if (!isBmsLogModule() || !data || !data.deviceState) return;
+    const incomingHash = data.bmsHash || JSON.stringify({ d: data.deviceState, l: data.datalogs || [] });
+    if (incomingHash === lastBmsSyncedHash) return;
+
+    isApplyingFromMaster = true;
+    lastBmsSyncedHash = incomingHash;
+    try {
+      appState = data.deviceState;
+      datalogs = Array.isArray(data.datalogs) ? data.datalogs : [];
+      try {
+        localStorage.setItem('bms_scada_device_state_v1', JSON.stringify(appState));
+        localStorage.setItem('bms_scada_datalog_v1', JSON.stringify(datalogs));
+      } catch {}
+      if (typeof window.renderAll === 'function') window.renderAll();
+    } finally {
+      setTimeout(() => { isApplyingFromMaster = false; }, 350);
+    }
+  }
+
   // ==================== LẮNG NGHE GÓI TIN TỪ MASTER ====================
   window.addEventListener('message', function (event) {
     const data = event.data;
@@ -582,6 +674,11 @@
       return;
     }
 
+    if (data.type === 'BMS_LOG_SYNC') {
+      applyBmsCloudSync(data);
+      return;
+    }
+
     if (data.type !== 'UNIFIED_SYNC' || !data.currentUser) return;
 
     isApplyingFromMaster = true;
@@ -591,6 +688,7 @@
       applyToDuty(data);
       applyToPower(data);
       applyToChecklist(data);
+      applyToBmsLog(data);
     } finally {
       setTimeout(() => { isApplyingFromMaster = false; }, 400);
     }
@@ -650,6 +748,25 @@
           } catch {}
         }
       }, 1500);
+    }
+
+    if (isBmsLogModule() && typeof window.saveToStorage === 'function') {
+      const origSaveToStorage = window.saveToStorage;
+      window.saveToStorage = function () {
+        const res = origSaveToStorage.apply(this, arguments);
+        if (!isApplyingFromMaster && window.parent && window.parent !== window) {
+          const h = JSON.stringify({ d: appState, l: datalogs || [] });
+          if (h !== lastBmsSyncedHash) {
+            lastBmsSyncedHash = h;
+            window.parent.postMessage({
+              type: 'BMS_LOG_UPDATE',
+              deviceState: appState,
+              datalogs: datalogs || []
+            }, '*');
+          }
+        }
+        return res;
+      };
     }
   });
 })();
