@@ -188,17 +188,119 @@
   }
 
   // ==================== 2. ĐIỆN NƯỚC (power.html) ====================
-  // Tối giản tối đa giao diện Ghi Chỉ Số Công Tơ cho nhân viên (chỉ giữ Điện/Nước, Ngày, Nhập số mới & Lưu)
+  // Tối giản giao diện Ghi Chỉ Số Công Tơ + Dời Menu Bar xuống sát đáy & Tự động ẩn
+  let powerNavAutoHideInitialized = false;
+  let powerNavHideTimer = null;
+
+  function setPowerBottomNavVisible(visible) {
+    const nav = document.querySelector('nav.fixed.bottom-0');
+    const handle = document.getElementById('powerNavRevealHandle');
+    if (nav) nav.classList.toggle('power-nav-autohidden', !visible);
+    if (handle) handle.classList.toggle('handle-hidden', visible);
+  }
+
+  function schedulePowerNavAutoHide(delayMs = 3200) {
+    clearTimeout(powerNavHideTimer);
+    powerNavHideTimer = setTimeout(() => {
+      setPowerBottomNavVisible(false);
+    }, delayMs);
+  }
+
+  function initPowerBottomNavAutoHide() {
+    if (powerNavAutoHideInitialized) {
+      setPowerBottomNavVisible(true);
+      schedulePowerNavAutoHide(3200);
+      return;
+    }
+    const nav = document.querySelector('nav.fixed.bottom-0');
+    if (!nav) return;
+    powerNavAutoHideInitialized = true;
+
+    // Tạo dấu nhận diện nhỏ sát mép dưới để chạm / rê chuột / vuốt lên mở lại menu bar
+    if (!document.getElementById('powerNavRevealHandle')) {
+      const handle = document.createElement('div');
+      handle.id = 'powerNavRevealHandle';
+      handle.className = 'handle-hidden';
+      handle.title = 'Chạm hoặc vuốt lên để hiện thanh Công tơ / Thiết bị';
+      handle.innerHTML = '<div class="power-nav-pill-bar"></div>';
+      handle.addEventListener('click', () => {
+        setPowerBottomNavVisible(true);
+        schedulePowerNavAutoHide(4000);
+      });
+      handle.addEventListener('mouseenter', () => {
+        setPowerBottomNavVisible(true);
+        clearTimeout(powerNavHideTimer);
+      });
+      document.body.appendChild(handle);
+    }
+
+    // Tạm dừng tự ẩn khi đang rê chuột / chạm trên menu bar
+    nav.addEventListener('mouseenter', () => clearTimeout(powerNavHideTimer));
+    nav.addEventListener('mouseleave', () => schedulePowerNavAutoHide(2400));
+    nav.addEventListener('touchstart', () => clearTimeout(powerNavHideTimer), { passive: true });
+    nav.addEventListener('click', () => schedulePowerNavAutoHide(900));
+
+    // Tự ẩn khi cuộn xuống, tự hiện khi cuộn lên hoặc ở đầu trang
+    let lastScrollY = window.scrollY || 0;
+    window.addEventListener('scroll', () => {
+      if (!document.getElementById('unified-power-user-css')) return;
+      const curY = window.scrollY || 0;
+      if (curY > lastScrollY + 12 && curY > 40) {
+        clearTimeout(powerNavHideTimer);
+        setPowerBottomNavVisible(false);
+      } else if (curY < lastScrollY - 14 || curY < 20) {
+        setPowerBottomNavVisible(true);
+        schedulePowerNavAutoHide(3200);
+      }
+      lastScrollY = curY;
+    }, { passive: true });
+
+    // Cử chỉ vuốt từ cạnh dưới màn hình lên để mở lại menu bar
+    let bottomStartY = 0;
+    let trackingBottom = false;
+    document.addEventListener('touchstart', (e) => {
+      if (!document.getElementById('unified-power-user-css')) return;
+      if (!e.touches || e.touches.length !== 1) return;
+      const y = e.touches[0].clientY;
+      if (window.innerHeight - y <= 44) {
+        bottomStartY = y;
+        trackingBottom = true;
+      }
+    }, { passive: true });
+    document.addEventListener('touchmove', (e) => {
+      if (!trackingBottom || !e.touches || e.touches.length !== 1) return;
+      const dy = bottomStartY - e.touches[0].clientY;
+      if (dy > 18) {
+        trackingBottom = false;
+        setPowerBottomNavVisible(true);
+        schedulePowerNavAutoHide(4000);
+      }
+    }, { passive: true });
+    document.addEventListener('touchend', () => { trackingBottom = false; }, { passive: true });
+
+    // Khi đang nhập số trong ô input -> ẩn ngay menu bar để không che bàn phím / nội dung
+    document.addEventListener('focusin', (e) => {
+      if (!document.getElementById('unified-power-user-css')) return;
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+        clearTimeout(powerNavHideTimer);
+        setPowerBottomNavVisible(false);
+      }
+    });
+
+    setPowerBottomNavVisible(true);
+    schedulePowerNavAutoHide(3200);
+  }
+
   function enforcePowerUserView() {
     if (!document.getElementById('unified-power-user-css')) {
       const st = document.createElement('style');
       st.id = 'unified-power-user-css';
       st.textContent = `
-        /* 1. Ẩn toàn bộ các trang & menu không dành cho nhân viên */
+        /* 1. Ẩn toàn bộ các trang, sidebar desktop & nút không dành cho nhân viên */
+        aside,
         #nav-dashboard, #nav-sld, #nav-accounts,
         #mnav-dashboard, #mnav-sld, #mnav-accounts,
         #page-dashboard, #page-sld, #page-accounts,
-        aside .bg-blue-500\\/10,
         #toggleOfflineSimBtn, #headerPwaBtn,
         header button[onclick*="handleLogout"],
         [data-admin-only] {
@@ -206,14 +308,11 @@
         }
 
         /* 2. Đơn giản hóa tối đa trang Ghi Chỉ Số Công Tơ (#page-meters) */
-        /* Ẩn nút Khu vực, Thêm công tơ, Làm Trắng Báo Cáo */
         #page-meters button[onclick*="openMeterZonesModal"],
         #btnAddMeterToolbar,
         #btnWipeReportToolbar,
-        /* Ẩn thanh Công cụ Excel/CSV & Khối Ma trận nâng cao bên dưới */
         #page-meters > div:nth-child(2),
         #page-meters > div:nth-child(5),
-        /* Ẩn dòng tổn hao Master/Sub gây rối */
         #tableLossElecSummary,
         #tableLossWaterSummary {
           display: none !important;
@@ -229,7 +328,7 @@
           display: none !important;
         }
 
-        /* 4. Trên mỗi dòng công tơ, chỉ giữ duy nhất nút Lưu (ẩn nút Lên/Xuống/Sửa/Xóa) */
+        /* 4. Trên mỗi dòng công tơ, chỉ giữ duy nhất nút Lưu */
         #electricMeterTableBody button[onclick*="moveMeterOrder"],
         #electricMeterTableBody button[onclick*="openEditMeterModal"],
         #electricMeterTableBody button[onclick*="deleteMeter"],
@@ -239,7 +338,7 @@
           display: none !important;
         }
 
-        /* 5. Tối ưu ô nhập số trên điện thoại (tránh iOS tự zoom & dễ chạm) */
+        /* 5. Tối ưu ô nhập số trên điện thoại */
         .meter-reading-input {
           min-width: 98px !important;
           font-size: 16px !important;
@@ -252,22 +351,65 @@
           padding-right: 0.65rem !important;
         }
 
-        /* 6. Chừa khoảng trống đáy để thanh Stardock cam ấm không che dòng cuối */
+        /* 6. Dời menu bar (Công tơ / Thiết bị) xuống sát dưới cùng & hỗ trợ tự động ẩn */
         body {
-          padding-bottom: 168px !important;
+          padding-bottom: 72px !important;
         }
-        @media (max-width: 1023px) {
-          nav.fixed.bottom-0 {
-            bottom: calc(6.5rem + env(safe-area-inset-bottom, 0px)) !important;
-            left: 50% !important;
-            right: auto !important;
-            transform: translateX(-50%) !important;
-            width: min(86%, 290px) !important;
-            border-radius: 1.25rem !important;
-            border: 1px solid rgba(251, 146, 60, 0.35) !important;
-            box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35) !important;
-            padding: 0.35rem 0.75rem !important;
-          }
+        nav.fixed.bottom-0 {
+          display: flex !important;
+          position: fixed !important;
+          bottom: calc(0.45rem + env(safe-area-inset-bottom, 0px)) !important;
+          left: 50% !important;
+          right: auto !important;
+          transform: translateX(-50%) !important;
+          width: min(82%, 260px) !important;
+          border-radius: 1.25rem !important;
+          border: 1px solid rgba(255, 255, 255, 0.22) !important;
+          box-shadow: 0 10px 28px rgba(0, 0, 0, 0.38) !important;
+          padding: 0.3rem 0.75rem !important;
+          z-index: 45 !important;
+          transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms ease !important;
+          will-change: transform, opacity;
+        }
+        nav.fixed.bottom-0.power-nav-autohidden {
+          transform: translate(-50%, calc(100% + 1.5rem)) !important;
+          opacity: 0 !important;
+          pointer-events: none !important;
+        }
+
+        /* Dấu vạch nhỏ sát mép dưới khi menu bar đang ẩn */
+        #powerNavRevealHandle {
+          position: fixed;
+          bottom: 0;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 140px;
+          height: 24px;
+          display: flex;
+          align-items: flex-end;
+          justify-content: center;
+          padding-bottom: calc(5px + env(safe-area-inset-bottom, 0px));
+          z-index: 44;
+          cursor: pointer;
+          transition: opacity 220ms ease, transform 240ms ease;
+        }
+        #powerNavRevealHandle.handle-hidden {
+          opacity: 0;
+          transform: translate(-50%, 100%);
+          pointer-events: none;
+        }
+        .power-nav-pill-bar {
+          width: 48px;
+          height: 5px;
+          border-radius: 9999px;
+          background: linear-gradient(90deg, #38bdf8, #34d399);
+          box-shadow: 0 0 10px rgba(56, 189, 248, 0.75);
+          transition: width 180ms ease, height 180ms ease;
+        }
+        #powerNavRevealHandle:hover .power-nav-pill-bar,
+        #powerNavRevealHandle:active .power-nav-pill-bar {
+          width: 64px;
+          height: 6px;
         }
       `;
       document.head.appendChild(st);
@@ -290,11 +432,19 @@
     if (!POWER_USER_ALLOWED_PAGES.includes(activeId) && typeof window.switchPage === 'function') {
       window.switchPage('meters');
     }
+
+    initPowerBottomNavAutoHide();
   }
 
   function restorePowerAdminView() {
+    clearTimeout(powerNavHideTimer);
     const st = document.getElementById('unified-power-user-css');
     if (st) st.remove();
+    const handle = document.getElementById('powerNavRevealHandle');
+    if (handle) handle.remove();
+    const nav = document.querySelector('nav.fixed.bottom-0');
+    if (nav) nav.classList.remove('power-nav-autohidden');
+    powerNavAutoHideInitialized = false;
   }
 
   async function applyToPower(data) {
