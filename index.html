@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>Engineering Unified OS — SSO & Đồng Bộ 2 Chiều</title>
+  <title>Engineering Unified OS — Tài Khoản Duty & Phân Ca Độc Lập</title>
 
   <!-- Cấu hình PWA & Màn hình chính iPhone (iOS Standalone) -->
   <link rel="manifest" href="manifest.json" />
@@ -97,8 +97,8 @@
 
       <form id="ssoForm" class="space-y-4">
         <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1.5">Tên đăng nhập / Mã NV</label>
-          <input id="ssoUser" type="text" required placeholder="vd: admin hoặc tranb" autocomplete="username"
+          <label class="block text-xs font-semibold text-slate-300 mb-1.5">Tên đăng nhập (Admin / Duty dùng chung)</label>
+          <input id="ssoUser" type="text" required placeholder="vd: admin hoặc duty" autocomplete="username"
             class="w-full px-4 py-3 rounded-2xl bg-slate-900/80 border border-slate-700 text-sm focus:outline-none focus:border-sky-400" />
         </div>
         <div>
@@ -113,56 +113,96 @@
       </form>
 
       <div class="mt-5 pt-4 border-t border-slate-800 text-[11px] text-slate-400 flex justify-between">
-        <span>Admin mặc định: <b class="text-slate-200">admin / 123456</b></span>
-        <span>User mẫu: <b class="text-slate-200">tranb / 123456</b></span>
+        <span>Admin: <b class="text-slate-200">admin / 123456</b></span>
+        <span>Duty chung: <b class="text-sky-300">duty / 123456</b></span>
       </div>
     </div>
   </div>
 
-  <!-- MODAL THÊM / SỬA THÀNH VIÊN -->
-  <div id="memberModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4">
+  <!-- MODAL THÊM / SỬA TÀI KHOẢN ĐĂNG NHẬP (TAB 1) -->
+  <div id="accountModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4">
     <div class="glass w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4">
       <div class="flex items-center justify-between">
-        <h3 id="memberModalTitle" class="text-base font-bold text-white flex items-center gap-2">
-          <i data-lucide="user-plus" class="w-4 h-4 text-sky-400"></i> Thêm Thành Viên Mới
+        <h3 id="accountModalTitle" class="text-base font-bold text-white flex items-center gap-2">
+          <i data-lucide="user-plus" class="w-4 h-4 text-sky-400"></i> Thêm Tài Khoản Đăng Nhập
         </h3>
-        <button onclick="closeMemberModal()" class="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white cursor-pointer">
+        <button onclick="closeAccountModal()" class="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white cursor-pointer">
           <i data-lucide="x" class="w-4 h-4"></i>
         </button>
       </div>
-      <form id="memberModalForm" class="space-y-3 text-xs">
-        <input type="hidden" id="mmId" />
+      <form id="accountModalForm" class="space-y-3 text-xs">
+        <input type="hidden" id="amId" />
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="text-slate-400 font-semibold">Mã NV</label>
-            <input id="mmCode" required placeholder="KT-004" class="w-full mt-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 focus:outline-none focus:border-sky-400" />
+            <label class="text-slate-400 font-semibold">Mã Tài Khoản</label>
+            <input id="amCode" required placeholder="DUTY-01" class="w-full mt-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 focus:outline-none focus:border-sky-400" />
           </div>
           <div>
             <label class="text-slate-400 font-semibold">Cấp Quyền</label>
-            <select id="mmRole" class="w-full mt-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 focus:outline-none focus:border-sky-400">
-              <option value="user">User (Kỹ thuật)</option>
+            <select id="amRole" class="w-full mt-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 focus:outline-none focus:border-sky-400">
+              <option value="user">User (Tài khoản Duty chung)</option>
               <option value="admin">Admin (Quản trị)</option>
             </select>
           </div>
         </div>
         <div>
-          <label class="text-slate-400 font-semibold">Họ và Tên</label>
-          <input id="mmName" required placeholder="Nguyễn Văn D" class="w-full mt-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 focus:outline-none focus:border-sky-400" />
+          <label class="text-slate-400 font-semibold">Tên Hiển Thị Tài Khoản</label>
+          <input id="amName" required placeholder="Tài Khoản Duty (Dùng Chung)" class="w-full mt-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 focus:outline-none focus:border-sky-400" />
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="text-slate-400 font-semibold">Tên đăng nhập</label>
-            <input id="mmUser" required placeholder="vand" class="w-full mt-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 focus:outline-none focus:border-sky-400" />
+            <input id="amUser" required placeholder="duty" class="w-full mt-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 focus:outline-none focus:border-sky-400" />
           </div>
           <div>
             <label class="text-slate-400 font-semibold">Mật khẩu</label>
-            <input id="mmPass" required value="123456" class="w-full mt-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 focus:outline-none focus:border-sky-400" />
+            <input id="amPass" required value="123456" class="w-full mt-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 focus:outline-none focus:border-sky-400" />
           </div>
         </div>
-        <p id="mmErr" class="hidden text-rose-400 font-medium"></p>
+        <p id="amErr" class="hidden text-rose-400 font-medium"></p>
         <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeMemberModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold cursor-pointer">Hủy</button>
-          <button type="submit" class="px-5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold cursor-pointer">Lưu & Đồng Nhất 3 Tab</button>
+          <button type="button" onclick="closeAccountModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold cursor-pointer">Hủy</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold cursor-pointer">Lưu Tài Khoản</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL THÊM / SỬA NHÂN SỰ TRONG BẢNG PHÂN CA (ĐỘC LẬP - TAB 2) -->
+  <div id="rosterMemberModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4">
+    <div class="glass w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4 border-emerald-500/30">
+      <div class="flex items-center justify-between">
+        <h3 id="rosterModalTitle" class="text-base font-bold text-emerald-300 flex items-center gap-2">
+          <i data-lucide="user-plus" class="w-4 h-4"></i> Thêm Nhân Sự Vào Bảng Phân Ca
+        </h3>
+        <button onclick="closeRosterMemberModal()" class="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white cursor-pointer">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <p class="text-[11px] text-slate-400">Danh sách này độc lập với tài khoản đăng nhập và được ánh xạ làm người thực hiện trong Checklist & Sổ Duty.</p>
+      <form id="rosterMemberForm" class="space-y-3 text-xs">
+        <input type="hidden" id="rmId" />
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-slate-400 font-semibold">Mã NV</label>
+            <input id="rmCode" required placeholder="KT-004" class="w-full mt-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 focus:outline-none focus:border-emerald-400" />
+          </div>
+          <div>
+            <label class="text-slate-400 font-semibold">Chức vụ / Tổ</label>
+            <input id="rmTitle" placeholder="Kỹ thuật viên" value="Kỹ thuật viên" class="w-full mt-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 focus:outline-none focus:border-emerald-400" />
+          </div>
+        </div>
+        <div>
+          <label class="text-slate-400 font-semibold">Họ và Tên Nhân Sự Trực Ca</label>
+          <input id="rmName" required placeholder="Nguyễn Văn D" class="w-full mt-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 focus:outline-none focus:border-emerald-400" />
+        </div>
+        <div>
+          <label class="text-slate-400 font-semibold">Bộ Phận</label>
+          <input id="rmDept" value="Kỹ Thuật" class="w-full mt-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 focus:outline-none focus:border-emerald-400" />
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeRosterMemberModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold cursor-pointer">Hủy</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold cursor-pointer">Lưu Vào Bảng Phân Ca</button>
         </div>
       </form>
     </div>
@@ -183,7 +223,7 @@
       <form id="adminCredsForm" class="space-y-3 text-xs">
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="text-slate-400 font-semibold">Mã NV Admin</label>
+            <label class="text-slate-400 font-semibold">Mã Admin</label>
             <input id="acCode" required class="w-full mt-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 focus:outline-none focus:border-amber-400" />
           </div>
           <div>
@@ -230,7 +270,7 @@
           <span class="text-sm font-bold truncate" id="hdrName">Chưa đăng nhập</span>
           <span id="hdrRoleBadge" class="text-[10px] px-2 py-0.5 rounded-full font-bold bg-sky-500/20 text-sky-300">USER</span>
         </div>
-        <div class="text-[11px] text-slate-400 truncate" id="hdrShiftInfo">Ca hôm nay: Đang đồng bộ...</div>
+        <div class="text-[11px] text-slate-400 truncate" id="hdrShiftInfo">Đang tải ca trực...</div>
       </div>
     </div>
 
@@ -263,14 +303,14 @@
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 class="text-xl font-bold">Trung Tâm Quản Trị Hợp Nhất (Admin)</h2>
-            <p class="text-xs text-slate-400">Đồng nhất 100% tài khoản User & phiên đăng nhập SSO sang cả 3 tab: Checklist, Sổ Duty và Điện Nước.</p>
+            <p class="text-xs text-slate-400">Tách rời <b>Tài khoản Đăng nhập (Admin / Duty dùng chung)</b> với <b>Bảng Phân Ca</b> — Dữ liệu thực hiện ánh xạ trực tiếp từ Bảng Phân Ca.</p>
           </div>
           <div class="flex flex-wrap gap-2">
             <button onclick="openAdminCredsModal()" class="px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer">
               <i data-lucide="key-round" class="w-3.5 h-3.5"></i> Đổi TT Đăng Nhập Admin
             </button>
             <button onclick="syncAllModulesNow(true)" class="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer">
-              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Đồng Nhất 3 Hệ Thống
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Đồng Bộ 3 Hệ Thống
             </button>
             <button onclick="exportMasterExcel()" class="px-3.5 py-2 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer">
               <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i> Xuất Excel (.xlsx)
@@ -279,44 +319,25 @@
         </div>
 
         <div class="flex gap-2 border-b border-slate-800 pb-3 overflow-x-auto">
-          <button onclick="switchAdminSub('staff')" id="subBtn-staff" class="px-4 py-2 rounded-xl text-xs font-bold bg-sky-500 text-slate-950 cursor-pointer whitespace-nowrap">1. Danh Sách Nhân Sự</button>
-          <button onclick="switchAdminSub('roster')" id="subBtn-roster" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 cursor-pointer whitespace-nowrap">2. Bảng Phân Ca Liên Kết</button>
+          <button onclick="switchAdminSub('staff')" id="subBtn-staff" class="px-4 py-2 rounded-xl text-xs font-bold bg-sky-500 text-slate-950 cursor-pointer whitespace-nowrap">1. Tài Khoản Đăng Nhập (Admin / Duty)</button>
+          <button onclick="switchAdminSub('roster')" id="subBtn-roster" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 cursor-pointer whitespace-nowrap">2. Bảng Phân Ca (Ánh Xạ Thực Hiện)</button>
           <button onclick="switchAdminSub('perms')" id="subBtn-perms" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 cursor-pointer whitespace-nowrap">3. Phân Quyền & Giám Sát</button>
         </div>
 
-        <!-- SUB 1: NHÂN SỰ -->
+        <!-- SUB 1: TÀI KHOẢN ĐĂNG NHẬP (KHÔNG LIÊN KẾT BẢNG PHÂN CA) -->
         <div id="adminSub-staff" class="space-y-4">
-          <form id="addStaffForm" class="glass p-4 rounded-2xl grid grid-cols-1 sm:grid-cols-6 gap-3 items-end">
-            <div>
-              <label class="text-[11px] text-slate-400">Mã NV</label>
-              <input id="stCode" required placeholder="KT-004" class="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs" />
-            </div>
-            <div class="sm:col-span-2">
-              <label class="text-[11px] text-slate-400">Họ và Tên</label>
-              <input id="stName" required placeholder="Nguyễn Văn D" class="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs" />
-            </div>
-            <div>
-              <label class="text-[11px] text-slate-400">Username</label>
-              <input id="stUser" required placeholder="vand" class="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs" />
-            </div>
-            <div>
-              <label class="text-[11px] text-slate-400">Mật khẩu</label>
-              <input id="stPass" required value="123456" class="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs" />
-            </div>
-            <div class="flex gap-2">
-              <select id="stRole" class="flex-1 px-2 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs">
-                <option value="user">User (Kỹ thuật)</option>
-                <option value="admin">Admin (Quản trị)</option>
-              </select>
-              <button type="submit" class="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs cursor-pointer">Thêm</button>
-            </div>
-          </form>
+          <div class="glass p-3.5 rounded-2xl flex flex-wrap items-center justify-between gap-2 text-xs text-slate-300 border-sky-500/20">
+            <span>Quản lý tài khoản đăng nhập hệ thống (vd: <b>admin</b> và tài khoản <b>duty</b> cho nhân viên dùng chung). Bảng này <b>không</b> ảnh hưởng đến danh sách nhân sự trong Bảng Phân Ca.</span>
+            <button onclick="openAccountModal()" class="px-3.5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold flex items-center gap-1.5 cursor-pointer">
+              <i data-lucide="user-plus" class="w-3.5 h-3.5"></i> Thêm Tài Khoản Mới
+            </button>
+          </div>
 
           <div class="glass rounded-2xl overflow-x-auto">
             <table class="w-full text-left text-xs">
               <thead class="bg-slate-900/90 text-slate-400 uppercase text-[10px]">
                 <tr>
-                  <th class="p-3">Mã NV</th><th class="p-3">Họ Tên</th><th class="p-3">Tài Khoản</th>
+                  <th class="p-3">Mã TK</th><th class="p-3">Tên Hiển Thị</th><th class="p-3">Tên Đăng Nhập</th>
                   <th class="p-3">Cấp Quyền</th><th class="p-3">Trạng Thái</th><th class="p-3 text-right">Thao Tác</th>
                 </tr>
               </thead>
@@ -325,16 +346,19 @@
           </div>
         </div>
 
-        <!-- SUB 2: BẢNG PHÂN CA TUẦN -->
+        <!-- SUB 2: BẢNG PHÂN CA ĐỘC LẬP (NGUỒN ÁNH XẠ KHI NHÂN VIÊN THỰC HIỆN) -->
         <div id="adminSub-roster" class="hidden space-y-4">
-          <div class="glass p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs text-slate-300">
-            <span>Chọn ca trực tuần cho từng nhân sự. Hệ thống tự ánh xạ 2 chiều: <b>Ca Sáng (Ca 1)</b> • <b>Ca Chiều (Ca 2)</b> • <b>Ca Đêm (Ca 3)</b> • <b>OFF</b>.</span>
+          <div class="glass p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs text-slate-300 border-emerald-500/20">
+            <div class="space-y-0.5">
+              <div>Bảng phân ca <b>độc lập</b> với tài khoản đăng nhập. Dữ liệu tên nhân sự và ca trực tại đây sẽ được ánh xạ trực tiếp sang <b>Checklist</b> & <b>Sổ Duty</b> khi nhân viên dùng tài khoản Duty thực hiện.</div>
+              <div class="text-[11px] text-slate-400">Quy ước: <b>Ca Sáng (Ca 1: 06:00-14:00)</b> • <b>Ca Chiều (Ca 2: 14:00-22:00)</b> • <b>Ca Đêm (Ca 3: 22:00-06:00)</b> • <b>OFF</b>.</div>
+            </div>
             <div class="flex flex-wrap items-center gap-2">
-              <button onclick="openMemberModal()" class="px-3.5 py-2 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 font-bold flex items-center gap-1.5 cursor-pointer">
-                <i data-lucide="user-plus" class="w-3.5 h-3.5"></i> Thêm Thành Viên
+              <button onclick="openRosterMemberModal()" class="px-3.5 py-2 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 font-bold flex items-center gap-1.5 cursor-pointer">
+                <i data-lucide="user-plus" class="w-3.5 h-3.5"></i> Thêm Nhân Sự Phân Ca
               </button>
               <button onclick="saveRosterAndSync()" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold flex items-center gap-1.5 cursor-pointer">
-                <i data-lucide="save" class="w-3.5 h-3.5"></i> Lưu & Đồng Bộ 2 Chiều
+                <i data-lucide="save" class="w-3.5 h-3.5"></i> Lưu & Ánh Xạ 3 Hệ Thống
               </button>
             </div>
           </div>
@@ -342,10 +366,10 @@
             <table class="w-full text-left text-xs">
               <thead class="bg-slate-900/90 text-slate-400 text-[10px] uppercase">
                 <tr>
-                  <th class="p-3">Nhân Sự</th>
+                  <th class="p-3">Nhân Sự Trực Ca</th>
                   <th class="p-3">Thứ 2</th><th class="p-3">Thứ 3</th><th class="p-3">Thứ 4</th>
                   <th class="p-3">Thứ 5</th><th class="p-3">Thứ 6</th><th class="p-3">Thứ 7</th><th class="p-3">Chủ Nhật</th>
-                  <th class="p-3 text-right">Bớt NV</th>
+                  <th class="p-3 text-right">Thao Tác</th>
                 </tr>
               </thead>
               <tbody id="rosterTableBody" class="divide-y divide-slate-800/80"></tbody>
@@ -357,17 +381,17 @@
         <div id="adminSub-perms" class="hidden grid grid-cols-1 md:grid-cols-3 gap-4">
           <div class="glass p-5 rounded-2xl space-y-2">
             <h3 class="font-bold text-sky-400 text-sm">1. Kiểm Tra Biểu Mẫu (Checklist)</h3>
-            <p class="text-xs text-slate-400">Đồng bộ trực tiếp vào Firestore <code>daily-checklist-shp</code> (collection <code>employees</code> & <code>schedules/weekly</code>) + tự động đăng nhập SSO.</p>
+            <p class="text-xs text-slate-400">Đăng nhập SSO bằng tài khoản Duty/Admin. Danh sách <b>Người kiểm tra</b> và <b>Lịch phân ca tuần</b> được ánh xạ từ Bảng Phân Ca.</p>
             <button onclick="openTab('checklist')" class="mt-2 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold cursor-pointer">Mở Giám Sát Checklist →</button>
           </div>
           <div class="glass p-5 rounded-2xl space-y-2">
             <h3 class="font-bold text-amber-400 text-sm">2. Ghi Sổ Duty</h3>
-            <p class="text-xs text-slate-400">Đồng bộ trực tiếp danh sách tài khoản & ca trực vào <code>dutylogbook-2df88</code> + tự động đăng nhập không cần nhập lại mật khẩu.</p>
+            <p class="text-xs text-slate-400">Đăng nhập SSO bằng tài khoản Duty/Admin. Danh sách <b>Nhân sự trực ca, Người thực hiện & Bàn giao ca</b> lấy hoàn toàn theo Bảng Phân Ca.</p>
             <button onclick="openTab('duty')" class="mt-2 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold cursor-pointer">Mở Giám Sát Duty →</button>
           </div>
           <div class="glass p-5 rounded-2xl space-y-2">
             <h3 class="font-bold text-emerald-400 text-sm">3. Ghi Chỉ Số Điện Nước</h3>
-            <p class="text-xs text-slate-400">Tự động mã hóa mật khẩu SHA-256 và đồng nhất danh sách user vào Firestore <code>resortpower</code> + tự động mở phiên đăng nhập.</p>
+            <p class="text-xs text-slate-400">Tài khoản Duty tự đăng nhập SSO và chỉ hiển thị 2 mục: <b>Chỉ số công tơ</b> & <b>Thiết bị</b>. Tài khoản Admin giữ toàn quyền quản trị.</p>
             <button onclick="openTab('power')" class="mt-2 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold cursor-pointer">Mở Giám Sát Điện Nước →</button>
           </div>
         </div>
@@ -416,9 +440,8 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
     import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, collection, getDocs, setDoc, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getFirestore, doc, collection, getDocs, setDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    // 1. Firebase Master & Duty (RTDB)
     const dutyConfig = {
       apiKey: "AIzaSyCSGbsD1v5Y_p3bdI51CQU4idBgUSBfYDA",
       authDomain: "dutylogbook-2df88.firebaseapp.com",
@@ -429,7 +452,6 @@
       appId: "1:231161330782:web:d71ac519eb798680da48cf"
     };
 
-    // 2. Firebase Daily Checklist (Firestore)
     const checklistConfig = {
       apiKey: "AIzaSyBJE6dyU1BRfhPxPggICB5TFt8LkO-3-qg",
       authDomain: "daily-checklist-shp.firebaseapp.com",
@@ -439,7 +461,6 @@
       appId: "1:690163993413:web:7c4652314a6854f2fccc2c"
     };
 
-    // 3. Firebase Resort Power (Firestore)
     const powerConfig = {
       apiKey: "AIzaSyDjR-13vpOwdvO_l02e2C-IlfcoXN1Oaxc",
       authDomain: "resortpower.firebaseapp.com",
@@ -458,31 +479,67 @@
 
     const defaultMaster = {
       updatedAt: 1,
+      // Bảng 1: Tài khoản đăng nhập (Admin + Tài khoản Duty dùng chung)
       staff: [
-        { id: 'emp-001', employeeCode: 'QL-001', name: 'Quản Trị Viên', username: 'admin', password: '123456', role: 'admin', department: 'Kỹ Thuật', title: 'Admin', status: 'active' },
-        { id: 'emp-002', employeeCode: 'KT-001', name: 'Trần Văn B', username: 'tranb', password: '123456', role: 'user', department: 'Kỹ Thuật', title: 'Kỹ thuật viên', status: 'active' },
-        { id: 'emp-003', employeeCode: 'KT-002', name: 'Lê Văn C', username: 'lec', password: '123456', role: 'user', department: 'Kỹ Thuật', title: 'Kỹ thuật viên', status: 'active' }
+        { id: 'acc-admin', employeeCode: 'QL-001', name: 'Quản Trị Viên', username: 'admin', password: '123456', role: 'admin', department: 'Kỹ Thuật', title: 'Admin', status: 'active' },
+        { id: 'acc-duty', employeeCode: 'DUTY-01', name: 'Tài Khoản Duty (Dùng Chung)', username: 'duty', password: '123456', role: 'user', department: 'Kỹ Thuật', title: 'Trực Ca Chung', status: 'active' }
+      ],
+      // Bảng 2: Danh sách Phân ca ĐỘC LẬP (Ánh xạ người thực hiện công việc)
+      rosterStaff: [
+        { id: 'rst-001', employeeCode: 'KT-001', name: 'Trần Văn B', department: 'Kỹ Thuật', title: 'Kỹ thuật viên' },
+        { id: 'rst-002', employeeCode: 'KT-002', name: 'Lê Văn C', department: 'Kỹ Thuật', title: 'Kỹ thuật viên' }
       ],
       weeklyRoster: {
-        'emp-001': { mon: 'Ca Sáng', tue: 'Ca Sáng', wed: 'Ca Sáng', thu: 'Ca Sáng', fri: 'Ca Sáng', sat: 'OFF', sun: 'OFF' },
-        'emp-002': { mon: 'Ca Sáng', tue: 'Ca Sáng', wed: 'Ca Chiều', thu: 'Ca Chiều', fri: 'Ca Đêm', sat: 'OFF', sun: 'Ca Sáng' },
-        'emp-003': { mon: 'Ca Chiều', tue: 'Ca Chiều', wed: 'Ca Đêm', thu: 'Ca Đêm', fri: 'OFF', sat: 'Ca Sáng', sun: 'Ca Chiều' }
+        'rst-001': { mon: 'Ca Sáng', tue: 'Ca Sáng', wed: 'Ca Chiều', thu: 'Ca Chiều', fri: 'Ca Đêm', sat: 'OFF', sun: 'Ca Sáng' },
+        'rst-002': { mon: 'Ca Chiều', tue: 'Ca Chiều', wed: 'Ca Đêm', thu: 'Ca Đêm', fri: 'OFF', sat: 'Ca Sáng', sun: 'Ca Chiều' }
       }
     };
 
-    let masterData = JSON.parse(localStorage.getItem(MASTER_KEY) || 'null') || structuredClone(defaultMaster);
+    // Chuyển đổi an toàn nếu dữ liệu cũ chưa tách rosterStaff
+    function normalizeMasterData(raw) {
+      const data = raw ? structuredClone(raw) : structuredClone(defaultMaster);
+      if (!Array.isArray(data.staff)) data.staff = Object.values(data.staff || {});
+      if (data.staff.length === 0) data.staff = structuredClone(defaultMaster.staff);
+
+      if (!Array.isArray(data.rosterStaff)) {
+        if (data.rosterStaff && typeof data.rosterStaff === 'object') {
+          data.rosterStaff = Object.values(data.rosterStaff);
+        } else {
+          // Migrate từ dữ liệu cũ: tách nhân sự hiện có trong weeklyRoster sang rosterStaff
+          const oldRoster = data.weeklyRoster || {};
+          const migrated = data.staff
+            .filter(u => u.role !== 'admin' || oldRoster[u.id])
+            .map(u => ({
+              id: u.id,
+              employeeCode: u.employeeCode || 'KT-001',
+              name: u.name,
+              department: u.department || 'Kỹ Thuật',
+              title: u.title || 'Kỹ thuật viên'
+            }));
+          data.rosterStaff = migrated.length > 0 ? migrated : structuredClone(defaultMaster.rosterStaff);
+        }
+      }
+      if (!data.weeklyRoster || typeof data.weeklyRoster !== 'object') data.weeklyRoster = {};
+      return data;
+    }
+
+    let masterData = normalizeMasterData(JSON.parse(localStorage.getItem(MASTER_KEY) || 'null'));
     let currentUser = null;
     let lastHash = '';
     let cloudRef = null;
     let checklistDb = null;
     let checklistAuthReady = Promise.resolve();
     let powerDb = null;
+    let cachedPowerUsers = [];
 
     function computeHash(obj) {
-      return JSON.stringify({ staff: obj.staff || [], weeklyRoster: obj.weeklyRoster || {} });
+      return JSON.stringify({
+        staff: obj.staff || [],
+        rosterStaff: obj.rosterStaff || [],
+        weeklyRoster: obj.weeklyRoster || {}
+      });
     }
 
-    // Mã hóa SHA-256 chuẩn của Resort Power
     async function hashPowerPassword(plainText, usernameSalt = 'resort_salt') {
       const encoder = new TextEncoder();
       const data = encoder.encode(`${String(usernameSalt).toLowerCase().trim()}::${plainText}`);
@@ -503,7 +560,7 @@
       const lbl = document.getElementById('cloudLabel');
       if (state === 'online') {
         dot.className = 'w-2 h-2 rounded-full bg-emerald-400';
-        lbl.textContent = 'Đồng bộ SSO & 3 Tab';
+        lbl.textContent = 'Đồng bộ SSO & Phân Ca';
       } else if (state === 'syncing') {
         dot.className = 'w-2 h-2 rounded-full bg-sky-400 animate-ping';
         lbl.textContent = 'Đang đồng bộ...';
@@ -540,35 +597,83 @@
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     }
 
-    // Chuyển đổi danh sách nhân sự chuẩn cho từng hệ thống
-    function buildChecklistEmployees() {
-      return masterData.staff.map(u => ({
-        id: u.id,
-        employeeCode: u.employeeCode,
-        name: u.name,
-        username: u.username,
-        password: u.password,
-        email: u.email || `${u.username}@resort.vn`,
-        role: u.role === 'admin' ? 'admin' : 'user',
-        department: u.department || 'Kỹ Thuật',
-        title: u.title || (u.role === 'admin' ? 'Quản trị viên (Admin)' : 'Kỹ thuật viên'),
-        status: u.status || 'active',
-        createdAt: u.createdAt || new Date().toISOString()
-      }));
+    function getCurrentShiftByClock() {
+      const h = new Date().getHours();
+      if (h >= 6 && h < 14) return 'Ca Sáng';
+      if (h >= 14 && h < 22) return 'Ca Chiều';
+      return 'Ca Đêm';
     }
 
+    // Lấy danh sách nhân sự đang trực ca hiện tại TỪ BẢNG PHÂN CA (không lấy từ bảng tài khoản)
+    function getOnDutyRosterPeople(shiftName = getCurrentShiftByClock()) {
+      const todayKey = getTodayDayKey();
+      return (masterData.rosterStaff || []).filter(r => {
+        const sh = (masterData.weeklyRoster[r.id] || {})[todayKey] || '';
+        return sh === shiftName;
+      });
+    }
+
+    // Dữ liệu gửi sang Checklist:
+    // - Gồm các nhân sự từ BẢNG PHÂN CA (để chọn Người kiểm tra & ánh xạ lịch trực tuần)
+    // - Kèm tài khoản đăng nhập (Admin / Duty) để SSO hoạt động không gián đoạn
+    function buildChecklistEmployees() {
+      const map = new Map();
+
+      // Ưu tiên đưa danh sách nhân sự từ BẢNG PHÂN CA lên trước để làm danh sách người thực hiện
+      (masterData.rosterStaff || []).forEach(r => {
+        map.set(r.id, {
+          id: r.id,
+          employeeCode: r.employeeCode || 'KT',
+          name: r.name,
+          username: (r.employeeCode || r.id).toLowerCase(),
+          password: '',
+          email: `${(r.employeeCode || r.id).toLowerCase()}@resort.vn`,
+          role: 'user',
+          department: r.department || 'Kỹ Thuật',
+          title: r.title || 'Kỹ thuật viên',
+          status: 'active',
+          isRosterMember: true,
+          createdAt: r.createdAt || new Date().toISOString()
+        });
+      });
+
+      // Bổ sung tài khoản đăng nhập SSO (Admin / Duty)
+      (masterData.staff || []).forEach(u => {
+        if (!map.has(u.id)) {
+          map.set(u.id, {
+            id: u.id,
+            employeeCode: u.employeeCode,
+            name: u.name,
+            username: u.username,
+            password: u.password,
+            email: `${u.username}@resort.vn`,
+            role: u.role === 'admin' ? 'admin' : 'user',
+            department: u.department || 'Kỹ Thuật',
+            title: u.title || (u.role === 'admin' ? 'Quản trị viên (Admin)' : 'Tài khoản dùng chung'),
+            status: u.status || 'active',
+            isLoginAccount: true,
+            createdAt: u.createdAt || new Date().toISOString()
+          });
+        }
+      });
+
+      return Array.from(map.values());
+    }
+
+    // Lịch phân ca tuần cho Checklist ánh xạ HOÀN TOÀN theo BẢNG PHÂN CA (rosterStaff)
     function buildChecklistWeekly() {
       const dcWeekly = {};
-      masterData.staff.forEach(u => {
-        const row = masterData.weeklyRoster[u.id] || {};
-        dcWeekly[u.id] = {};
-        DAYS.forEach(d => dcWeekly[u.id][d] = mapToChecklistShift(row[d] || ''));
+      (masterData.rosterStaff || []).forEach(r => {
+        const row = masterData.weeklyRoster[r.id] || {};
+        dcWeekly[r.id] = {};
+        DAYS.forEach(d => dcWeekly[r.id][d] = mapToChecklistShift(row[d] || ''));
       });
       return dcWeekly;
     }
 
+    // Tài khoản cho Điện Nước lấy theo Bảng Tài Khoản Đăng Nhập (Admin & Duty dùng chung)
     async function buildPowerUsers() {
-      return Promise.all(masterData.staff.map(async u => ({
+      return Promise.all((masterData.staff || []).map(async u => ({
         id: u.id,
         username: u.username,
         fullName: u.name,
@@ -579,7 +684,6 @@
       })));
     }
 
-    // KHỞI TẠO KẾT NỐI CLOUD CHO CẢ 3 HỆ THỐNG
     function initCloudConnections() {
       try {
         const masterApp = initializeApp(dutyConfig, 'unified-master-app');
@@ -589,13 +693,10 @@
         onValue(cloudRef, async (snap) => {
           const remote = snap.val();
           if (remote && remote.staff) {
-            const remoteHash = computeHash(remote);
-            if (remoteHash !== lastHash && (remote.updatedAt || 0) >= (masterData.updatedAt || 0)) {
-              masterData = {
-                updatedAt: remote.updatedAt || Date.now(),
-                staff: Array.isArray(remote.staff) ? remote.staff : Object.values(remote.staff),
-                weeklyRoster: remote.weeklyRoster || {}
-              };
+            const normalizedRemote = normalizeMasterData(remote);
+            const remoteHash = computeHash(normalizedRemote);
+            if (remoteHash !== lastHash && (normalizedRemote.updatedAt || 0) >= (masterData.updatedAt || 0)) {
+              masterData = normalizedRemote;
               lastHash = remoteHash;
               localStorage.setItem(MASTER_KEY, JSON.stringify(masterData));
 
@@ -610,7 +711,7 @@
               renderRosterTable();
               await syncLocalStorageForAllTabs();
               broadcastToIframes();
-              showToast('Đã đồng bộ tài khoản & phân ca mới nhất từ Cloud!');
+              showToast('Đã đồng bộ tài khoản & bảng phân ca từ Cloud!');
             }
           } else {
             pushMasterAndAllBackends();
@@ -622,30 +723,20 @@
         setCloudUI('offline');
       }
 
-      // Kết nối Firestore của Daily Checklist để đồng nhất collection employees & schedules
       try {
         const dcApp = initializeApp(checklistConfig, 'unified-checklist-sync');
         const dcAuth = getAuth(dcApp);
         checklistAuthReady = signInAnonymously(dcAuth).catch(() => {});
         checklistDb = getFirestore(dcApp);
-      } catch (e) {
-        console.warn('Checklist Firestore init skip:', e);
-      }
+      } catch {}
 
-      // Kết nối Firestore của Resort Power để đồng nhất mảng users (kèm SHA-256)
       try {
         const pwApp = initializeApp(powerConfig, 'unified-power-sync');
         powerDb = getFirestore(pwApp);
-      } catch (e) {
-        console.warn('Power Firestore init skip:', e);
-      }
+      } catch {}
     }
 
-    let cachedPowerUsers = [];
-
-    // GHI LOCALSTORAGE ĐỒNG NHẤT CHO CẢ 3 TAB (ĐẢM BẢO SSO TỨC THÌ KHI MỞ TAB)
     async function syncLocalStorageForAllTabs() {
-      // 1. Daily Checklist localStorage
       const dcEmployees = buildChecklistEmployees();
       const dcWeekly = buildChecklistWeekly();
       localStorage.setItem('dailycheck_employees_real_v1', JSON.stringify(dcEmployees));
@@ -655,7 +746,6 @@
         localStorage.setItem('dailycheck_current_user_id_real_v1', currentUser.id);
       }
 
-      // 2. Resort Power localStorage (users đã băm SHA-256 + session active)
       const powerUsers = await buildPowerUsers();
       cachedPowerUsers = powerUsers;
       try {
@@ -663,7 +753,6 @@
         if (rawPower) {
           const parsed = JSON.parse(rawPower);
           parsed.users = powerUsers;
-          // Giữ lastUpdated nhỏ hơn mốc Firestore push 2s để onSnapshot trong power.html luôn nhận bản mới
           parsed.lastUpdated = Date.now();
           localStorage.setItem(POWER_STATE_KEY, JSON.stringify(parsed));
         }
@@ -675,7 +764,6 @@
       return { dcEmployees, dcWeekly, powerUsers };
     }
 
-    // ĐẨY DỮ LIỆU USER ĐỒNG NHẤT LÊN CLOUD CỦA CẢ 3 HỆ THỐNG
     async function pushMasterAndAllBackends() {
       masterData.updatedAt = Date.now();
       lastHash = computeHash(masterData);
@@ -686,12 +774,10 @@
       setCloudUI('syncing');
       const tasks = [];
 
-      // 1. Push Master RTDB
       if (cloudRef) {
         tasks.push(set(cloudRef, masterData).catch(e => console.warn('Master RTDB write:', e)));
       }
 
-      // 2. Đồng nhất collection `employees` & `schedules/weekly` trên Firestore Daily Checklist
       if (checklistDb) {
         tasks.push((async () => {
           try {
@@ -712,12 +798,11 @@
               updatedAt: new Date().toISOString()
             }, { merge: true });
           } catch (e) {
-            console.warn('Checklist Firestore user sync:', e);
+            console.warn('Checklist Firestore sync:', e);
           }
         })());
       }
 
-      // 3. Đồng nhất mảng `users` trên Firestore Resort Power
       if (powerDb) {
         tasks.push((async () => {
           try {
@@ -726,7 +811,7 @@
               lastUpdated: Date.now() + 2500
             }, { merge: true });
           } catch (e) {
-            console.warn('Power Firestore user sync:', e);
+            console.warn('Power Firestore sync:', e);
           }
         })());
       }
@@ -735,27 +820,41 @@
       setCloudUI(cloudRef ? 'online' : 'offline');
     }
 
-    // PHÁT GÓI TIN SSO + DỮ LIỆU USER XUỐNG 3 IFRAME
+    // PHÁT GÓI TIN SSO (từ staff) + ÁNH XẠ THỰC HIỆN (HOÀN TOÀN TỪ rosterStaff + weeklyRoster)
     async function broadcastToIframes() {
       if (!cachedPowerUsers || cachedPowerUsers.length !== masterData.staff.length) {
         cachedPowerUsers = await buildPowerUsers();
       }
       const todayKey = getTodayDayKey();
       const todayStr = getTodayDateStr();
-      const dutyScheduleToday = masterData.staff.map((u, idx) => {
-        const sh = (masterData.weeklyRoster[u.id] || {})[todayKey] || '';
+      const currentShift = getCurrentShiftByClock();
+
+      // Lịch trực hôm nay cho Sổ Duty lấy HOÀN TOÀN từ BẢNG PHÂN CA (rosterStaff)
+      const dutyScheduleToday = (masterData.rosterStaff || []).map((r, idx) => {
+        const sh = (masterData.weeklyRoster[r.id] || {})[todayKey] || '';
         if (!sh || sh === 'OFF') return null;
-        return { id: `SCH-SYNC-${idx + 1}`, date: todayStr, shift: sh, staffName: u.name, note: `Đồng bộ (${u.employeeCode})` };
+        return {
+          id: `SCH-SYNC-${idx + 1}`,
+          date: todayStr,
+          shift: sh,
+          staffName: r.name,
+          note: `Phân ca (${r.employeeCode || 'KT'})`
+        };
       }).filter(Boolean);
+
+      const onDutyNow = getOnDutyRosterPeople(currentShift);
 
       const payload = {
         type: 'UNIFIED_SYNC',
         syncHash: lastHash,
         currentUser,
-        staff: masterData.staff,
-        powerUsers: cachedPowerUsers,
+        staff: masterData.staff,             // Dùng cho SSO đăng nhập
+        powerUsers: cachedPowerUsers,        // Dùng cho SSO tab Điện Nước
+        rosterStaff: masterData.rosterStaff, // Dùng cho ánh xạ người thực hiện
         weeklyRoster: masterData.weeklyRoster,
-        dutyScheduleToday
+        dutyScheduleToday,                   // Dùng cho Sổ Duty (chỉ từ Bảng Phân Ca)
+        currentShift,
+        onDutyNow                            // Danh sách anh em đang trực ca hiện tại
       };
 
       ['frame-checklist', 'frame-duty', 'frame-power'].forEach(id => {
@@ -764,84 +863,63 @@
       });
     }
 
-    // CHIỀU NGƯỢC: LẮNG NGHE THAY ĐỔI TỪ 3 MODULE CON GỬI LÊN
+    // CHIỀU NGƯỢC: CẬP NHẬT PHÂN CA TỪ MODULE CON CHỈ GHI VÀO rosterStaff / weeklyRoster (KHÔNG ĐỤNG BẢNG TÀI KHOẢN)
     window.addEventListener('message', (event) => {
       const msg = event.data;
       if (!msg || !msg.type) return;
 
-      // Module con vừa tải xong và yêu cầu gói SSO
       if (msg.type === 'MODULE_READY' && currentUser) {
         broadcastToIframes();
         return;
       }
-
       if (msg.type !== 'MODULE_TO_MASTER_SYNC') return;
 
       let changed = false;
 
-      if (msg.source === 'duty') {
-        if (Array.isArray(msg.users) && msg.users.length > 0) {
-          msg.users.forEach(du => {
-            const existing = masterData.staff.find(s => s.username === du.username || s.id === du.id);
-            if (existing) {
-              const mappedRole = du.role === 'Admin' ? 'admin' : 'user';
-              if (existing.name !== du.name || existing.password !== du.password || existing.role !== mappedRole) {
-                existing.name = du.name;
-                existing.password = du.password || existing.password;
-                existing.role = mappedRole;
-                changed = true;
-              }
-            } else {
-              const newId = du.id || ('emp-' + Date.now());
-              masterData.staff.push({
-                id: newId, employeeCode: 'KT-' + String(masterData.staff.length + 1).padStart(3, '0'),
-                name: du.name, username: du.username, password: du.password || '123456',
-                role: du.role === 'Admin' ? 'admin' : 'user', department: 'Kỹ Thuật', title: du.role, status: 'active'
-              });
-              masterData.weeklyRoster[newId] = { mon: '', tue: '', wed: '', thu: '', fri: '', sat: '', sun: '' };
+      if (msg.source === 'duty' && Array.isArray(msg.todaySchedule)) {
+        const todayKey = getTodayDayKey();
+        msg.todaySchedule.forEach(sc => {
+          const staffName = String(sc.staffName || '').trim();
+          if (!staffName) return;
+          let rMember = masterData.rosterStaff.find(r => r.name.toLowerCase() === staffName.toLowerCase());
+          if (!rMember) {
+            const newId = 'rst-' + Date.now() + '-' + Math.floor(Math.random() * 100);
+            rMember = { id: newId, employeeCode: 'KT-' + String(masterData.rosterStaff.length + 1).padStart(3, '0'), name: staffName, department: 'Kỹ Thuật', title: 'Kỹ thuật viên' };
+            masterData.rosterStaff.push(rMember);
+            masterData.weeklyRoster[newId] = { mon: '', tue: '', wed: '', thu: '', fri: '', sat: '', sun: '' };
+            changed = true;
+          }
+          if (!masterData.weeklyRoster[rMember.id]) masterData.weeklyRoster[rMember.id] = {};
+          if (masterData.weeklyRoster[rMember.id][todayKey] !== sc.shift) {
+            masterData.weeklyRoster[rMember.id][todayKey] = sc.shift;
+            changed = true;
+          }
+        });
+      }
+
+      if (msg.source === 'checklist' && msg.weeklyShifts && typeof msg.weeklyShifts === 'object') {
+        Object.entries(msg.weeklyShifts).forEach(([uid, daysObj]) => {
+          const existsInRoster = masterData.rosterStaff.some(r => r.id === uid);
+          if (!existsInRoster) return;
+          if (!masterData.weeklyRoster[uid]) masterData.weeklyRoster[uid] = {};
+          DAYS.forEach(d => {
+            const mapped = mapFromChecklistShift(daysObj[d]);
+            if (masterData.weeklyRoster[uid][d] !== mapped) {
+              masterData.weeklyRoster[uid][d] = mapped;
               changed = true;
             }
           });
-        }
-        if (Array.isArray(msg.todaySchedule)) {
-          const todayKey = getTodayDayKey();
-          msg.todaySchedule.forEach(sc => {
-            const st = masterData.staff.find(u => u.name.toLowerCase() === String(sc.staffName || '').toLowerCase());
-            if (st) {
-              if (!masterData.weeklyRoster[st.id]) masterData.weeklyRoster[st.id] = {};
-              if (masterData.weeklyRoster[st.id][todayKey] !== sc.shift) {
-                masterData.weeklyRoster[st.id][todayKey] = sc.shift;
-                changed = true;
-              }
-            }
-          });
-        }
-      }
-
-      if (msg.source === 'checklist') {
-        if (msg.weeklyShifts && typeof msg.weeklyShifts === 'object') {
-          Object.entries(msg.weeklyShifts).forEach(([uid, daysObj]) => {
-            if (!masterData.weeklyRoster[uid]) masterData.weeklyRoster[uid] = {};
-            DAYS.forEach(d => {
-              const mapped = mapFromChecklistShift(daysObj[d]);
-              if (masterData.weeklyRoster[uid][d] !== mapped) {
-                masterData.weeklyRoster[uid][d] = mapped;
-                changed = true;
-              }
-            });
-          });
-        }
+        });
       }
 
       if (changed) {
         const newHash = computeHash(masterData);
         if (newHash !== lastHash) {
-          renderStaffTable();
           renderRosterTable();
           updateHeaderUI();
           pushMasterAndAllBackends();
           broadcastToIframes();
-          showToast(`Đã đồng bộ thay đổi từ ${msg.source.toUpperCase()} lên toàn hệ thống!`);
+          showToast(`Đã đồng bộ phân ca từ ${msg.source.toUpperCase()} lên hệ thống!`);
         }
       }
     });
@@ -851,13 +929,16 @@
       const isAdmin = currentUser.role === 'admin';
       document.getElementById('hdrName').textContent = currentUser.name;
       document.getElementById('hdrAvatar').textContent = currentUser.name.slice(0, 2).toUpperCase();
-      document.getElementById('hdrRoleBadge').textContent = isAdmin ? 'ADMIN' : 'USER';
+      document.getElementById('hdrRoleBadge').textContent = isAdmin ? 'ADMIN' : 'DUTY';
       document.getElementById('hdrRoleBadge').className = isAdmin
         ? 'text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-500/20 text-amber-300'
         : 'text-[10px] px-2 py-0.5 rounded-full font-bold bg-sky-500/20 text-sky-300';
 
-      const todayShift = (masterData.weeklyRoster[currentUser.id] || {})[getTodayDayKey()] || 'Chưa phân ca';
-      document.getElementById('hdrShiftInfo').textContent = `Ca hôm nay (${getTodayDateStr().split('-').reverse().join('/')}): ${todayShift}`;
+      // Hiển thị danh sách nhân sự đang trực ca hiện tại TỪ BẢNG PHÂN CA
+      const shiftNow = getCurrentShiftByClock();
+      const onDuty = getOnDutyRosterPeople(shiftNow);
+      const namesStr = onDuty.length > 0 ? onDuty.map(r => r.name).join(', ') : 'Chưa xếp lịch ca này';
+      document.getElementById('hdrShiftInfo').textContent = `${shiftNow} (${getTodayDateStr().split('-').reverse().join('/')}): ${namesStr}`;
 
       document.getElementById('adminTopNav').classList.toggle('hidden', !isAdmin);
       document.getElementById('btnAdminQuick').classList.toggle('hidden', !isAdmin);
@@ -872,7 +953,6 @@
       renderStaffTable();
       renderRosterTable();
 
-      // Chuẩn bị sẵn localStorage & đẩy đồng nhất Cloud TRƯỚC khi nạp 3 iframe
       await syncLocalStorageForAllTabs();
       pushMasterAndAllBackends();
 
@@ -908,7 +988,7 @@
       await completeSSO(found);
     });
 
-    function canDeleteMember(u) {
+    function canDeleteAccount(u) {
       if (currentUser && u.id === currentUser.id) return false;
       if (u.role === 'admin') {
         const adminCount = masterData.staff.filter(x => x.role === 'admin').length;
@@ -917,25 +997,26 @@
       return true;
     }
 
+    // TAB 1: RENDER BẢNG TÀI KHOẢN ĐĂNG NHẬP
     function renderStaffTable() {
       const tb = document.getElementById('staffTableBody');
       tb.innerHTML = masterData.staff.map(u => {
         const isMe = currentUser && u.id === currentUser.id;
-        const deletable = canDeleteMember(u);
+        const deletable = canDeleteAccount(u);
         return `
         <tr class="hover:bg-slate-900/50">
           <td class="p-3 font-mono text-sky-300">${u.employeeCode}</td>
-          <td class="p-3 font-semibold">${u.name} ${isMe ? '<span class="ml-1 text-[10px] text-amber-300">(Bạn)</span>' : ''}</td>
+          <td class="p-3 font-semibold">${u.name} ${isMe ? '<span class="ml-1 text-[10px] text-amber-300">(Đang dùng)</span>' : ''}</td>
           <td class="p-3 text-slate-400">@${u.username}</td>
-          <td class="p-3"><span class="px-2 py-0.5 rounded-lg text-[10px] font-bold ${u.role === 'admin' ? 'bg-amber-500/20 text-amber-300' : 'bg-sky-500/20 text-sky-300'}">${u.role.toUpperCase()}</span></td>
+          <td class="p-3"><span class="px-2 py-0.5 rounded-lg text-[10px] font-bold ${u.role === 'admin' ? 'bg-amber-500/20 text-amber-300' : 'bg-sky-500/20 text-sky-300'}">${u.role === 'admin' ? 'ADMIN' : 'DUTY / USER'}</span></td>
           <td class="p-3 text-emerald-400">Hoạt động</td>
           <td class="p-3 text-right whitespace-nowrap space-x-1">
             ${isMe
               ? `<button onclick="openAdminCredsModal()" class="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 cursor-pointer">Đổi TT Admin</button>`
-              : `<button onclick="openMemberModal('${u.id}')" class="px-2.5 py-1 rounded-lg bg-sky-500/15 text-sky-300 hover:bg-sky-500/30 cursor-pointer">Sửa</button>`
+              : `<button onclick="openAccountModal('${u.id}')" class="px-2.5 py-1 rounded-lg bg-sky-500/15 text-sky-300 hover:bg-sky-500/30 cursor-pointer">Sửa</button>`
             }
             ${deletable
-              ? `<button onclick="deleteStaff('${u.id}')" class="px-2.5 py-1 rounded-lg bg-rose-500/15 text-rose-300 hover:bg-rose-500/30 cursor-pointer">Xóa</button>`
+              ? `<button onclick="deleteAccount('${u.id}')" class="px-2.5 py-1 rounded-lg bg-rose-500/15 text-rose-300 hover:bg-rose-500/30 cursor-pointer">Xóa</button>`
               : ''
             }
           </td>
@@ -943,106 +1024,75 @@
       }).join('');
     }
 
+    // TAB 2: RENDER BẢNG PHÂN CA ĐỘC LẬP (CHỈ LẤY TỪ rosterStaff)
     function renderRosterTable() {
       const tb = document.getElementById('rosterTableBody');
-      tb.innerHTML = masterData.staff.map(u => {
-        const row = masterData.weeklyRoster[u.id] || {};
-        const deletable = canDeleteMember(u);
+      if (!masterData.rosterStaff || masterData.rosterStaff.length === 0) {
+        tb.innerHTML = `<tr><td colspan="9" class="p-6 text-center text-slate-400">Chưa có nhân sự nào trong bảng phân ca. Bấm <b>Thêm Nhân Sự Phân Ca</b> để bắt đầu.</td></tr>`;
+        return;
+      }
+      tb.innerHTML = masterData.rosterStaff.map(r => {
+        const row = masterData.weeklyRoster[r.id] || {};
         return `<tr class="hover:bg-slate-900/40">
           <td class="p-3 font-semibold whitespace-nowrap">
-            <div>${u.name} <span class="text-slate-500 font-normal">(${u.employeeCode})</span></div>
-            <div class="text-[10px] text-slate-400">@${u.username} • ${u.role.toUpperCase()}</div>
+            <div>${r.name} <span class="text-slate-500 font-normal">(${r.employeeCode})</span></div>
+            <div class="text-[10px] text-slate-400">${r.title || 'Kỹ thuật viên'} • ${r.department || 'Kỹ Thuật'}</div>
           </td>
           ${DAYS.map(d => `
             <td class="p-2">
-              <select data-uid="${u.id}" data-day="${d}" class="roster-sel w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs">
+              <select data-uid="${r.id}" data-day="${d}" class="roster-sel w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs">
                 ${SHIFT_OPTS.map(opt => `<option value="${opt}" ${row[d] === opt ? 'selected' : ''}>${opt || '--'}</option>`).join('')}
               </select>
             </td>`).join('')}
-          <td class="p-2 text-right whitespace-nowrap">
-            ${deletable
-              ? `<button onclick="deleteStaff('${u.id}')" title="Xóa thành viên này" class="px-2.5 py-1.5 rounded-lg bg-rose-500/15 text-rose-300 hover:bg-rose-500/30 cursor-pointer">Xóa</button>`
-              : `<span class="text-[10px] text-slate-500 px-2">Admin</span>`
-            }
+          <td class="p-2 text-right whitespace-nowrap space-x-1">
+            <button onclick="openRosterMemberModal('${r.id}')" class="px-2 py-1.5 rounded-lg bg-sky-500/15 text-sky-300 hover:bg-sky-500/30 cursor-pointer">Sửa</button>
+            <button onclick="deleteRosterMember('${r.id}')" class="px-2 py-1.5 rounded-lg bg-rose-500/15 text-rose-300 hover:bg-rose-500/30 cursor-pointer">Xóa</button>
           </td>
         </tr>`;
       }).join('');
     }
 
-    document.getElementById('addStaffForm').addEventListener('submit', async e => {
-      e.preventDefault();
-      const uname = document.getElementById('stUser').value.trim().toLowerCase();
-      if (masterData.staff.some(u => u.username.toLowerCase() === uname)) {
-        alert('Tên đăng nhập @' + uname + ' đã tồn tại!');
-        return;
-      }
-      const id = 'emp-' + Date.now();
-      const role = document.getElementById('stRole').value;
-      masterData.staff.push({
-        id,
-        employeeCode: document.getElementById('stCode').value.trim(),
-        name: document.getElementById('stName').value.trim(),
-        username: uname,
-        password: document.getElementById('stPass').value.trim(),
-        role,
-        department: 'Kỹ Thuật',
-        title: role === 'admin' ? 'Admin' : 'Kỹ thuật viên',
-        status: 'active',
-        createdAt: new Date().toISOString()
-      });
-      masterData.weeklyRoster[id] = { mon: '', tue: '', wed: '', thu: '', fri: '', sat: '', sun: '' };
-      e.target.reset();
-      document.getElementById('stPass').value = '123456';
-      renderStaffTable(); renderRosterTable();
-      await pushMasterAndAllBackends();
-      broadcastToIframes();
-      showToast('Đã thêm thành viên & đồng nhất sang cả 3 tab!');
-    });
-
-    window.openMemberModal = (editId = null) => {
-      const modal = document.getElementById('memberModal');
-      const title = document.getElementById('memberModalTitle');
-      document.getElementById('mmErr').classList.add('hidden');
-
+    // === MODAL TÀI KHOẢN ĐĂNG NHẬP (TAB 1) ===
+    window.openAccountModal = (editId = null) => {
+      const modal = document.getElementById('accountModal');
+      const title = document.getElementById('accountModalTitle');
+      document.getElementById('amErr').classList.add('hidden');
       if (editId) {
         const u = masterData.staff.find(x => x.id === editId);
         if (!u) return;
-        title.innerHTML = '<i data-lucide="user-pen" class="w-4 h-4 text-sky-400"></i> Sửa Thông Tin Thành Viên';
-        document.getElementById('mmId').value = u.id;
-        document.getElementById('mmCode').value = u.employeeCode;
-        document.getElementById('mmName').value = u.name;
-        document.getElementById('mmUser').value = u.username;
-        document.getElementById('mmPass').value = u.password;
-        document.getElementById('mmRole').value = u.role;
+        title.innerHTML = '<i data-lucide="user-pen" class="w-4 h-4 text-sky-400"></i> Sửa Tài Khoản Đăng Nhập';
+        document.getElementById('amId').value = u.id;
+        document.getElementById('amCode').value = u.employeeCode;
+        document.getElementById('amName').value = u.name;
+        document.getElementById('amUser').value = u.username;
+        document.getElementById('amPass').value = u.password;
+        document.getElementById('amRole').value = u.role;
       } else {
-        title.innerHTML = '<i data-lucide="user-plus" class="w-4 h-4 text-sky-400"></i> Thêm Thành Viên Mới';
-        document.getElementById('memberModalForm').reset();
-        document.getElementById('mmId').value = '';
-        document.getElementById('mmCode').value = 'KT-' + String(masterData.staff.length + 1).padStart(3, '0');
-        document.getElementById('mmPass').value = '123456';
-        document.getElementById('mmRole').value = 'user';
+        title.innerHTML = '<i data-lucide="user-plus" class="w-4 h-4 text-sky-400"></i> Thêm Tài Khoản Đăng Nhập';
+        document.getElementById('accountModalForm').reset();
+        document.getElementById('amId').value = '';
+        document.getElementById('amCode').value = 'DUTY-' + String(masterData.staff.length + 1).padStart(2, '0');
+        document.getElementById('amPass').value = '123456';
+        document.getElementById('amRole').value = 'user';
       }
       modal.classList.remove('hidden');
       lucide.createIcons();
     };
+    window.closeAccountModal = () => document.getElementById('accountModal').classList.add('hidden');
 
-    window.closeMemberModal = () => {
-      document.getElementById('memberModal').classList.add('hidden');
-    };
-
-    document.getElementById('memberModalForm').addEventListener('submit', async e => {
+    document.getElementById('accountModalForm').addEventListener('submit', async e => {
       e.preventDefault();
-      const id = document.getElementById('mmId').value.trim();
-      const code = document.getElementById('mmCode').value.trim();
-      const name = document.getElementById('mmName').value.trim();
-      const uname = document.getElementById('mmUser').value.trim().toLowerCase();
-      const pass = document.getElementById('mmPass').value.trim();
-      const role = document.getElementById('mmRole').value;
-      const err = document.getElementById('mmErr');
+      const id = document.getElementById('amId').value.trim();
+      const code = document.getElementById('amCode').value.trim();
+      const name = document.getElementById('amName').value.trim();
+      const uname = document.getElementById('amUser').value.trim().toLowerCase();
+      const pass = document.getElementById('amPass').value.trim();
+      const role = document.getElementById('amRole').value;
+      const err = document.getElementById('amErr');
 
       const dup = masterData.staff.find(u => u.username.toLowerCase() === uname && u.id !== id);
       if (dup) {
-        err.textContent = `Tên đăng nhập @${uname} đã được sử dụng!`;
+        err.textContent = `Tên đăng nhập @${uname} đã tồn tại!`;
         err.classList.remove('hidden');
         return;
       }
@@ -1055,26 +1105,107 @@
           target.username = uname;
           target.password = pass;
           target.role = role;
-          target.title = role === 'admin' ? 'Admin' : 'Kỹ thuật viên';
+          target.title = role === 'admin' ? 'Admin' : 'Trực Ca Chung';
         }
-        showToast('Đã cập nhật thành viên & đồng nhất cả 3 tab!');
+        showToast('Đã cập nhật tài khoản đăng nhập!');
       } else {
-        const newId = 'emp-' + Date.now();
         masterData.staff.push({
-          id: newId, employeeCode: code, name, username: uname, password: pass,
-          role, department: 'Kỹ Thuật', title: role === 'admin' ? 'Admin' : 'Kỹ thuật viên',
+          id: 'acc-' + Date.now(), employeeCode: code, name, username: uname, password: pass,
+          role, department: 'Kỹ Thuật', title: role === 'admin' ? 'Admin' : 'Trực Ca Chung',
           status: 'active', createdAt: new Date().toISOString()
         });
-        masterData.weeklyRoster[newId] = { mon: '', tue: '', wed: '', thu: '', fri: '', sat: '', sun: '' };
-        showToast('Đã thêm thành viên mới & đồng nhất cả 3 tab!');
+        showToast('Đã thêm tài khoản đăng nhập mới!');
       }
-
-      window.closeMemberModal();
-      renderStaffTable(); renderRosterTable();
+      window.closeAccountModal();
+      renderStaffTable();
       await pushMasterAndAllBackends();
       broadcastToIframes();
     });
 
+    window.deleteAccount = async (id) => {
+      const target = masterData.staff.find(u => u.id === id);
+      if (!target || !canDeleteAccount(target)) {
+        alert('Không thể xóa tài khoản Admin đang đăng nhập hoặc Admin duy nhất!');
+        return;
+      }
+      if (!confirm(`Xác nhận xóa tài khoản đăng nhập "${target.name}" (@${target.username})? (Bảng phân ca không bị ảnh hưởng)`)) return;
+      masterData.staff = masterData.staff.filter(u => u.id !== id);
+      renderStaffTable();
+      await pushMasterAndAllBackends();
+      broadcastToIframes();
+      showToast(`Đã xóa tài khoản @${target.username}!`);
+    };
+
+    // === MODAL NHÂN SỰ PHÂN CA ĐỘC LẬP (TAB 2) ===
+    window.openRosterMemberModal = (editId = null) => {
+      const modal = document.getElementById('rosterMemberModal');
+      const title = document.getElementById('rosterModalTitle');
+      if (editId) {
+        const r = masterData.rosterStaff.find(x => x.id === editId);
+        if (!r) return;
+        title.innerHTML = '<i data-lucide="user-pen" class="w-4 h-4"></i> Sửa Nhân Sự Phân Ca';
+        document.getElementById('rmId').value = r.id;
+        document.getElementById('rmCode').value = r.employeeCode || '';
+        document.getElementById('rmName').value = r.name || '';
+        document.getElementById('rmTitle').value = r.title || 'Kỹ thuật viên';
+        document.getElementById('rmDept').value = r.department || 'Kỹ Thuật';
+      } else {
+        title.innerHTML = '<i data-lucide="user-plus" class="w-4 h-4"></i> Thêm Nhân Sự Vào Bảng Phân Ca';
+        document.getElementById('rosterMemberForm').reset();
+        document.getElementById('rmId').value = '';
+        document.getElementById('rmCode').value = 'KT-' + String(masterData.rosterStaff.length + 1).padStart(3, '0');
+        document.getElementById('rmTitle').value = 'Kỹ thuật viên';
+        document.getElementById('rmDept').value = 'Kỹ Thuật';
+      }
+      modal.classList.remove('hidden');
+      lucide.createIcons();
+    };
+    window.closeRosterMemberModal = () => document.getElementById('rosterMemberModal').classList.add('hidden');
+
+    document.getElementById('rosterMemberForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const id = document.getElementById('rmId').value.trim();
+      const code = document.getElementById('rmCode').value.trim();
+      const name = document.getElementById('rmName').value.trim();
+      const title = document.getElementById('rmTitle').value.trim() || 'Kỹ thuật viên';
+      const dept = document.getElementById('rmDept').value.trim() || 'Kỹ Thuật';
+
+      if (id) {
+        const target = masterData.rosterStaff.find(x => x.id === id);
+        if (target) {
+          target.employeeCode = code;
+          target.name = name;
+          target.title = title;
+          target.department = dept;
+        }
+        showToast('Đã cập nhật nhân sự trong bảng phân ca!');
+      } else {
+        const newId = 'rst-' + Date.now();
+        masterData.rosterStaff.push({ id: newId, employeeCode: code, name, title, department: dept, createdAt: new Date().toISOString() });
+        masterData.weeklyRoster[newId] = { mon: '', tue: '', wed: '', thu: '', fri: '', sat: '', sun: '' };
+        showToast('Đã thêm nhân sự vào bảng phân ca!');
+      }
+      window.closeRosterMemberModal();
+      renderRosterTable();
+      updateHeaderUI();
+      await pushMasterAndAllBackends();
+      broadcastToIframes();
+    });
+
+    window.deleteRosterMember = async (id) => {
+      const target = masterData.rosterStaff.find(x => x.id === id);
+      if (!target) return;
+      if (!confirm(`Xác nhận xóa "${target.name}" khỏi bảng phân ca?`)) return;
+      masterData.rosterStaff = masterData.rosterStaff.filter(x => x.id !== id);
+      delete masterData.weeklyRoster[id];
+      renderRosterTable();
+      updateHeaderUI();
+      await pushMasterAndAllBackends();
+      broadcastToIframes();
+      showToast(`Đã xóa ${target.name} khỏi bảng phân ca!`);
+    };
+
+    // === MODAL ĐỔI THÔNG TIN ĐĂNG NHẬP ADMIN ===
     window.openAdminCredsModal = () => {
       if (!currentUser || currentUser.role !== 'admin') return;
       document.getElementById('acCode').value = currentUser.employeeCode || 'QL-001';
@@ -1087,10 +1218,7 @@
       document.getElementById('adminCredsModal').classList.remove('hidden');
       lucide.createIcons();
     };
-
-    window.closeAdminCredsModal = () => {
-      document.getElementById('adminCredsModal').classList.add('hidden');
-    };
+    window.closeAdminCredsModal = () => document.getElementById('adminCredsModal').classList.add('hidden');
 
     document.getElementById('adminCredsForm').addEventListener('submit', async e => {
       e.preventDefault();
@@ -1122,7 +1250,7 @@
       }
       const dup = masterData.staff.find(u => u.username.toLowerCase() === uname && u.id !== currentUser.id);
       if (dup) {
-        err.textContent = `Tên đăng nhập @${uname} đã tồn tại cho nhân sự khác!`;
+        err.textContent = `Tên đăng nhập @${uname} đã tồn tại!`;
         err.classList.remove('hidden');
         return;
       }
@@ -1139,16 +1267,15 @@
       window.closeAdminCredsModal();
       updateHeaderUI();
       renderStaffTable();
-      renderRosterTable();
       await pushMasterAndAllBackends();
       broadcastToIframes();
-      showToast('Đã cập nhật tài khoản Admin & đồng nhất cả 3 hệ thống!');
+      showToast('Đã cập nhật tài khoản Admin & đồng bộ 3 hệ thống!');
     });
 
     window.syncAllModulesNow = async (notify = false) => {
       await pushMasterAndAllBackends();
       broadcastToIframes();
-      if (notify) showToast('Đã đồng nhất danh sách User & SSO tới cả 3 tab!');
+      if (notify) showToast('Đã đồng bộ tài khoản SSO & bảng phân ca tới cả 3 tab!');
     };
 
     window.logoutSSO = () => {
@@ -1190,21 +1317,6 @@
       });
     };
 
-    window.deleteStaff = async (id) => {
-      const target = masterData.staff.find(u => u.id === id);
-      if (!target || !canDeleteMember(target)) {
-        alert('Không thể xóa tài khoản Admin đang đăng nhập hoặc Admin duy nhất!');
-        return;
-      }
-      if (!confirm(`Xác nhận xóa thành viên "${target.name}" (@${target.username}) khỏi bảng phân ca và toàn bộ 3 hệ thống?`)) return;
-      masterData.staff = masterData.staff.filter(u => u.id !== id);
-      delete masterData.weeklyRoster[id];
-      renderStaffTable(); renderRosterTable();
-      await pushMasterAndAllBackends();
-      broadcastToIframes();
-      showToast(`Đã xóa thành viên ${target.name} khỏi cả 3 hệ thống!`);
-    };
-
     window.saveRosterAndSync = async () => {
       document.querySelectorAll('.roster-sel').forEach(sel => {
         const uid = sel.dataset.uid, day = sel.dataset.day;
@@ -1214,15 +1326,17 @@
       updateHeaderUI();
       await pushMasterAndAllBackends();
       broadcastToIframes();
-      showToast('Đã lưu & đồng bộ bảng phân ca 2 chiều!');
+      showToast('Đã lưu bảng phân ca & ánh xạ sang các tab thực hiện!');
     };
 
     window.exportMasterExcel = () => {
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(masterData.staff), 'NhanSu');
-      const rosterRows = masterData.staff.map(u => ({ MaNV: u.employeeCode, HoTen: u.name, ...(masterData.weeklyRoster[u.id] || {}) }));
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rosterRows), 'PhanCa');
-      XLSX.writeFile(wb, `Unified_NhanSu_PhanCa_${getTodayDateStr()}.xlsx`);
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(masterData.staff), 'TaiKhoanDangNhap');
+      const rosterRows = masterData.rosterStaff.map(r => ({
+        MaNV: r.employeeCode, HoTen: r.name, ChucVu: r.title, ...(masterData.weeklyRoster[r.id] || {})
+      }));
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rosterRows), 'BangPhanCa');
+      XLSX.writeFile(wb, `Unified_TaiKhoan_PhanCa_${getTodayDateStr()}.xlsx`);
     };
 
     window.addEventListener('DOMContentLoaded', async () => {
