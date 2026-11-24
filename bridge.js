@@ -1,8 +1,11 @@
-/* bridge.js — Cầu nối SSO Tự Động Đăng Nhập & Đồng Nhất User 2 Chiều cho 3 Tab */
+/* bridge.js (v3) — Cầu nối SSO Tự Động Đăng Nhập, Đồng Nhất User 2 Chiều & Tối Giản Menu Nhân Viên */
 (function () {
   let isApplyingFromMaster = false;
   let lastMasterData = null;
+  let powerSwitchPageHooked = false;
   let lastChecklistWeeklyRaw = localStorage.getItem('dailycheck_weekly_shifts_v1') || '';
+
+  const POWER_USER_ALLOWED_PAGES = ['meters', 'equipment'];
 
   function getTodayStr() {
     const d = new Date();
@@ -48,7 +51,6 @@
 
     appState.currentUser = matchedUser;
 
-    // Ẩn hoàn toàn màn hình đăng nhập của Duty
     const loginScreen = document.getElementById('login-screen');
     if (loginScreen) {
       loginScreen.classList.add('opacity-0', 'pointer-events-none', 'hidden');
@@ -59,7 +61,6 @@
     if (typeof window.updateUserProfileUI === 'function') window.updateUserProfileUI();
     if (typeof window.renderAll === 'function') window.renderAll();
 
-    // Tối giản menu cho User (ẩn khu vực Admin)
     if (!isAdmin) {
       document.querySelectorAll('[onclick*="switchView(\'admin\')"], [data-view="admin"]').forEach(el => {
         el.style.display = 'none';
@@ -70,13 +71,77 @@
     }
   }
 
+  // CHẶN CHUYỂN SANG CÁC TAB BỊ ẨN TRONG ĐIỆN NƯỚC KHI LÀ USER NHÂN VIÊN
+  function enforcePowerUserView() {
+    // Ẩn tất cả mục ngoài "Ghi Chỉ Số Công Tơ" (meters) & "Thiết Bị" (equipment)
+    if (!document.getElementById('unified-power-user-css')) {
+      const st = document.createElement('style');
+      st.id = 'unified-power-user-css';
+      st.textContent = `
+        /* Ẩn các tab không dành cho User nhân viên (Desktop & Mobile) */
+        #nav-dashboard, #nav-sld, #nav-accounts,
+        #mnav-dashboard, #mnav-sld, #mnav-accounts,
+        #page-dashboard, #page-sld, #page-accounts,
+        #btnWipeReportToolbar, #headerPwaBtn, [data-admin-only] {
+          display: none !important;
+        }
+        /* Ẩn khối Tiện ích Kỹ thuật & Backup/Restore trong Sidebar */
+        aside .bg-blue-500\\/10 {
+          display: none !important;
+        }
+        /* Nâng thanh chuyển 2 mục (Công tơ / Thiết bị) trên mobile lên trên thanh Stardock */
+        @media (max-width: 1023px) {
+          body {
+            padding-bottom: 160px !important;
+          }
+          nav.fixed.bottom-0 {
+            bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px)) !important;
+            left: 50% !important;
+            right: auto !important;
+            transform: translateX(-50%) !important;
+            width: min(86%, 300px) !important;
+            border-radius: 1.25rem !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35) !important;
+            padding: 0.35rem 0.75rem !important;
+          }
+        }
+      `;
+      document.head.appendChild(st);
+    }
+
+    // Hook hàm switchPage để User chỉ mở được 'meters' hoặc 'equipment'
+    if (!powerSwitchPageHooked && typeof window.switchPage === 'function') {
+      const origSwitchPage = window.switchPage;
+      window.switchPage = function (pageId) {
+        const isCurrentUserAdmin = lastMasterData?.currentUser?.role === 'admin';
+        if (!isCurrentUserAdmin && !POWER_USER_ALLOWED_PAGES.includes(pageId)) {
+          return origSwitchPage.call(this, 'meters');
+        }
+        return origSwitchPage.apply(this, arguments);
+      };
+      powerSwitchPageHooked = true;
+    }
+
+    // Nếu đang ở trang không được phép (vd: dashboard mặc định) -> chuyển thẳng sang Chỉ số công tơ
+    const activePage = document.querySelector('.page-view.active');
+    const activeId = activePage ? activePage.id.replace('page-', '') : '';
+    if (!POWER_USER_ALLOWED_PAGES.includes(activeId) && typeof window.switchPage === 'function') {
+      window.switchPage('meters');
+    }
+  }
+
+  function restorePowerAdminView() {
+    const st = document.getElementById('unified-power-user-css');
+    if (st) st.remove();
+  }
+
   // ÁP DỤNG SSO & DANH SÁCH USER CHO ĐIỆN NƯỚC (power.html)
   function applyToPower(data) {
     if (!isPowerModule() || !data || !data.currentUser) return;
     const u = data.currentUser;
     const isAdmin = u.role === 'admin';
 
-    // Nếu overlay đăng nhập của Power vẫn đang hiện -> đăng nhập tự động bằng thông tin SSO
     const overlay = document.getElementById('authOverlay');
     if (overlay && !overlay.classList.contains('hidden')) {
       const userInp = document.getElementById('loginUsername');
@@ -90,7 +155,6 @@
           console.warn('Power auto-login retry:', e);
         }
       }
-      // Nếu sau 400ms vẫn chưa đóng (do appState trong module chưa nhận users mới) -> tải lại 1 lần để nhận localStorage đã đồng bộ
       setTimeout(() => {
         const ov = document.getElementById('authOverlay');
         if (ov && !ov.classList.contains('hidden') && !sessionStorage.getItem('power_sso_reloaded')) {
@@ -104,15 +168,9 @@
     }
 
     if (!isAdmin) {
-      document.querySelectorAll('[data-admin-only], #btnWipeReportToolbar').forEach(el => {
-        el.style.display = 'none';
-      });
-      if (!document.getElementById('unified-power-user-css')) {
-        const st = document.createElement('style');
-        st.id = 'unified-power-user-css';
-        st.textContent = `body { padding-bottom: 92px !important; }`;
-        document.head.appendChild(st);
-      }
+      enforcePowerUserView();
+    } else {
+      restorePowerAdminView();
     }
   }
 
@@ -170,18 +228,15 @@
 
   // CHIỀU 2: BÁO SẴN SÀNG & THEO DÕI THAY ĐỔI TỪ MODULE CON GỬI NGƯỢC LÊN MASTER
   window.addEventListener('load', function () {
-    // Báo lên index.html để nhận ngay gói SSO mới nhất
     if (window.parent && window.parent !== window) {
       window.parent.postMessage({ type: 'MODULE_READY' }, '*');
     }
 
-    // A. Hook saveState() và applyCloudData() trong Sổ Duty (duty.html)
     if (isDutyModule()) {
       if (typeof window.applyCloudData === 'function') {
         const origApplyCloud = window.applyCloudData;
         window.applyCloudData = function (cloudState) {
           const res = origApplyCloud.apply(this, arguments);
-          // Giữ nguyên danh sách user & phiên SSO từ Master nếu RTDB của Duty có dữ liệu cũ
           if (lastMasterData) {
             isApplyingFromMaster = true;
             try { applyToDuty(lastMasterData); } finally {
@@ -211,7 +266,6 @@
       }
     }
 
-    // B. Theo dõi thay đổi phân ca tuần trong Daily Checklist (checklist.html)
     if (isChecklistModule()) {
       setInterval(() => {
         if (isApplyingFromMaster) return;
