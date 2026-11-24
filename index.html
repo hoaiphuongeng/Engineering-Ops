@@ -641,6 +641,8 @@
       }
     }
 
+    let cachedPowerUsers = [];
+
     // GHI LOCALSTORAGE ĐỒNG NHẤT CHO CẢ 3 TAB (ĐẢM BẢO SSO TỨC THÌ KHI MỞ TAB)
     async function syncLocalStorageForAllTabs() {
       // 1. Daily Checklist localStorage
@@ -655,11 +657,13 @@
 
       // 2. Resort Power localStorage (users đã băm SHA-256 + session active)
       const powerUsers = await buildPowerUsers();
+      cachedPowerUsers = powerUsers;
       try {
         const rawPower = localStorage.getItem(POWER_STATE_KEY);
         if (rawPower) {
           const parsed = JSON.parse(rawPower);
           parsed.users = powerUsers;
+          // Giữ lastUpdated nhỏ hơn mốc Firestore push 2s để onSnapshot trong power.html luôn nhận bản mới
           parsed.lastUpdated = Date.now();
           localStorage.setItem(POWER_STATE_KEY, JSON.stringify(parsed));
         }
@@ -719,7 +723,7 @@
           try {
             await setDoc(doc(powerDb, 'resortpower_sync', 'main_state_v5'), {
               users: powerUsers,
-              lastUpdated: Date.now()
+              lastUpdated: Date.now() + 2500
             }, { merge: true });
           } catch (e) {
             console.warn('Power Firestore user sync:', e);
@@ -732,7 +736,10 @@
     }
 
     // PHÁT GÓI TIN SSO + DỮ LIỆU USER XUỐNG 3 IFRAME
-    function broadcastToIframes() {
+    async function broadcastToIframes() {
+      if (!cachedPowerUsers || cachedPowerUsers.length !== masterData.staff.length) {
+        cachedPowerUsers = await buildPowerUsers();
+      }
       const todayKey = getTodayDayKey();
       const todayStr = getTodayDateStr();
       const dutyScheduleToday = masterData.staff.map((u, idx) => {
@@ -746,6 +753,7 @@
         syncHash: lastHash,
         currentUser,
         staff: masterData.staff,
+        powerUsers: cachedPowerUsers,
         weeklyRoster: masterData.weeklyRoster,
         dutyScheduleToday
       };
