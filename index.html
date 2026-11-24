@@ -258,6 +258,67 @@
     </div>
   </div>
 
+  <!-- MODAL XEM TRƯỚC & XÁC NHẬN NẠP BẢNG PHÂN CA TỪ EXCEL -->
+  <div id="importRosterModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-3 sm:p-4">
+    <div class="glass w-full max-w-4xl max-h-[90vh] flex flex-col rounded-3xl p-5 sm:p-6 shadow-2xl border-emerald-500/30 space-y-4">
+      <div class="flex items-center justify-between gap-2 shrink-0">
+        <div>
+          <h3 class="text-base font-bold text-emerald-300 flex items-center gap-2">
+            <i data-lucide="file-spreadsheet" class="w-5 h-5"></i> Xem Trước Dữ Liệu Nạp Bảng Phân Ca Từ Excel
+          </h3>
+          <p id="impRosterSummary" class="text-[11px] text-slate-400 mt-0.5">Đang đọc dữ liệu...</p>
+        </div>
+        <button onclick="closeImportRosterModal()" class="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white cursor-pointer">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-slate-900/80 border border-slate-800 text-xs shrink-0">
+        <div class="flex flex-wrap items-center gap-4">
+          <label class="inline-flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="impRosterMode" value="merge" checked class="accent-emerald-400" />
+            <span><b>Gộp & Cập nhật</b> (giữ nhân sự cũ, thêm mới nếu chưa có)</span>
+          </label>
+          <label class="inline-flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="impRosterMode" value="replace" class="accent-rose-400" />
+            <span class="text-rose-300"><b>Thay thế toàn bộ</b> bảng phân ca bằng file Excel này</span>
+          </label>
+        </div>
+        <span id="impRosterFileName" class="text-[11px] font-mono text-sky-300 truncate max-w-xs"></span>
+      </div>
+
+      <div class="flex-1 min-h-0 overflow-auto rounded-2xl border border-slate-800 bg-slate-950/60">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-900 text-slate-400 text-[10px] uppercase sticky top-0 z-10">
+            <tr>
+              <th class="p-2.5">Trạng thái</th>
+              <th class="p-2.5">Mã NV</th>
+              <th class="p-2.5">Họ & Tên</th>
+              <th class="p-2.5 text-center">T2</th>
+              <th class="p-2.5 text-center">T3</th>
+              <th class="p-2.5 text-center">T4</th>
+              <th class="p-2.5 text-center">T5</th>
+              <th class="p-2.5 text-center">T6</th>
+              <th class="p-2.5 text-center">T7</th>
+              <th class="p-2.5 text-center">CN</th>
+            </tr>
+          </thead>
+          <tbody id="impRosterPreviewBody" class="divide-y divide-slate-800/80"></tbody>
+        </table>
+      </div>
+
+      <div class="flex flex-wrap items-center justify-between gap-2 pt-1 shrink-0 text-xs">
+        <span class="text-[11px] text-slate-400">Hỗ trợ mã ca: <b>M/M1/Ca 1/Sáng</b> • <b>E/E1/Ca 2/Chiều</b> • <b>N/N1/Ca 3/Đêm</b> • <b>OFF/Nghỉ</b></span>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="closeImportRosterModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold cursor-pointer">Hủy</button>
+          <button type="button" onclick="confirmImportRosterExcel()" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold flex items-center gap-1.5 cursor-pointer">
+            <i data-lucide="check-circle-2" class="w-4 h-4"></i> Xác Nhận Nạp & Đồng Bộ 3 Hệ Thống
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- THANH TRẠNG THÁI TRÊN CÙNG -->
   <header class="px-3 sm:px-4 flex items-center justify-between bg-slate-900/95 border-b border-slate-800 shrink-0 z-30 gap-2">
     <div class="flex items-center gap-2.5 min-w-0">
@@ -354,11 +415,18 @@
               <div class="text-[11px] text-slate-400">Quy ước: <b>Ca Sáng (Ca 1: 06:00-14:00)</b> • <b>Ca Chiều (Ca 2: 14:00-22:00)</b> • <b>Ca Đêm (Ca 3: 22:00-06:00)</b> • <b>OFF</b>.</div>
             </div>
             <div class="flex flex-wrap items-center gap-2">
+              <input id="rosterExcelInput" type="file" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleRosterExcelFile(event)" />
+              <button onclick="downloadRosterExcelTemplate()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold flex items-center gap-1.5 cursor-pointer" title="Tải file Excel mẫu có sẵn danh sách nhân sự">
+                <i data-lucide="download" class="w-3.5 h-3.5 text-sky-400"></i> Tải File Mẫu
+              </button>
+              <button onclick="document.getElementById('rosterExcelInput').click()" class="px-3.5 py-2 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 font-bold flex items-center gap-1.5 cursor-pointer" title="Nạp bảng phân ca từ file Excel (.xlsx, .xls, .csv)">
+                <i data-lucide="upload" class="w-3.5 h-3.5"></i> Nhập Excel
+              </button>
               <button onclick="openRosterMemberModal()" class="px-3.5 py-2 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 font-bold flex items-center gap-1.5 cursor-pointer">
-                <i data-lucide="user-plus" class="w-3.5 h-3.5"></i> Thêm Nhân Sự Phân Ca
+                <i data-lucide="user-plus" class="w-3.5 h-3.5"></i> Thêm Nhân Sự
               </button>
               <button onclick="saveRosterAndSync()" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold flex items-center gap-1.5 cursor-pointer">
-                <i data-lucide="save" class="w-3.5 h-3.5"></i> Lưu & Ánh Xạ 3 Hệ Thống
+                <i data-lucide="save" class="w-3.5 h-3.5"></i> Lưu & Ánh Xạ
               </button>
             </div>
           </div>
@@ -1466,6 +1534,255 @@
       await pushMasterAndAllBackends();
       broadcastToIframes();
       showToast('Đã lưu bảng phân ca & ánh xạ sang các tab thực hiện!');
+    };
+
+    // === NẠP BẢNG PHÂN CA BẰNG EXCEL CHO ADMIN ===
+    let pendingImportedRoster = [];
+
+    function normalizeHeaderKey(str) {
+      return String(str || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd').replace(/Đ/g, 'D')
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '');
+    }
+
+    function parseExcelShiftCode(raw) {
+      if (raw === null || raw === undefined) return '';
+      const v = String(raw).trim();
+      if (!v) return '';
+      const up = v.toUpperCase();
+      const norm = normalizeHeaderKey(v);
+
+      if (['off', 'nghi', 'x', 'ro', 'al', 'ph', 'nghiphep'].includes(norm) || v === '-') return 'OFF';
+      if (
+        up.startsWith('M') ||
+        ['ca1', '1', 'c1', 'sang', 'casang', 'morning'].includes(norm) ||
+        norm.includes('sang')
+      ) return 'Ca Sáng';
+      if (
+        up.startsWith('E') ||
+        ['ca2', '2', 'c2', 'chieu', 'cachieu', 'afternoon'].includes(norm) ||
+        norm.includes('chieu')
+      ) return 'Ca Chiều';
+      if (
+        up.startsWith('N') ||
+        ['ca3', '3', 'c3', 'dem', 'cadem', 'night'].includes(norm) ||
+        norm.includes('dem')
+      ) return 'Ca Đêm';
+      return '';
+    }
+
+    window.downloadRosterExcelTemplate = () => {
+      const source = (masterData.rosterStaff && masterData.rosterStaff.length > 0)
+        ? masterData.rosterStaff
+        : [
+            { id: 's1', employeeCode: 'KT-001', name: 'Trần Văn B', title: 'Kỹ thuật viên', department: 'Kỹ Thuật' },
+            { id: 's2', employeeCode: 'KT-002', name: 'Lê Văn C', title: 'Kỹ thuật viên', department: 'Kỹ Thuật' }
+          ];
+
+      const rows = source.map((r, idx) => {
+        const w = masterData.weeklyRoster[r.id] || {};
+        return {
+          'Mã NV': r.employeeCode || `KT-${String(idx + 1).padStart(3, '0')}`,
+          'Họ và Tên': r.name,
+          'Chức Vụ': r.title || 'Kỹ thuật viên',
+          'Bộ Phận': r.department || 'Kỹ Thuật',
+          'Thứ 2': w.mon || (idx % 2 === 0 ? 'Ca Sáng' : 'Ca Chiều'),
+          'Thứ 3': w.tue || (idx % 2 === 0 ? 'Ca Sáng' : 'Ca Chiều'),
+          'Thứ 4': w.wed || (idx % 2 === 0 ? 'Ca Chiều' : 'Ca Đêm'),
+          'Thứ 5': w.thu || (idx % 2 === 0 ? 'Ca Chiều' : 'Ca Đêm'),
+          'Thứ 6': w.fri || (idx % 2 === 0 ? 'Ca Đêm' : 'OFF'),
+          'Thứ 7': w.sat || (idx % 2 === 0 ? 'OFF' : 'Ca Sáng'),
+          'Chủ Nhật': w.sun || 'Ca Sáng'
+        };
+      });
+
+      const guideRows = [
+        { 'Giá trị hợp lệ trong Excel': 'Ca Sáng / Ca 1 / M / M1 / M2 / Sáng', 'Ánh xạ hệ thống': 'Ca Sáng (06:00 - 14:00)' },
+        { 'Giá trị hợp lệ trong Excel': 'Ca Chiều / Ca 2 / E / E1 / E2 / Chiều', 'Ánh xạ hệ thống': 'Ca Chiều (14:00 - 22:00)' },
+        { 'Giá trị hợp lệ trong Excel': 'Ca Đêm / Ca 3 / N / N1 / N2 / Đêm', 'Ánh xạ hệ thống': 'Ca Đêm (22:00 - 06:00)' },
+        { 'Giá trị hợp lệ trong Excel': 'OFF / Nghỉ / X / RO / AL / -', 'Ánh xạ hệ thống': 'OFF (Nghỉ)' },
+        { 'Giá trị hợp lệ trong Excel': '(Để trống)', 'Ánh xạ hệ thống': 'Chưa phân ca (--)' }
+      ];
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(rows);
+      ws['!cols'] = [
+        { wch: 12 }, { wch: 24 }, { wch: 18 }, { wch: 16 },
+        { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }
+      ];
+      XLSX.utils.book_append_sheet(wb, ws, 'BangPhanCa');
+      const wsGuide = XLSX.utils.json_to_sheet(guideRows);
+      wsGuide['!cols'] = [{ wch: 40 }, { wch: 28 }];
+      XLSX.utils.book_append_sheet(wb, wsGuide, 'HuongDanMaCa');
+      XLSX.writeFile(wb, `Mau_Bang_Phan_Ca_${getTodayDateStr()}.xlsx`);
+      showToast('Đã tải file Excel mẫu Bảng Phân Ca!');
+    };
+
+    window.handleRosterExcelFile = (event) => {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const wb = XLSX.read(data, { type: 'array' });
+          const firstSheet = wb.Sheets[wb.SheetNames[0]];
+          const jsonRows = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
+
+          if (!jsonRows || jsonRows.length === 0) {
+            alert('File Excel trống hoặc không có dòng dữ liệu nào!');
+            return;
+          }
+
+          const dayKeyMatchers = {
+            mon: ['thu2', 't2', 'mon', 'monday'],
+            tue: ['thu3', 't3', 'tue', 'tuesday'],
+            wed: ['thu4', 't4', 'wed', 'wednesday'],
+            thu: ['thu5', 't5', 'thu', 'thursday'],
+            fri: ['thu6', 't6', 'fri', 'friday'],
+            sat: ['thu7', 't7', 'sat', 'saturday'],
+            sun: ['chunhat', 'cn', 'sun', 'sunday']
+          };
+
+          const parsedList = [];
+          jsonRows.forEach((rawRow, idx) => {
+            const normMap = {};
+            Object.keys(rawRow).forEach(k => {
+              normMap[normalizeHeaderKey(k)] = rawRow[k];
+            });
+
+            const pickVal = (candidates) => {
+              for (const c of candidates) {
+                if (normMap[c] !== undefined && String(normMap[c]).trim() !== '') {
+                  return String(normMap[c]).trim();
+                }
+              }
+              for (const k of Object.keys(normMap)) {
+                if (candidates.some(c => k.includes(c)) && String(normMap[k]).trim() !== '') {
+                  return String(normMap[k]).trim();
+                }
+              }
+              return '';
+            };
+
+            const name = pickVal(['hovaten', 'hoten', 'tennhanvien', 'nhansu', 'fullname', 'name', 'ten']);
+            const code = pickVal(['manv', 'manhanvien', 'employeecode', 'code', 'ma']);
+            if (!name && !code) return;
+
+            const title = pickVal(['chucvu', 'chucdanh', 'to', 'title', 'position']) || 'Kỹ thuật viên';
+            const department = pickVal(['bophan', 'phongban', 'department', 'dept']) || 'Kỹ Thuật';
+
+            const shifts = {};
+            DAYS.forEach(d => {
+              const rawShift = pickVal(dayKeyMatchers[d]);
+              shifts[d] = parseExcelShiftCode(rawShift);
+            });
+
+            const existing = (masterData.rosterStaff || []).find(r =>
+              (code && r.employeeCode && r.employeeCode.toLowerCase() === code.toLowerCase()) ||
+              (name && r.name && r.name.toLowerCase() === name.toLowerCase())
+            );
+
+            parsedList.push({
+              existingId: existing ? existing.id : null,
+              employeeCode: code || (existing ? existing.employeeCode : `KT-${String((masterData.rosterStaff?.length || 0) + idx + 1).padStart(3, '0')}`),
+              name: name || (existing ? existing.name : code),
+              title,
+              department,
+              shifts
+            });
+          });
+
+          if (parsedList.length === 0) {
+            alert('Không tìm thấy cột "Họ và Tên" hoặc "Mã NV" hợp lệ trong file Excel. Hãy tải File Mẫu để xem đúng định dạng.');
+            return;
+          }
+
+          pendingImportedRoster = parsedList;
+          const updateCount = parsedList.filter(x => x.existingId).length;
+          const newCount = parsedList.length - updateCount;
+
+          document.getElementById('impRosterFileName').textContent = file.name;
+          document.getElementById('impRosterSummary').innerHTML =
+            `Đọc được <b class="text-white">${parsedList.length}</b> nhân sự: <b class="text-sky-300">${updateCount} cập nhật</b> • <b class="text-emerald-300">${newCount} thêm mới</b>.`;
+
+          document.getElementById('impRosterPreviewBody').innerHTML = parsedList.map(item => `
+            <tr class="hover:bg-slate-900/50">
+              <td class="p-2.5 whitespace-nowrap">
+                ${item.existingId
+                  ? '<span class="px-2 py-0.5 rounded-md bg-sky-500/20 text-sky-300 text-[10px] font-bold">Cập nhật</span>'
+                  : '<span class="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">Thêm mới</span>'}
+              </td>
+              <td class="p-2.5 font-mono text-sky-300 whitespace-nowrap">${item.employeeCode}</td>
+              <td class="p-2.5 font-semibold whitespace-nowrap">${item.name}</td>
+              ${DAYS.map(d => `<td class="p-2 text-center">${renderShiftBadge(item.shifts[d])}</td>`).join('')}
+            </tr>
+          `).join('');
+
+          document.getElementById('importRosterModal').classList.remove('hidden');
+          lucide.createIcons();
+        } catch (err) {
+          console.error('Excel import error:', err);
+          alert('Lỗi đọc file Excel: ' + (err.message || 'Định dạng file không hợp lệ.'));
+        } finally {
+          event.target.value = '';
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    };
+
+    window.closeImportRosterModal = () => {
+      document.getElementById('importRosterModal').classList.add('hidden');
+      pendingImportedRoster = [];
+    };
+
+    window.confirmImportRosterExcel = async () => {
+      if (!pendingImportedRoster || pendingImportedRoster.length === 0) return;
+      const modeEl = document.querySelector('input[name="impRosterMode"]:checked');
+      const mode = modeEl ? modeEl.value : 'merge';
+
+      if (mode === 'replace') {
+        masterData.rosterStaff = [];
+        masterData.weeklyRoster = {};
+      }
+
+      pendingImportedRoster.forEach((item, idx) => {
+        let target = mode === 'merge' && item.existingId
+          ? masterData.rosterStaff.find(r => r.id === item.existingId)
+          : null;
+
+        if (!target) {
+          const newId = item.existingId || (`rst-${Date.now()}-${idx}`);
+          target = {
+            id: newId,
+            employeeCode: item.employeeCode,
+            name: item.name,
+            title: item.title,
+            department: item.department,
+            createdAt: new Date().toISOString()
+          };
+          masterData.rosterStaff.push(target);
+        } else {
+          target.employeeCode = item.employeeCode;
+          target.name = item.name;
+          target.title = item.title;
+          target.department = item.department;
+        }
+        masterData.weeklyRoster[target.id] = { ...item.shifts };
+      });
+
+      const importedTotal = pendingImportedRoster.length;
+      window.closeImportRosterModal();
+      renderRosterTable();
+      if (typeof window.renderUserRosterView === 'function') window.renderUserRosterView();
+      updateHeaderUI();
+      await pushMasterAndAllBackends();
+      broadcastToIframes();
+      showToast(`Đã nạp thành công bảng phân ca cho ${importedTotal} nhân sự & đồng bộ 3 hệ thống!`);
     };
 
     window.exportMasterExcel = () => {
