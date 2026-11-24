@@ -6,7 +6,23 @@
   let dutyHooksApplied = false;
   let lastChecklistWeeklyRaw = localStorage.getItem('dailycheck_weekly_shifts_v1') || '';
 
+  const SUPER_ADMIN_USERNAME = 'shp';
   const POWER_STATE_KEY = 'RESORT_UTILITY_OS_STATE_V5';
+
+  function isSuperAdminObj(u) {
+    return Boolean(u && (u.isSuperAdmin === true || String(u.username || '').toLowerCase() === SUPER_ADMIN_USERNAME));
+  }
+
+  function hideSuperAdminRowsInDom(containerSelector) {
+    const container = document.querySelector(containerSelector);
+    if (!container) return;
+    container.querySelectorAll('tr').forEach(tr => {
+      const txt = (tr.textContent || '').toLowerCase();
+      if (/\b@?shp\b/.test(txt) || txt.includes('admin tối cao') || txt.includes('sup-001')) {
+        tr.style.display = 'none';
+      }
+    });
+  }
   const POWER_SESSION_KEY = 'RESORT_UTILITY_SESSION_V5';
   const POWER_USER_ALLOWED_PAGES = ['meters', 'equipment'];
 
@@ -62,8 +78,12 @@
     const u = data.currentUser;
     const isAdmin = u.role === 'admin';
 
-    // 1. Tài khoản đăng nhập (dùng cho SSO)
-    const loginUsers = (data.staff || []).map(s => ({
+    // 1. Tài khoản đăng nhập (ẩn Admin Tối Cao shp nếu đang đăng nhập bằng Admin khác)
+    const isSupViewer = Boolean(data.isCurrentSuperAdmin || isSuperAdminObj(u));
+    const filteredStaffForDuty = isSupViewer
+      ? (data.staff || [])
+      : (data.staff || []).filter(s => !isSuperAdminObj(s));
+    const loginUsers = filteredStaffForDuty.map(s => ({
       id: s.id,
       name: s.name,
       username: s.username,
@@ -276,7 +296,21 @@
     }
 
     sessionStorage.setItem('power_synced_sig_v5', incomingSig);
-    if (typeof window.renderUsersTable === 'function') window.renderUsersTable();
+    const isSupViewer = Boolean(data.isCurrentSuperAdmin || isSuperAdminObj(u));
+    if (typeof window.renderUsersTable === 'function') {
+      if (!window._unifiedPowerUsersHooked) {
+        window._unifiedPowerUsersHooked = true;
+        const origRenderUsers = window.renderUsersTable;
+        window.renderUsersTable = function () {
+          const res = origRenderUsers.apply(this, arguments);
+          const viewerIsSup = Boolean(lastMasterData && (lastMasterData.isCurrentSuperAdmin || isSuperAdminObj(lastMasterData.currentUser)));
+          if (!viewerIsSup) hideSuperAdminRowsInDom('#usersTableBody');
+          return res;
+        };
+      }
+      window.renderUsersTable();
+    }
+    if (!isSupViewer) hideSuperAdminRowsInDom('#usersTableBody');
 
     if (!isAdmin) {
       enforcePowerUserView();
@@ -308,6 +342,22 @@
     }
 
     lastChecklistWeeklyRaw = localStorage.getItem('dailycheck_weekly_shifts_v1') || '';
+
+    const isSupViewer = Boolean(data.isCurrentSuperAdmin || isSuperAdminObj(u));
+    if (!isSupViewer && !window._unifiedChecklistHideObserver) {
+      const hideShpInChecklist = () => {
+        document.querySelectorAll('#root tbody tr, #root option').forEach(el => {
+          const txt = (el.textContent || '').toLowerCase();
+          if (/\b@?shp\b/.test(txt) || txt.includes('admin tối cao') || txt.includes('sup-001')) {
+            el.style.display = 'none';
+          }
+        });
+      };
+      hideShpInChecklist();
+      window._unifiedChecklistHideObserver = new MutationObserver(hideShpInChecklist);
+      const rootEl = document.getElementById('root');
+      if (rootEl) window._unifiedChecklistHideObserver.observe(rootEl, { childList: true, subtree: true });
+    }
 
     if (!isAdmin && !document.getElementById('unified-user-minimal-css')) {
       const st = document.createElement('style');
