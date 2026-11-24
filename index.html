@@ -413,22 +413,65 @@
       <iframe id="frame-power" class="mod-frame" data-src="modules/power.html"></iframe>
     </section>
 
+    <!-- 5. BẢNG PHÂN CA DÀNH CHO NHÂN VIÊN (CHỈ XEM - ĐỒNG BỘ REAL-TIME) -->
+    <section id="panel-roster" class="view-panel overflow-y-auto bg-slate-950 p-4 md:p-6 pb-32">
+      <div class="max-w-5xl mx-auto space-y-5">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 class="text-lg sm:text-xl font-bold flex items-center gap-2">
+              <i data-lucide="calendar-days" class="w-5 h-5 text-sky-400"></i>
+              <span>Bảng Phân Ca Làm Việc</span>
+            </h2>
+            <p class="text-xs text-slate-400 mt-0.5" id="userRosterSubtitle">Lịch trực tuần tự động đồng bộ từ Quản trị viên</p>
+          </div>
+          <div class="relative w-full sm:w-64">
+            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+            <input id="userRosterSearch" type="text" oninput="renderUserRosterView()" placeholder="Tìm tên hoặc mã NV..."
+              class="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs focus:outline-none focus:border-sky-400" />
+          </div>
+        </div>
+
+        <!-- Tóm tắt nhân sự trực 3 ca hôm nay -->
+        <div id="userRosterTodayCards" class="grid grid-cols-1 sm:grid-cols-3 gap-3"></div>
+
+        <!-- Bảng lịch trực cả tuần (T2 -> CN) -->
+        <div class="glass rounded-2xl overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead id="userRosterThead" class="bg-slate-900/90 text-slate-400 text-[10px] uppercase"></thead>
+            <tbody id="userRosterTbody" class="divide-y divide-slate-800/80"></tbody>
+          </table>
+        </div>
+
+        <!-- Chú thích màu ca -->
+        <div class="flex flex-wrap items-center gap-3 text-[11px] text-slate-400 px-1">
+          <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-sky-400"></span>Ca Sáng (06:00–14:00)</span>
+          <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>Ca Chiều (14:00–22:00)</span>
+          <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-purple-400"></span>Ca Đêm (22:00–06:00)</span>
+          <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-slate-500"></span>OFF (Nghỉ)</span>
+        </div>
+      </div>
+    </section>
+
   </main>
 
-  <!-- THANH STARDOCK ĐÁY MÀN HÌNH: ĐÚNG 3 MỤC CÔNG VIỆC CHÍNH CHO CẤP USER -->
-  <div id="userStardock" class="hidden fixed left-1/2 -translate-x-1/2 z-40 w-[94%] max-w-md">
-    <div class="glass stardock rounded-3xl p-1.5 grid grid-cols-3 gap-1">
-      <button onclick="openTab('checklist')" data-dock="checklist" class="dock-btn flex flex-col items-center justify-center py-2.5 px-2 rounded-2xl text-slate-300 cursor-pointer">
+  <!-- THANH STARDOCK ĐÁY MÀN HÌNH CHO CẤP USER (4 MỤC: 3 CÔNG VIỆC + BẢNG PHÂN CA) -->
+  <div id="userStardock" class="hidden fixed left-1/2 -translate-x-1/2 z-40 w-[95%] max-w-lg">
+    <div class="glass stardock rounded-3xl p-1.5 grid grid-cols-4 gap-1">
+      <button onclick="openTab('checklist')" data-dock="checklist" class="dock-btn flex flex-col items-center justify-center py-2 px-1 rounded-2xl text-slate-300 cursor-pointer">
         <i data-lucide="clipboard-check" class="w-5 h-5 mb-1"></i>
-        <span class="text-[11px] font-bold leading-tight text-center">Kiểm tra biểu mẫu</span>
+        <span class="text-[10.5px] font-bold leading-tight text-center">Kiểm tra biểu mẫu</span>
       </button>
-      <button onclick="openTab('duty')" data-dock="duty" class="dock-btn flex flex-col items-center justify-center py-2.5 px-2 rounded-2xl text-slate-300 cursor-pointer">
+      <button onclick="openTab('duty')" data-dock="duty" class="dock-btn flex flex-col items-center justify-center py-2 px-1 rounded-2xl text-slate-300 cursor-pointer">
         <i data-lucide="book-open-check" class="w-5 h-5 mb-1"></i>
-        <span class="text-[11px] font-bold leading-tight text-center">Ghi sổ duty</span>
+        <span class="text-[10.5px] font-bold leading-tight text-center">Ghi sổ duty</span>
       </button>
-      <button onclick="openTab('power')" data-dock="power" class="dock-btn flex flex-col items-center justify-center py-2.5 px-2 rounded-2xl text-slate-300 cursor-pointer">
+      <button onclick="openTab('power')" data-dock="power" class="dock-btn flex flex-col items-center justify-center py-2 px-1 rounded-2xl text-slate-300 cursor-pointer">
         <i data-lucide="zap" class="w-5 h-5 mb-1"></i>
-        <span class="text-[11px] font-bold leading-tight text-center">Ghi chỉ số điện nước</span>
+        <span class="text-[10.5px] font-bold leading-tight text-center">Ghi chỉ số điện nước</span>
+      </button>
+      <button onclick="openTab('roster')" data-dock="roster" class="dock-btn flex flex-col items-center justify-center py-2 px-1 rounded-2xl text-slate-300 cursor-pointer">
+        <i data-lucide="calendar-days" class="w-5 h-5 mb-1"></i>
+        <span class="text-[10.5px] font-bold leading-tight text-center">Bảng phân ca</span>
       </button>
     </div>
   </div>
@@ -709,6 +752,7 @@
               }
               renderStaffTable();
               renderRosterTable();
+      if (typeof window.renderUserRosterView === "function") window.renderUserRosterView();
               await syncLocalStorageForAllTabs();
               broadcastToIframes();
               showToast('Đã đồng bộ tài khoản & bảng phân ca từ Cloud!');
@@ -916,6 +960,7 @@
         const newHash = computeHash(masterData);
         if (newHash !== lastHash) {
           renderRosterTable();
+      if (typeof window.renderUserRosterView === "function") window.renderUserRosterView();
           updateHeaderUI();
           pushMasterAndAllBackends();
           broadcastToIframes();
@@ -952,6 +997,7 @@
       updateHeaderUI();
       renderStaffTable();
       renderRosterTable();
+      if (typeof window.renderUserRosterView === "function") window.renderUserRosterView();
 
       await syncLocalStorageForAllTabs();
       pushMasterAndAllBackends();
@@ -1051,6 +1097,95 @@
         </tr>`;
       }).join('');
     }
+
+    // BẢNG PHÂN CA CHỈ XEM DÀNH CHO NHÂN VIÊN (STARDOCK)
+    function renderShiftBadge(val) {
+      if (val === 'Ca Sáng') return '<span class="inline-block px-2 py-1 rounded-lg bg-sky-500/20 text-sky-300 border border-sky-500/30 font-bold text-[11px] whitespace-nowrap">Ca Sáng</span>';
+      if (val === 'Ca Chiều') return '<span class="inline-block px-2 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold text-[11px] whitespace-nowrap">Ca Chiều</span>';
+      if (val === 'Ca Đêm') return '<span class="inline-block px-2 py-1 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30 font-bold text-[11px] whitespace-nowrap">Ca Đêm</span>';
+      if (val === 'OFF') return '<span class="inline-block px-2 py-1 rounded-lg bg-slate-800 text-slate-400 border border-slate-700 font-semibold text-[11px]">OFF</span>';
+      return '<span class="text-slate-600">--</span>';
+    }
+
+    window.renderUserRosterView = function() {
+      const todayKey = getTodayDayKey();
+      const todayFormatted = getTodayDateStr().split('-').reverse().join('/');
+      const currentShift = getCurrentShiftByClock();
+      const dayLabels = { mon: 'Thứ 2', tue: 'Thứ 3', wed: 'Thứ 4', thu: 'Thứ 5', fri: 'Thứ 6', sat: 'Thứ 7', sun: 'Chủ Nhật' };
+
+      const subEl = document.getElementById('userRosterSubtitle');
+      if (subEl) subEl.textContent = `Hôm nay: ${dayLabels[todayKey]}, ${todayFormatted} • Ca hiện tại: ${currentShift}`;
+
+      // 3 thẻ tóm tắt nhân sự trực hôm nay
+      const cardsEl = document.getElementById('userRosterTodayCards');
+      if (cardsEl) {
+        const shiftDefs = [
+          { name: 'Ca Sáng', time: '06:00 – 14:00', activeBorder: 'border-sky-400/70 ring-1 ring-sky-400/40', titleCls: 'text-sky-300', badgeCls: 'bg-sky-500/25 text-sky-300' },
+          { name: 'Ca Chiều', time: '14:00 – 22:00', activeBorder: 'border-amber-400/70 ring-1 ring-amber-400/40', titleCls: 'text-amber-300', badgeCls: 'bg-amber-500/25 text-amber-300' },
+          { name: 'Ca Đêm', time: '22:00 – 06:00', activeBorder: 'border-purple-400/70 ring-1 ring-purple-400/40', titleCls: 'text-purple-300', badgeCls: 'bg-purple-500/25 text-purple-300' }
+        ];
+        cardsEl.innerHTML = shiftDefs.map(def => {
+          const people = getOnDutyRosterPeople(def.name);
+          const isNow = def.name === currentShift;
+          const borderCls = isNow ? def.activeBorder : 'border-slate-800';
+          return `
+            <div class="glass p-3.5 rounded-2xl border ${borderCls} space-y-2">
+              <div class="flex items-center justify-between">
+                <div>
+                  <span class="text-xs font-bold ${def.titleCls}">${def.name}</span>
+                  <span class="text-[10px] text-slate-400 ml-1.5">${def.time}</span>
+                </div>
+                ${isNow ? `<span class="text-[9px] px-2 py-0.5 rounded-full ${def.badgeCls} font-bold">ĐANG TRỰC</span>` : ''}
+              </div>
+              <div class="flex flex-wrap gap-1.5">
+                ${people.length > 0
+                  ? people.map(p => `<span class="px-2 py-1 rounded-lg bg-slate-900/90 border border-slate-700 text-[11px] font-semibold text-slate-100">${p.name}</span>`).join('')
+                  : '<span class="text-[11px] text-slate-500 italic">Chưa phân ca</span>'
+                }
+              </div>
+            </div>`;
+        }).join('');
+      }
+
+      // Header bảng tuần (làm nổi bật cột hôm nay)
+      const thead = document.getElementById('userRosterThead');
+      if (thead) {
+        thead.innerHTML = `<tr>
+          <th class="p-3 sticky left-0 bg-slate-900 z-10 min-w-[140px]">Nhân Sự</th>
+          ${DAYS.map(d => `
+            <th class="p-3 text-center whitespace-nowrap ${d === todayKey ? 'bg-sky-500/15 text-sky-300' : ''}">
+              ${dayLabels[d]}${d === todayKey ? ' <span class="block text-[9px] text-sky-400">(Hôm nay)</span>' : ''}
+            </th>`).join('')}
+        </tr>`;
+      }
+
+      // Nội dung bảng tuần có lọc tìm kiếm
+      const tbody = document.getElementById('userRosterTbody');
+      if (tbody) {
+        const q = (document.getElementById('userRosterSearch')?.value || '').trim().toLowerCase();
+        const list = (masterData.rosterStaff || []).filter(r =>
+          !q || (r.name || '').toLowerCase().includes(q) || (r.employeeCode || '').toLowerCase().includes(q)
+        );
+        if (list.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-slate-400">Không tìm thấy nhân sự phù hợp.</td></tr>`;
+        } else {
+          tbody.innerHTML = list.map(r => {
+            const row = masterData.weeklyRoster[r.id] || {};
+            return `<tr class="hover:bg-slate-900/40">
+              <td class="p-3 sticky left-0 bg-slate-950/95 backdrop-blur font-semibold whitespace-nowrap border-r border-slate-800/70">
+                <div class="text-slate-100">${r.name}</div>
+                <div class="text-[10px] text-slate-400">${r.employeeCode || ''} ${r.title ? '• ' + r.title : ''}</div>
+              </td>
+              ${DAYS.map(d => `
+                <td class="p-2.5 text-center ${d === todayKey ? 'bg-sky-500/10' : ''}">
+                  ${renderShiftBadge(row[d] || '')}
+                </td>`).join('')}
+            </tr>`;
+          }).join('');
+        }
+      }
+      lucide.createIcons();
+    };
 
     // === MODAL TÀI KHOẢN ĐĂNG NHẬP (TAB 1) ===
     window.openAccountModal = (editId = null) => {
@@ -1187,6 +1322,7 @@
       }
       window.closeRosterMemberModal();
       renderRosterTable();
+      if (typeof window.renderUserRosterView === "function") window.renderUserRosterView();
       updateHeaderUI();
       await pushMasterAndAllBackends();
       broadcastToIframes();
@@ -1199,6 +1335,7 @@
       masterData.rosterStaff = masterData.rosterStaff.filter(x => x.id !== id);
       delete masterData.weeklyRoster[id];
       renderRosterTable();
+      if (typeof window.renderUserRosterView === "function") window.renderUserRosterView();
       updateHeaderUI();
       await pushMasterAndAllBackends();
       broadcastToIframes();
@@ -1291,7 +1428,7 @@
 
     window.openTab = (tabName) => {
       if (tabName === 'admin' && currentUser?.role !== 'admin') return;
-      ['admin', 'checklist', 'duty', 'power'].forEach(t => {
+      ['admin', 'checklist', 'duty', 'power', 'roster'].forEach(t => {
         document.getElementById(`panel-${t}`).classList.toggle('active', t === tabName);
       });
       document.querySelectorAll('[data-nav]').forEach(btn => {
@@ -1302,7 +1439,9 @@
       document.querySelectorAll('[data-dock]').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.dock === tabName);
       });
-      if (tabName !== 'admin' && currentUser) {
+      if (tabName === 'roster') {
+        window.renderUserRosterView();
+      } else if (tabName !== 'admin' && currentUser) {
         broadcastToIframes();
       }
     };
