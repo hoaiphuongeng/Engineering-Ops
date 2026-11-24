@@ -51,28 +51,30 @@
       pointer-events: auto;
       z-index: 10;
     }
-    /* === STARDOCK XANH LÁ GỌN NHẸ CHUẨN 3D iOS (CHỈ ICON + GHIM / TỰ ẨN) === */
+    /* === STARDOCK CẠNH TRÁI XANH LÁ 3D iOS (CHỈ ICON + GHIM / TỰ ẨN + VUỐT CẠNH TRÁI) === */
     #userStardock {
-      transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1), opacity 260ms ease;
+      left: calc(0.5rem + env(safe-area-inset-left, 0px));
+      top: 50%;
+      transform: translate(0, -50%);
+      transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1), opacity 240ms ease;
       will-change: transform, opacity;
-      bottom: calc(0.75rem + env(safe-area-inset-bottom));
     }
     #userStardock.dock-autohidden {
-      transform: translate(-50%, calc(100% + 2rem));
+      transform: translate(calc(-100% - 1.5rem), -50%);
       opacity: 0;
       pointer-events: none;
     }
     .stardock-green {
-      background: linear-gradient(145deg, rgba(52, 211, 153, 0.38) 0%, rgba(22, 163, 74, 0.54) 52%, rgba(20, 83, 45, 0.72) 100%),
-                  rgba(6, 26, 15, 0.72);
+      background: linear-gradient(160deg, rgba(52, 211, 153, 0.40) 0%, rgba(22, 163, 74, 0.56) 52%, rgba(20, 83, 45, 0.76) 100%),
+                  rgba(6, 26, 15, 0.74);
       backdrop-filter: blur(26px) saturate(195%);
       -webkit-backdrop-filter: blur(26px) saturate(195%);
       border: 1px solid rgba(187, 247, 208, 0.45);
       box-shadow:
-        0 18px 40px -8px rgba(22, 163, 74, 0.45),
+        12px 16px 36px -6px rgba(22, 163, 74, 0.42),
         0 8px 18px rgba(0, 0, 0, 0.42),
-        inset 0 1.5px 0 rgba(220, 252, 231, 0.48),
-        inset 0 -1px 0 rgba(20, 83, 45, 0.5);
+        inset 1px 1px 0 rgba(220, 252, 231, 0.48),
+        inset -1px -1px 0 rgba(20, 83, 45, 0.5);
     }
     .dock-btn {
       position: relative;
@@ -81,32 +83,33 @@
     }
     .dock-btn:hover {
       background: rgba(220, 252, 231, 0.14);
-      transform: translateY(-2px);
+      transform: translateX(2px);
     }
     .dock-btn:active {
       transform: scale(0.93);
     }
     .dock-btn.active {
-      background: linear-gradient(180deg, rgba(236, 253, 245, 0.28) 0%, rgba(34, 197, 94, 0.24) 100%);
+      background: linear-gradient(90deg, rgba(236, 253, 245, 0.28) 0%, rgba(34, 197, 94, 0.24) 100%);
       border-color: rgba(187, 247, 208, 0.6);
       box-shadow: 0 6px 14px rgba(20, 83, 45, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.45);
-      transform: translateY(-2px);
+      transform: translateX(2px);
     }
+    /* Chấm sáng nhỏ bên cạnh trái của icon đang chọn */
     .dock-btn::after {
       content: "";
       position: absolute;
-      bottom: 2px;
-      left: 50%;
-      transform: translateX(-50%) scale(0);
-      width: 5px;
-      height: 5px;
+      left: 2px;
+      top: 50%;
+      transform: translateY(-50%) scale(0);
+      width: 4px;
+      height: 14px;
       border-radius: 9999px;
       background: #dcfce7;
       box-shadow: 0 0 6px rgba(187, 247, 208, 0.95);
       transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
     }
     .dock-btn.active::after {
-      transform: translateX(-50%) scale(1);
+      transform: translateY(-50%) scale(1);
     }
     /* Icon 3D iOS Squircle gọn nhẹ */
     .ios3d-icon {
@@ -145,22 +148,31 @@
     .ios3d-power     { background: linear-gradient(160deg, #fde047 0%, #f59e0b 55%, #b45309 100%); }
     .ios3d-roster    { background: linear-gradient(160deg, #fb7185 0%, #e11d48 55%, #881337 100%); }
 
-    /* Thanh kéo bật lại Stardock khi đang ở chế độ Tự ẩn */
+    /* Vùng vuốt cạnh trái & Dấu nhận diện siêu nhỏ khi Stardock đang ẩn */
     #stardockRevealHandle {
-      bottom: calc(0.45rem + env(safe-area-inset-bottom));
-      transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms ease;
+      left: 0;
+      top: 50%;
+      transform: translate(0, -50%);
+      transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease;
+      touch-action: pan-y;
     }
     #stardockRevealHandle.handle-hidden {
-      transform: translate(-50%, 140%);
+      transform: translate(-120%, -50%);
       opacity: 0;
       pointer-events: none;
     }
-    .reveal-pill {
-      background: linear-gradient(135deg, rgba(34, 197, 94, 0.88), rgba(21, 128, 61, 0.94));
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(220, 252, 231, 0.55);
-      box-shadow: 0 8px 22px rgba(22, 163, 74, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    .edge-indicator-dot {
+      width: 6px;
+      height: 44px;
+      border-radius: 0 9999px 9999px 0;
+      background: linear-gradient(180deg, #4ade80 0%, #16a34a 100%);
+      box-shadow: 2px 0 12px rgba(34, 197, 94, 0.75), inset -1px 0 1px rgba(255, 255, 255, 0.55);
+      transition: width 180ms ease, height 180ms ease;
+    }
+    #stardockRevealHandle:hover .edge-indicator-dot,
+    #stardockRevealHandle:active .edge-indicator-dot {
+      width: 10px;
+      height: 52px;
     }
     iframe.mod-frame {
       width: 100%;
@@ -620,23 +632,20 @@
 
   </main>
 
-  <!-- THANH KÉO BẬT LẠI STARDOCK KHI ĐANG TỰ ẨN -->
-  <div id="stardockRevealHandle" class="hidden handle-hidden fixed left-1/2 -translate-x-1/2 z-40">
-    <button onclick="showStardockTemporarily()" onmouseenter="showStardockTemporarily()"
-      title="Mở thanh Stardock" aria-label="Mở thanh Stardock"
-      class="reveal-pill px-4 py-1.5 rounded-full text-[11px] font-bold text-emerald-50 flex items-center gap-1.5 cursor-pointer active:scale-95 transition">
-      <span class="w-8 h-1 rounded-full bg-emerald-100/90 inline-block"></span>
-      <i data-lucide="chevron-up" class="w-3.5 h-3.5"></i>
-    </button>
+  <!-- DẤU NHẬN DIỆN NHỎ & VÙNG VUỐT CẠNH TRÁI KHI STARDOCK ĐANG ẨN -->
+  <div id="stardockRevealHandle" class="hidden handle-hidden fixed z-40 h-56 w-6 flex items-center justify-start cursor-pointer select-none"
+    onclick="showStardockTemporarily()" onmouseenter="showStardockTemporarily()"
+    title="Vuốt sang phải hoặc chạm để mở thanh Stardock" aria-label="Mở thanh Stardock">
+    <div class="edge-indicator-dot"></div>
   </div>
 
-  <!-- THANH STARDOCK XANH LÁ GỌN NHẸ (CHỈ HIỂN THỊ ICON 3D iOS + NÚT GHIM / TỰ ẨN) -->
-  <div id="userStardock" class="hidden fixed left-1/2 -translate-x-1/2 z-40 w-auto max-w-[95%]"
+  <!-- THANH STARDOCK CẠNH TRÁI XANH LÁ GỌN NHẸ (CHỈ ICON 3D iOS + GHIM / TỰ ẨN) -->
+  <div id="userStardock" class="hidden fixed z-40"
     onmouseenter="pauseStardockAutoHide()" onmouseleave="scheduleStardockAutoHide()">
-    <div class="stardock-green rounded-[22px] px-2 py-1.5 flex items-center gap-1.5">
+    <div class="stardock-green rounded-[22px] py-2 px-1.5 flex flex-col items-center gap-1.5">
       <!-- 1. Kiểm tra biểu mẫu -->
       <button onclick="handleDockClick('checklist')" data-dock="checklist" title="Kiểm tra biểu mẫu" aria-label="Kiểm tra biểu mẫu"
-        class="dock-btn flex items-center justify-center p-1.5 pb-2.5 rounded-2xl cursor-pointer">
+        class="dock-btn flex items-center justify-center p-1.5 pl-2.5 rounded-2xl cursor-pointer">
         <div class="ios3d-icon ios3d-checklist">
           <svg viewBox="0 0 32 32" class="w-5 h-5 drop-shadow-[0_2px_3px_rgba(0,0,0,0.35)]" fill="none">
             <rect x="7" y="6" width="18" height="21" rx="3.5" fill="#ffffff" fill-opacity="0.95"/>
@@ -648,7 +657,7 @@
 
       <!-- 2. Ghi sổ duty -->
       <button onclick="handleDockClick('duty')" data-dock="duty" title="Ghi sổ duty" aria-label="Ghi sổ duty"
-        class="dock-btn flex items-center justify-center p-1.5 pb-2.5 rounded-2xl cursor-pointer">
+        class="dock-btn flex items-center justify-center p-1.5 pl-2.5 rounded-2xl cursor-pointer">
         <div class="ios3d-icon ios3d-duty">
           <svg viewBox="0 0 32 32" class="w-5 h-5 drop-shadow-[0_2px_3px_rgba(0,0,0,0.35)]" fill="none">
             <path d="M6.5 8.5C6.5 7.1 7.6 6 9 6H15.5V25H9C7.6 25 6.5 23.9 6.5 22.5V8.5Z" fill="#ffffff" fill-opacity="0.96"/>
@@ -660,7 +669,7 @@
 
       <!-- 3. Ghi chỉ số điện nước -->
       <button onclick="handleDockClick('power')" data-dock="power" title="Ghi chỉ số điện nước" aria-label="Ghi chỉ số điện nước"
-        class="dock-btn flex items-center justify-center p-1.5 pb-2.5 rounded-2xl cursor-pointer">
+        class="dock-btn flex items-center justify-center p-1.5 pl-2.5 rounded-2xl cursor-pointer">
         <div class="ios3d-icon ios3d-power">
           <svg viewBox="0 0 32 32" class="w-5 h-5 drop-shadow-[0_2px_3px_rgba(0,0,0,0.35)]" fill="none">
             <path d="M17.5 4.5L8.5 17H15.2L13.8 27.5L23.5 14.5H16.8L17.5 4.5Z" fill="#ffffff"/>
@@ -671,7 +680,7 @@
 
       <!-- 4. Bảng phân ca -->
       <button onclick="handleDockClick('roster')" data-dock="roster" title="Bảng phân ca" aria-label="Bảng phân ca"
-        class="dock-btn flex items-center justify-center p-1.5 pb-2.5 rounded-2xl cursor-pointer">
+        class="dock-btn flex items-center justify-center p-1.5 pl-2.5 rounded-2xl cursor-pointer">
         <div class="ios3d-icon ios3d-roster">
           <svg viewBox="0 0 32 32" class="w-5 h-5 drop-shadow-[0_2px_3px_rgba(0,0,0,0.35)]" fill="none">
             <rect x="5.5" y="7" width="21" height="19.5" rx="4" fill="#ffffff" fill-opacity="0.96"/>
@@ -684,10 +693,10 @@
         </div>
       </button>
 
-      <!-- Vách ngăn mảnh -->
-      <div class="w-px h-7 bg-emerald-100/30 mx-0.5 shrink-0"></div>
+      <!-- Vách ngăn ngang mảnh -->
+      <div class="h-px w-7 bg-emerald-100/30 my-0.5 shrink-0"></div>
 
-      <!-- Nút Ghim / Tự ẩn gọn ngay trong thanh Stardock -->
+      <!-- Nút Ghim / Tự ẩn -->
       <button id="btnToggleDockPin" onclick="toggleStardockPin()"
         class="w-9 h-9 rounded-xl flex items-center justify-center cursor-pointer transition border border-emerald-200/45 bg-emerald-500/35 text-emerald-50 hover:bg-emerald-400/45 shrink-0"
         title="Đang ghim (Bấm để bật Tự ẩn)" aria-label="Ghim hoặc tự ẩn thanh Stardock">
@@ -1811,6 +1820,59 @@
         window.scheduleStardockAutoHide(700);
       }
     };
+
+    // Cử chỉ vuốt cạnh trái để mở Stardock & vuốt sang trái trên Stardock để ẩn nhanh
+    (function initStardockEdgeSwipe() {
+      let edgeStartX = 0, edgeStartY = 0, edgeTracking = false;
+      const handleEl = document.getElementById('stardockRevealHandle');
+      const dockEl = document.getElementById('userStardock');
+
+      const onEdgeStart = (e) => {
+        if (!e.touches || e.touches.length !== 1) return;
+        const t = e.touches[0];
+        if (t.clientX <= 36) {
+          edgeStartX = t.clientX;
+          edgeStartY = t.clientY;
+          edgeTracking = true;
+        }
+      };
+      const onEdgeMove = (e) => {
+        if (!edgeTracking || !e.touches || e.touches.length !== 1) return;
+        const t = e.touches[0];
+        const dx = t.clientX - edgeStartX;
+        const dy = Math.abs(t.clientY - edgeStartY);
+        if (dx > 22 && dx > dy) {
+          edgeTracking = false;
+          window.showStardockTemporarily();
+        }
+      };
+      const onEdgeEnd = () => { edgeTracking = false; };
+
+      if (handleEl) {
+        handleEl.addEventListener('touchstart', onEdgeStart, { passive: true });
+        handleEl.addEventListener('touchmove', onEdgeMove, { passive: true });
+        handleEl.addEventListener('touchend', onEdgeEnd, { passive: true });
+      }
+      document.addEventListener('touchstart', onEdgeStart, { passive: true });
+      document.addEventListener('touchmove', onEdgeMove, { passive: true });
+      document.addEventListener('touchend', onEdgeEnd, { passive: true });
+
+      // Vuốt sang trái trên thanh Stardock để ẩn nhanh khi đang ở chế độ Tự ẩn
+      if (dockEl) {
+        let dockStartX = 0;
+        dockEl.addEventListener('touchstart', (e) => {
+          if (e.touches && e.touches.length === 1) dockStartX = e.touches[0].clientX;
+        }, { passive: true });
+        dockEl.addEventListener('touchend', (e) => {
+          if (!e.changedTouches || e.changedTouches.length !== 1) return;
+          const dx = e.changedTouches[0].clientX - dockStartX;
+          if (dx < -28 && !stardockPinned) {
+            clearTimeout(stardockHideTimer);
+            setStardockVisible(false);
+          }
+        }, { passive: true });
+      }
+    })();
 
     window.openTab = (tabName) => {
       if (tabName === 'admin' && currentUser?.role !== 'admin') return;
