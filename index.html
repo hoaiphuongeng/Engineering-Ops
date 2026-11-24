@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>Engineering Unified OS — Đồng Bộ 2 Chiều Real-time</title>
+  <title>Engineering Unified OS — SSO & Đồng Bộ 2 Chiều</title>
 
   <!-- Cấu hình PWA & Màn hình chính iPhone (iOS Standalone) -->
   <link rel="manifest" href="manifest.json" />
@@ -68,7 +68,6 @@
       border: 0;
       background: #fff;
     }
-    /* Căn lề an toàn cho màn hình iPhone khi mở chế độ PWA toàn màn hình */
     header {
       padding-top: env(safe-area-inset-top);
       height: calc(3.5rem + env(safe-area-inset-top));
@@ -80,7 +79,7 @@
 </head>
 <body class="h-screen w-screen flex flex-col">
 
-  <!-- MÀN HÌNH ĐĂNG NHẬP HỢP NHẤT (SSO) -->
+  <!-- MÀN HÌNH ĐĂNG NHẬP HỢP NHẤT (SSO CHO CẢ 3 TAB) -->
   <div id="ssoOverlay" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-xl p-4">
     <div class="glass w-full max-w-md rounded-3xl p-7 shadow-2xl">
       <div class="flex items-center gap-3 mb-6">
@@ -92,7 +91,7 @@
         </div>
         <div>
           <h1 class="text-xl font-bold tracking-tight">Engineering Unified OS</h1>
-          <p class="text-xs text-slate-400">Checklist • Sổ Trực Duty • Chỉ Số Điện Nước</p>
+          <p class="text-xs text-slate-400">Đăng nhập 1 lần • Tự động mở Checklist, Sổ Duty & Điện Nước</p>
         </div>
       </div>
 
@@ -108,8 +107,8 @@
             class="w-full px-4 py-3 rounded-2xl bg-slate-900/80 border border-slate-700 text-sm focus:outline-none focus:border-sky-400" />
         </div>
         <p id="ssoErr" class="hidden text-xs text-rose-400 font-medium"></p>
-        <button type="submit" class="w-full py-3 rounded-2xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-sm transition cursor-pointer">
-          Đăng Nhập Hệ Thống
+        <button id="ssoSubmitBtn" type="submit" class="w-full py-3 rounded-2xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-sm transition cursor-pointer">
+          Đăng Nhập Đồng Bộ 3 Hệ Thống
         </button>
       </form>
 
@@ -163,7 +162,7 @@
         <p id="mmErr" class="hidden text-rose-400 font-medium"></p>
         <div class="flex justify-end gap-2 pt-2">
           <button type="button" onclick="closeMemberModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold cursor-pointer">Hủy</button>
-          <button type="submit" class="px-5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold cursor-pointer">Lưu Thành Viên</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold cursor-pointer">Lưu & Đồng Nhất 3 Tab</button>
         </div>
       </form>
     </div>
@@ -180,7 +179,7 @@
           <i data-lucide="x" class="w-4 h-4"></i>
         </button>
       </div>
-      <p class="text-[11px] text-slate-400">Thay đổi tài khoản/mật khẩu Admin sẽ được đồng bộ 2 chiều lên Cloud và tự cập nhật trên cả 3 hệ thống.</p>
+      <p class="text-[11px] text-slate-400">Tài khoản & mật khẩu Admin sẽ được đồng nhất lên Cloud của cả 3 hệ thống (Checklist, Sổ Duty, Điện Nước).</p>
       <form id="adminCredsForm" class="space-y-3 text-xs">
         <div class="grid grid-cols-2 gap-3">
           <div>
@@ -244,8 +243,7 @@
     </nav>
 
     <div class="flex items-center gap-2 shrink-0">
-      <!-- Trạng thái đồng bộ Cloud 2 chiều -->
-      <div id="cloudBadge" class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-800 border border-slate-700 text-[11px] font-semibold text-slate-300" title="Trạng thái đồng bộ 2 chiều Firebase">
+      <div id="cloudBadge" class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-800 border border-slate-700 text-[11px] font-semibold text-slate-300" title="Trạng thái đồng bộ SSO & 3 hệ thống">
         <span id="cloudDot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
         <span id="cloudLabel" class="hidden sm:inline">Đang kết nối...</span>
       </div>
@@ -265,14 +263,14 @@
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 class="text-xl font-bold">Trung Tâm Quản Trị Hợp Nhất (Admin)</h2>
-            <p class="text-xs text-slate-400">Quản lý thành viên, phân ca liên kết và bảo mật tài khoản Admin — Đồng bộ 2 chiều Real-time.</p>
+            <p class="text-xs text-slate-400">Đồng nhất 100% tài khoản User & phiên đăng nhập SSO sang cả 3 tab: Checklist, Sổ Duty và Điện Nước.</p>
           </div>
           <div class="flex flex-wrap gap-2">
             <button onclick="openAdminCredsModal()" class="px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer">
               <i data-lucide="key-round" class="w-3.5 h-3.5"></i> Đổi TT Đăng Nhập Admin
             </button>
             <button onclick="syncAllModulesNow(true)" class="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer">
-              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Đẩy Đồng Bộ Ngay
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Đồng Nhất 3 Hệ Thống
             </button>
             <button onclick="exportMasterExcel()" class="px-3.5 py-2 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer">
               <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i> Xuất Excel (.xlsx)
@@ -327,7 +325,7 @@
           </div>
         </div>
 
-        <!-- SUB 2: BẢNG PHÂN CA TUẦN (CÓ THÊM / BỚT THÀNH VIÊN TRỰC TIẾP) -->
+        <!-- SUB 2: BẢNG PHÂN CA TUẦN -->
         <div id="adminSub-roster" class="hidden space-y-4">
           <div class="glass p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs text-slate-300">
             <span>Chọn ca trực tuần cho từng nhân sự. Hệ thống tự ánh xạ 2 chiều: <b>Ca Sáng (Ca 1)</b> • <b>Ca Chiều (Ca 2)</b> • <b>Ca Đêm (Ca 3)</b> • <b>OFF</b>.</span>
@@ -358,18 +356,18 @@
         <!-- SUB 3: PHÂN QUYỀN -->
         <div id="adminSub-perms" class="hidden grid grid-cols-1 md:grid-cols-3 gap-4">
           <div class="glass p-5 rounded-2xl space-y-2">
-            <h3 class="font-bold text-sky-400 text-sm">1. Kiểm Tra Biểu Mẫu</h3>
-            <p class="text-xs text-slate-400">Admin: Tạo/Sửa biểu mẫu, cấu hình QR, xuất báo cáo tổng.<br>User: Chỉ thực hiện kiểm tra & gửi báo cáo theo ca.</p>
+            <h3 class="font-bold text-sky-400 text-sm">1. Kiểm Tra Biểu Mẫu (Checklist)</h3>
+            <p class="text-xs text-slate-400">Đồng bộ trực tiếp vào Firestore <code>daily-checklist-shp</code> (collection <code>employees</code> & <code>schedules/weekly</code>) + tự động đăng nhập SSO.</p>
             <button onclick="openTab('checklist')" class="mt-2 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold cursor-pointer">Mở Giám Sát Checklist →</button>
           </div>
           <div class="glass p-5 rounded-2xl space-y-2">
             <h3 class="font-bold text-amber-400 text-sm">2. Ghi Sổ Duty</h3>
-            <p class="text-xs text-slate-400">Admin: Toàn quyền quản trị, duyệt bàn giao, thống kê sự cố.<br>User: Ghi nhận công việc phát sinh & bàn giao đúng ca trực.</p>
+            <p class="text-xs text-slate-400">Đồng bộ trực tiếp danh sách tài khoản & ca trực vào <code>dutylogbook-2df88</code> + tự động đăng nhập không cần nhập lại mật khẩu.</p>
             <button onclick="openTab('duty')" class="mt-2 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold cursor-pointer">Mở Giám Sát Duty →</button>
           </div>
           <div class="glass p-5 rounded-2xl space-y-2">
             <h3 class="font-bold text-emerald-400 text-sm">3. Ghi Chỉ Số Điện Nước</h3>
-            <p class="text-xs text-slate-400">Admin: Cấu hình đồng hồ, SLD, đơn giá, %OCC, xóa dữ liệu.<br>User: Mở thẳng giao diện nhập chỉ số điện nước hàng ngày.</p>
+            <p class="text-xs text-slate-400">Tự động mã hóa mật khẩu SHA-256 và đồng nhất danh sách user vào Firestore <code>resortpower</code> + tự động mở phiên đăng nhập.</p>
             <button onclick="openTab('power')" class="mt-2 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold cursor-pointer">Mở Giám Sát Điện Nước →</button>
           </div>
         </div>
@@ -378,17 +376,17 @@
 
     <!-- 2. MODULE KIỂM TRA BIỂU MẪU -->
     <section id="panel-checklist" class="view-panel">
-      <iframe id="frame-checklist" class="mod-frame" src="modules/checklist.html"></iframe>
+      <iframe id="frame-checklist" class="mod-frame" data-src="modules/checklist.html"></iframe>
     </section>
 
     <!-- 3. MODULE GHI SỔ DUTY -->
     <section id="panel-duty" class="view-panel">
-      <iframe id="frame-duty" class="mod-frame" src="modules/duty.html"></iframe>
+      <iframe id="frame-duty" class="mod-frame" data-src="modules/duty.html"></iframe>
     </section>
 
     <!-- 4. MODULE GHI CHỈ SỐ ĐIỆN NƯỚC -->
     <section id="panel-power" class="view-panel">
-      <iframe id="frame-power" class="mod-frame" src="modules/power.html"></iframe>
+      <iframe id="frame-power" class="mod-frame" data-src="modules/power.html"></iframe>
     </section>
 
   </main>
@@ -417,8 +415,11 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, collection, getDocs, setDoc, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    const firebaseConfig = {
+    // 1. Firebase Master & Duty (RTDB)
+    const dutyConfig = {
       apiKey: "AIzaSyCSGbsD1v5Y_p3bdI51CQU4idBgUSBfYDA",
       authDomain: "dutylogbook-2df88.firebaseapp.com",
       databaseURL: "https://dutylogbook-2df88-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -428,8 +429,30 @@
       appId: "1:231161330782:web:d71ac519eb798680da48cf"
     };
 
+    // 2. Firebase Daily Checklist (Firestore)
+    const checklistConfig = {
+      apiKey: "AIzaSyBJE6dyU1BRfhPxPggICB5TFt8LkO-3-qg",
+      authDomain: "daily-checklist-shp.firebaseapp.com",
+      projectId: "daily-checklist-shp",
+      storageBucket: "daily-checklist-shp.firebasestorage.app",
+      messagingSenderId: "690163993413",
+      appId: "1:690163993413:web:7c4652314a6854f2fccc2c"
+    };
+
+    // 3. Firebase Resort Power (Firestore)
+    const powerConfig = {
+      apiKey: "AIzaSyDjR-13vpOwdvO_l02e2C-IlfcoXN1Oaxc",
+      authDomain: "resortpower.firebaseapp.com",
+      projectId: "resortpower",
+      storageBucket: "resortpower.firebasestorage.app",
+      messagingSenderId: "880635958876",
+      appId: "1:880635958876:web:b49c6bf08be4b7275c7899"
+    };
+
     const MASTER_KEY = 'UNIFIED_ENG_MASTER_V1';
     const SESSION_KEY = 'UNIFIED_ENG_SESSION_V1';
+    const POWER_STATE_KEY = 'RESORT_UTILITY_OS_STATE_V5';
+    const POWER_SESSION_KEY = 'RESORT_UTILITY_SESSION_V5';
     const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
     const SHIFT_OPTS = ['', 'Ca Sáng', 'Ca Chiều', 'Ca Đêm', 'OFF'];
 
@@ -451,9 +474,20 @@
     let currentUser = null;
     let lastHash = '';
     let cloudRef = null;
+    let checklistDb = null;
+    let checklistAuthReady = Promise.resolve();
+    let powerDb = null;
 
     function computeHash(obj) {
       return JSON.stringify({ staff: obj.staff || [], weeklyRoster: obj.weeklyRoster || {} });
+    }
+
+    // Mã hóa SHA-256 chuẩn của Resort Power
+    async function hashPowerPassword(plainText, usernameSalt = 'resort_salt') {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(`${String(usernameSalt).toLowerCase().trim()}::${plainText}`);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
     function showToast(msg) {
@@ -469,7 +503,7 @@
       const lbl = document.getElementById('cloudLabel');
       if (state === 'online') {
         dot.className = 'w-2 h-2 rounded-full bg-emerald-400';
-        lbl.textContent = 'Đồng bộ 2 chiều';
+        lbl.textContent = 'Đồng bộ SSO & 3 Tab';
       } else if (state === 'syncing') {
         dot.className = 'w-2 h-2 rounded-full bg-sky-400 animate-ping';
         lbl.textContent = 'Đang đồng bộ...';
@@ -506,14 +540,53 @@
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     }
 
-    // KHỞI TẠO FIREBASE RTDB 2 CHIỀU
-    function initCloudTwoWay() {
-      try {
-        const app = initializeApp(firebaseConfig, 'unified-master-app');
-        const db = getDatabase(app);
-        cloudRef = ref(db, 'unified_eng_os/masterData');
+    // Chuyển đổi danh sách nhân sự chuẩn cho từng hệ thống
+    function buildChecklistEmployees() {
+      return masterData.staff.map(u => ({
+        id: u.id,
+        employeeCode: u.employeeCode,
+        name: u.name,
+        username: u.username,
+        password: u.password,
+        email: u.email || `${u.username}@resort.vn`,
+        role: u.role === 'admin' ? 'admin' : 'user',
+        department: u.department || 'Kỹ Thuật',
+        title: u.title || (u.role === 'admin' ? 'Quản trị viên (Admin)' : 'Kỹ thuật viên'),
+        status: u.status || 'active',
+        createdAt: u.createdAt || new Date().toISOString()
+      }));
+    }
 
-        onValue(cloudRef, (snap) => {
+    function buildChecklistWeekly() {
+      const dcWeekly = {};
+      masterData.staff.forEach(u => {
+        const row = masterData.weeklyRoster[u.id] || {};
+        dcWeekly[u.id] = {};
+        DAYS.forEach(d => dcWeekly[u.id][d] = mapToChecklistShift(row[d] || ''));
+      });
+      return dcWeekly;
+    }
+
+    async function buildPowerUsers() {
+      return Promise.all(masterData.staff.map(async u => ({
+        id: u.id,
+        username: u.username,
+        fullName: u.name,
+        role: u.role === 'admin' ? 'admin' : 'user',
+        passwordHash: await hashPowerPassword(u.password, u.username),
+        mustChangePassword: false,
+        createdAt: u.createdAt || new Date().toISOString()
+      })));
+    }
+
+    // KHỞI TẠO KẾT NỐI CLOUD CHO CẢ 3 HỆ THỐNG
+    function initCloudConnections() {
+      try {
+        const masterApp = initializeApp(dutyConfig, 'unified-master-app');
+        const rtdb = getDatabase(masterApp);
+        cloudRef = ref(rtdb, 'unified_eng_os/masterData');
+
+        onValue(cloudRef, async (snap) => {
           const remote = snap.val();
           if (remote && remote.staff) {
             const remoteHash = computeHash(remote);
@@ -535,58 +608,131 @@
               }
               renderStaffTable();
               renderRosterTable();
+              await syncLocalStorageForAllTabs();
               broadcastToIframes();
-              showToast('Đã nhận cập nhật nhân sự & phân ca từ Cloud!');
+              showToast('Đã đồng bộ tài khoản & phân ca mới nhất từ Cloud!');
             }
           } else {
-            pushMasterToCloud();
+            pushMasterAndAllBackends();
           }
           setCloudUI('online');
         }, () => setCloudUI('offline'));
       } catch (e) {
-        console.warn('Cloud init fallback:', e);
+        console.warn('Master RTDB init fallback:', e);
         setCloudUI('offline');
       }
-    }
 
-    async function pushMasterToCloud() {
-      masterData.updatedAt = Date.now();
-      lastHash = computeHash(masterData);
-      localStorage.setItem(MASTER_KEY, JSON.stringify(masterData));
-      if (!cloudRef) return;
+      // Kết nối Firestore của Daily Checklist để đồng nhất collection employees & schedules
       try {
-        setCloudUI('syncing');
-        await set(cloudRef, masterData);
-        setCloudUI('online');
+        const dcApp = initializeApp(checklistConfig, 'unified-checklist-sync');
+        const dcAuth = getAuth(dcApp);
+        checklistAuthReady = signInAnonymously(dcAuth).catch(() => {});
+        checklistDb = getFirestore(dcApp);
       } catch (e) {
-        setCloudUI('offline');
+        console.warn('Checklist Firestore init skip:', e);
+      }
+
+      // Kết nối Firestore của Resort Power để đồng nhất mảng users (kèm SHA-256)
+      try {
+        const pwApp = initializeApp(powerConfig, 'unified-power-sync');
+        powerDb = getFirestore(pwApp);
+      } catch (e) {
+        console.warn('Power Firestore init skip:', e);
       }
     }
 
-    // PHÁT DỮ LIỆU XUỐNG LOCALSTORAGE + 3 IFRAME
-    function broadcastToIframes() {
-      const dcEmployees = masterData.staff.map(u => ({
-        id: u.id, employeeCode: u.employeeCode, name: u.name, username: u.username,
-        password: u.password, email: `${u.username}@resort.vn`,
-        role: u.role === 'admin' ? 'admin' : 'staff',
-        department: u.department || 'Kỹ Thuật', title: u.title || 'Kỹ thuật viên',
-        status: u.status || 'active', createdAt: new Date().toISOString()
-      }));
+    // GHI LOCALSTORAGE ĐỒNG NHẤT CHO CẢ 3 TAB (ĐẢM BẢO SSO TỨC THÌ KHI MỞ TAB)
+    async function syncLocalStorageForAllTabs() {
+      // 1. Daily Checklist localStorage
+      const dcEmployees = buildChecklistEmployees();
+      const dcWeekly = buildChecklistWeekly();
       localStorage.setItem('dailycheck_employees_real_v1', JSON.stringify(dcEmployees));
       localStorage.setItem('dailycheck_employees_wiped_real_v2', 'true');
-
-      const dcWeekly = {};
-      masterData.staff.forEach(u => {
-        const row = masterData.weeklyRoster[u.id] || {};
-        dcWeekly[u.id] = {};
-        DAYS.forEach(d => dcWeekly[u.id][d] = mapToChecklistShift(row[d] || ''));
-      });
       localStorage.setItem('dailycheck_weekly_shifts_v1', JSON.stringify(dcWeekly));
       if (currentUser) {
         localStorage.setItem('dailycheck_current_user_id_real_v1', currentUser.id);
-        localStorage.setItem('RESORT_UTILITY_SESSION_V5', JSON.stringify({ username: currentUser.username }));
       }
 
+      // 2. Resort Power localStorage (users đã băm SHA-256 + session active)
+      const powerUsers = await buildPowerUsers();
+      try {
+        const rawPower = localStorage.getItem(POWER_STATE_KEY);
+        if (rawPower) {
+          const parsed = JSON.parse(rawPower);
+          parsed.users = powerUsers;
+          parsed.lastUpdated = Date.now();
+          localStorage.setItem(POWER_STATE_KEY, JSON.stringify(parsed));
+        }
+      } catch {}
+
+      if (currentUser) {
+        localStorage.setItem(POWER_SESSION_KEY, JSON.stringify({ username: currentUser.username }));
+      }
+      return { dcEmployees, dcWeekly, powerUsers };
+    }
+
+    // ĐẨY DỮ LIỆU USER ĐỒNG NHẤT LÊN CLOUD CỦA CẢ 3 HỆ THỐNG
+    async function pushMasterAndAllBackends() {
+      masterData.updatedAt = Date.now();
+      lastHash = computeHash(masterData);
+      localStorage.setItem(MASTER_KEY, JSON.stringify(masterData));
+
+      const { dcEmployees, dcWeekly, powerUsers } = await syncLocalStorageForAllTabs();
+
+      setCloudUI('syncing');
+      const tasks = [];
+
+      // 1. Push Master RTDB
+      if (cloudRef) {
+        tasks.push(set(cloudRef, masterData).catch(e => console.warn('Master RTDB write:', e)));
+      }
+
+      // 2. Đồng nhất collection `employees` & `schedules/weekly` trên Firestore Daily Checklist
+      if (checklistDb) {
+        tasks.push((async () => {
+          try {
+            await checklistAuthReady;
+            const empCol = collection(checklistDb, 'employees');
+            const snap = await getDocs(empCol);
+            const validIds = new Set(dcEmployees.map(e => String(e.id)));
+            const batch = writeBatch(checklistDb);
+            snap.forEach(d => {
+              if (!validIds.has(d.id)) batch.delete(d.ref);
+            });
+            dcEmployees.forEach(emp => {
+              batch.set(doc(checklistDb, 'employees', String(emp.id)), emp, { merge: true });
+            });
+            await batch.commit();
+            await setDoc(doc(checklistDb, 'schedules', 'weekly'), {
+              map: dcWeekly,
+              updatedAt: new Date().toISOString()
+            }, { merge: true });
+          } catch (e) {
+            console.warn('Checklist Firestore user sync:', e);
+          }
+        })());
+      }
+
+      // 3. Đồng nhất mảng `users` trên Firestore Resort Power
+      if (powerDb) {
+        tasks.push((async () => {
+          try {
+            await setDoc(doc(powerDb, 'resortpower_sync', 'main_state_v5'), {
+              users: powerUsers,
+              lastUpdated: Date.now()
+            }, { merge: true });
+          } catch (e) {
+            console.warn('Power Firestore user sync:', e);
+          }
+        })());
+      }
+
+      await Promise.allSettled(tasks);
+      setCloudUI(cloudRef ? 'online' : 'offline');
+    }
+
+    // PHÁT GÓI TIN SSO + DỮ LIỆU USER XUỐNG 3 IFRAME
+    function broadcastToIframes() {
       const todayKey = getTodayDayKey();
       const todayStr = getTodayDateStr();
       const dutyScheduleToday = masterData.staff.map((u, idx) => {
@@ -613,7 +759,15 @@
     // CHIỀU NGƯỢC: LẮNG NGHE THAY ĐỔI TỪ 3 MODULE CON GỬI LÊN
     window.addEventListener('message', (event) => {
       const msg = event.data;
-      if (!msg || msg.type !== 'MODULE_TO_MASTER_SYNC') return;
+      if (!msg || !msg.type) return;
+
+      // Module con vừa tải xong và yêu cầu gói SSO
+      if (msg.type === 'MODULE_READY' && currentUser) {
+        broadcastToIframes();
+        return;
+      }
+
+      if (msg.type !== 'MODULE_TO_MASTER_SYNC') return;
 
       let changed = false;
 
@@ -622,10 +776,11 @@
           msg.users.forEach(du => {
             const existing = masterData.staff.find(s => s.username === du.username || s.id === du.id);
             if (existing) {
-              if (existing.name !== du.name || existing.password !== du.password) {
+              const mappedRole = du.role === 'Admin' ? 'admin' : 'user';
+              if (existing.name !== du.name || existing.password !== du.password || existing.role !== mappedRole) {
                 existing.name = du.name;
                 existing.password = du.password || existing.password;
-                existing.role = du.role === 'Admin' ? 'admin' : 'user';
+                existing.role = mappedRole;
                 changed = true;
               }
             } else {
@@ -676,7 +831,7 @@
           renderStaffTable();
           renderRosterTable();
           updateHeaderUI();
-          pushMasterToCloud();
+          pushMasterAndAllBackends();
           broadcastToIframes();
           showToast(`Đã đồng bộ thay đổi từ ${msg.source.toUpperCase()} lên toàn hệ thống!`);
         }
@@ -701,25 +856,34 @@
       document.getElementById('userStardock').classList.toggle('hidden', isAdmin);
     }
 
-    function completeSSO(user) {
+    async function completeSSO(user) {
       currentUser = user;
       localStorage.setItem(SESSION_KEY, JSON.stringify({ id: user.id }));
       document.getElementById('ssoOverlay').classList.add('hidden');
       updateHeaderUI();
       renderStaffTable();
       renderRosterTable();
-      broadcastToIframes();
+
+      // Chuẩn bị sẵn localStorage & đẩy đồng nhất Cloud TRƯỚC khi nạp 3 iframe
+      await syncLocalStorageForAllTabs();
+      pushMasterAndAllBackends();
 
       ['frame-checklist', 'frame-duty', 'frame-power'].forEach(id => {
         const fr = document.getElementById(id);
-        fr.onload = () => setTimeout(broadcastToIframes, 450);
-        fr.src = fr.getAttribute('src');
+        const targetSrc = fr.getAttribute('data-src');
+        fr.onload = () => {
+          broadcastToIframes();
+          setTimeout(broadcastToIframes, 500);
+          setTimeout(broadcastToIframes, 1400);
+        };
+        fr.src = targetSrc;
       });
 
       window.openTab(user.role === 'admin' ? 'admin' : 'checklist');
+      showToast(`Đã đăng nhập đồng bộ (${user.name}) trên cả 3 hệ thống!`);
     }
 
-    document.getElementById('ssoForm').addEventListener('submit', e => {
+    document.getElementById('ssoForm').addEventListener('submit', async e => {
       e.preventDefault();
       const uIn = document.getElementById('ssoUser').value.trim().toLowerCase();
       const pIn = document.getElementById('ssoPass').value.trim();
@@ -732,7 +896,8 @@
         err.classList.remove('hidden');
         return;
       }
-      completeSSO(found);
+      document.getElementById('ssoErr').classList.add('hidden');
+      await completeSSO(found);
     });
 
     function canDeleteMember(u) {
@@ -796,8 +961,7 @@
       }).join('');
     }
 
-    // Thêm nhanh ở tab Danh Sách Nhân Sự
-    document.getElementById('addStaffForm').addEventListener('submit', e => {
+    document.getElementById('addStaffForm').addEventListener('submit', async e => {
       e.preventDefault();
       const uname = document.getElementById('stUser').value.trim().toLowerCase();
       if (masterData.staff.some(u => u.username.toLowerCase() === uname)) {
@@ -815,22 +979,22 @@
         role,
         department: 'Kỹ Thuật',
         title: role === 'admin' ? 'Admin' : 'Kỹ thuật viên',
-        status: 'active'
+        status: 'active',
+        createdAt: new Date().toISOString()
       });
       masterData.weeklyRoster[id] = { mon: '', tue: '', wed: '', thu: '', fri: '', sat: '', sun: '' };
       e.target.reset();
       document.getElementById('stPass').value = '123456';
       renderStaffTable(); renderRosterTable();
-      pushMasterToCloud(); broadcastToIframes();
-      showToast('Đã thêm thành viên và đồng bộ lên Cloud!');
+      await pushMasterAndAllBackends();
+      broadcastToIframes();
+      showToast('Đã thêm thành viên & đồng nhất sang cả 3 tab!');
     });
 
-    // Modal Thêm / Sửa thành viên (dùng được ngay tại tab Bảng Phân Ca & tab Nhân Sự)
     window.openMemberModal = (editId = null) => {
       const modal = document.getElementById('memberModal');
       const title = document.getElementById('memberModalTitle');
-      const err = document.getElementById('mmErr');
-      err.classList.add('hidden');
+      document.getElementById('mmErr').classList.add('hidden');
 
       if (editId) {
         const u = masterData.staff.find(x => x.id === editId);
@@ -858,7 +1022,7 @@
       document.getElementById('memberModal').classList.add('hidden');
     };
 
-    document.getElementById('memberModalForm').addEventListener('submit', e => {
+    document.getElementById('memberModalForm').addEventListener('submit', async e => {
       e.preventDefault();
       const id = document.getElementById('mmId').value.trim();
       const code = document.getElementById('mmCode').value.trim();
@@ -885,23 +1049,24 @@
           target.role = role;
           target.title = role === 'admin' ? 'Admin' : 'Kỹ thuật viên';
         }
-        showToast('Đã cập nhật thông tin thành viên!');
+        showToast('Đã cập nhật thành viên & đồng nhất cả 3 tab!');
       } else {
         const newId = 'emp-' + Date.now();
         masterData.staff.push({
           id: newId, employeeCode: code, name, username: uname, password: pass,
-          role, department: 'Kỹ Thuật', title: role === 'admin' ? 'Admin' : 'Kỹ thuật viên', status: 'active'
+          role, department: 'Kỹ Thuật', title: role === 'admin' ? 'Admin' : 'Kỹ thuật viên',
+          status: 'active', createdAt: new Date().toISOString()
         });
         masterData.weeklyRoster[newId] = { mon: '', tue: '', wed: '', thu: '', fri: '', sat: '', sun: '' };
-        showToast('Đã thêm thành viên mới vào bảng phân ca!');
+        showToast('Đã thêm thành viên mới & đồng nhất cả 3 tab!');
       }
 
       window.closeMemberModal();
       renderStaffTable(); renderRosterTable();
-      pushMasterToCloud(); broadcastToIframes();
+      await pushMasterAndAllBackends();
+      broadcastToIframes();
     });
 
-    // Modal Đổi thông tin đăng nhập Admin
     window.openAdminCredsModal = () => {
       if (!currentUser || currentUser.role !== 'admin') return;
       document.getElementById('acCode').value = currentUser.employeeCode || 'QL-001';
@@ -919,7 +1084,7 @@
       document.getElementById('adminCredsModal').classList.add('hidden');
     };
 
-    document.getElementById('adminCredsForm').addEventListener('submit', e => {
+    document.getElementById('adminCredsForm').addEventListener('submit', async e => {
       e.preventDefault();
       if (!currentUser || currentUser.role !== 'admin') return;
       const err = document.getElementById('acErr');
@@ -967,21 +1132,25 @@
       updateHeaderUI();
       renderStaffTable();
       renderRosterTable();
-      pushMasterToCloud();
+      await pushMasterAndAllBackends();
       broadcastToIframes();
-      showToast('Đã cập nhật thông tin đăng nhập Admin & đồng bộ Cloud!');
+      showToast('Đã cập nhật tài khoản Admin & đồng nhất cả 3 hệ thống!');
     });
 
-    window.syncAllModulesNow = (notify = false) => {
-      pushMasterToCloud();
+    window.syncAllModulesNow = async (notify = false) => {
+      await pushMasterAndAllBackends();
       broadcastToIframes();
-      if (notify) showToast('Đã đẩy đồng bộ 2 chiều tới toàn bộ thiết bị!');
+      if (notify) showToast('Đã đồng nhất danh sách User & SSO tới cả 3 tab!');
     };
 
     window.logoutSSO = () => {
+      ['frame-checklist', 'frame-duty', 'frame-power'].forEach(id => {
+        const fr = document.getElementById(id);
+        if (fr && fr.contentWindow) fr.contentWindow.postMessage({ type: 'UNIFIED_LOGOUT' }, '*');
+      });
       localStorage.removeItem(SESSION_KEY);
       localStorage.removeItem('dailycheck_current_user_id_real_v1');
-      localStorage.removeItem('RESORT_UTILITY_SESSION_V5');
+      localStorage.removeItem(POWER_SESSION_KEY);
       location.reload();
     };
 
@@ -998,6 +1167,9 @@
       document.querySelectorAll('[data-dock]').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.dock === tabName);
       });
+      if (tabName !== 'admin' && currentUser) {
+        broadcastToIframes();
+      }
     };
 
     window.switchAdminSub = (sub) => {
@@ -1010,7 +1182,7 @@
       });
     };
 
-    window.deleteStaff = (id) => {
+    window.deleteStaff = async (id) => {
       const target = masterData.staff.find(u => u.id === id);
       if (!target || !canDeleteMember(target)) {
         alert('Không thể xóa tài khoản Admin đang đăng nhập hoặc Admin duy nhất!');
@@ -1020,18 +1192,19 @@
       masterData.staff = masterData.staff.filter(u => u.id !== id);
       delete masterData.weeklyRoster[id];
       renderStaffTable(); renderRosterTable();
-      pushMasterToCloud(); broadcastToIframes();
-      showToast(`Đã xóa thành viên ${target.name} và đồng bộ Cloud!`);
+      await pushMasterAndAllBackends();
+      broadcastToIframes();
+      showToast(`Đã xóa thành viên ${target.name} khỏi cả 3 hệ thống!`);
     };
 
-    window.saveRosterAndSync = () => {
+    window.saveRosterAndSync = async () => {
       document.querySelectorAll('.roster-sel').forEach(sel => {
         const uid = sel.dataset.uid, day = sel.dataset.day;
         if (!masterData.weeklyRoster[uid]) masterData.weeklyRoster[uid] = {};
         masterData.weeklyRoster[uid][day] = sel.value;
       });
       updateHeaderUI();
-      pushMasterToCloud();
+      await pushMasterAndAllBackends();
       broadcastToIframes();
       showToast('Đã lưu & đồng bộ bảng phân ca 2 chiều!');
     };
@@ -1044,14 +1217,14 @@
       XLSX.writeFile(wb, `Unified_NhanSu_PhanCa_${getTodayDateStr()}.xlsx`);
     };
 
-    window.addEventListener('DOMContentLoaded', () => {
+    window.addEventListener('DOMContentLoaded', async () => {
       lucide.createIcons();
       lastHash = computeHash(masterData);
-      initCloudTwoWay();
+      initCloudConnections();
       const saved = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
       if (saved) {
         const found = masterData.staff.find(u => u.id === saved.id);
-        if (found) completeSSO(found);
+        if (found) await completeSSO(found);
       }
     });
   </script>
