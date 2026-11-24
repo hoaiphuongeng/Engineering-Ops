@@ -1,4 +1,4 @@
-/* bridge.js (v5) — SSO bằng Tài khoản Duty/Admin, Ánh xạ Người Thực Hiện HOÀN TOÀN theo Bảng Phân Ca */
+/* bridge-v7.js — SSO Tài khoản Duty/Admin, Ánh xạ Phân Ca, Ẩn Admin Tối Cao & Tối Giản Tab Điện Nước */
 (function () {
   let isApplyingFromMaster = false;
   let lastMasterData = null;
@@ -188,31 +188,84 @@
   }
 
   // ==================== 2. ĐIỆN NƯỚC (power.html) ====================
+  // Tối giản tối đa giao diện Ghi Chỉ Số Công Tơ cho nhân viên (chỉ giữ Điện/Nước, Ngày, Nhập số mới & Lưu)
   function enforcePowerUserView() {
     if (!document.getElementById('unified-power-user-css')) {
       const st = document.createElement('style');
       st.id = 'unified-power-user-css';
       st.textContent = `
+        /* 1. Ẩn toàn bộ các trang & menu không dành cho nhân viên */
         #nav-dashboard, #nav-sld, #nav-accounts,
         #mnav-dashboard, #mnav-sld, #mnav-accounts,
         #page-dashboard, #page-sld, #page-accounts,
-        #btnWipeReportToolbar, #headerPwaBtn, [data-admin-only] {
+        aside .bg-blue-500\\/10,
+        #toggleOfflineSimBtn, #headerPwaBtn,
+        header button[onclick*="handleLogout"],
+        [data-admin-only] {
           display: none !important;
         }
-        aside .bg-blue-500\\/10 {
+
+        /* 2. Đơn giản hóa tối đa trang Ghi Chỉ Số Công Tơ (#page-meters) */
+        /* Ẩn nút Khu vực, Thêm công tơ, Làm Trắng Báo Cáo */
+        #page-meters button[onclick*="openMeterZonesModal"],
+        #btnAddMeterToolbar,
+        #btnWipeReportToolbar,
+        /* Ẩn thanh Công cụ Excel/CSV & Khối Ma trận nâng cao bên dưới */
+        #page-meters > div:nth-child(2),
+        #page-meters > div:nth-child(5),
+        /* Ẩn dòng tổn hao Master/Sub gây rối */
+        #tableLossElecSummary,
+        #tableLossWaterSummary {
           display: none !important;
+        }
+
+        /* 3. Thu gọn bảng chỉ số còn đúng 5 cột cốt lõi: Công tơ | Số cũ | Số mới | Tiêu thụ | Lưu */
+        #electricMeterSection th:nth-child(2), #electricMeterSection td:nth-child(2),
+        #electricMeterSection th:nth-child(3), #electricMeterSection td:nth-child(3),
+        #electricMeterSection th:nth-child(7), #electricMeterSection td:nth-child(7),
+        #waterMeterSection th:nth-child(2), #waterMeterSection td:nth-child(2),
+        #waterMeterSection th:nth-child(3), #waterMeterSection td:nth-child(3),
+        #waterMeterSection th:nth-child(7), #waterMeterSection td:nth-child(7) {
+          display: none !important;
+        }
+
+        /* 4. Trên mỗi dòng công tơ, chỉ giữ duy nhất nút Lưu (ẩn nút Lên/Xuống/Sửa/Xóa) */
+        #electricMeterTableBody button[onclick*="moveMeterOrder"],
+        #electricMeterTableBody button[onclick*="openEditMeterModal"],
+        #electricMeterTableBody button[onclick*="deleteMeter"],
+        #waterMeterTableBody button[onclick*="moveMeterOrder"],
+        #waterMeterTableBody button[onclick*="openEditMeterModal"],
+        #waterMeterTableBody button[onclick*="deleteMeter"] {
+          display: none !important;
+        }
+
+        /* 5. Tối ưu ô nhập số trên điện thoại (tránh iOS tự zoom & dễ chạm) */
+        .meter-reading-input {
+          min-width: 98px !important;
+          font-size: 16px !important;
+          padding: 0.55rem 0.7rem !important;
+          border-width: 2px !important;
+        }
+        #electricMeterSection th, #electricMeterSection td,
+        #waterMeterSection th, #waterMeterSection td {
+          padding-left: 0.65rem !important;
+          padding-right: 0.65rem !important;
+        }
+
+        /* 6. Chừa khoảng trống đáy để thanh Stardock cam ấm không che dòng cuối */
+        body {
+          padding-bottom: 168px !important;
         }
         @media (max-width: 1023px) {
-          body { padding-bottom: 160px !important; }
           nav.fixed.bottom-0 {
-            bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px)) !important;
+            bottom: calc(6.5rem + env(safe-area-inset-bottom, 0px)) !important;
             left: 50% !important;
             right: auto !important;
             transform: translateX(-50%) !important;
-            width: min(86%, 300px) !important;
+            width: min(86%, 290px) !important;
             border-radius: 1.25rem !important;
-            border: 1px solid rgba(255, 255, 255, 0.2) !important;
-            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35) !important;
+            border: 1px solid rgba(251, 146, 60, 0.35) !important;
+            box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35) !important;
             padding: 0.35rem 0.75rem !important;
           }
         }
