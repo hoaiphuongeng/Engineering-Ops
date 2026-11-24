@@ -1,10 +1,12 @@
-/* bridge.js (v3) — Cầu nối SSO Tự Động Đăng Nhập, Đồng Nhất User 2 Chiều & Tối Giản Menu Nhân Viên */
+/* bridge.js (v4) — Đồng Bộ User & SSO Tuyệt Đối Cho Tab Điện Nước, Sổ Duty & Checklist */
 (function () {
   let isApplyingFromMaster = false;
   let lastMasterData = null;
   let powerSwitchPageHooked = false;
   let lastChecklistWeeklyRaw = localStorage.getItem('dailycheck_weekly_shifts_v1') || '';
 
+  const POWER_STATE_KEY = 'RESORT_UTILITY_OS_STATE_V5';
+  const POWER_SESSION_KEY = 'RESORT_UTILITY_SESSION_V5';
   const POWER_USER_ALLOWED_PAGES = ['meters', 'equipment'];
 
   function getTodayStr() {
@@ -24,7 +26,34 @@
     return !!document.getElementById('root') && !document.getElementById('authOverlay') && !document.getElementById('login-screen');
   }
 
-  // ÁP DỤNG SSO & DANH SÁCH USER CHO SỔ DUTY (duty.html)
+  async function hashPowerPasswordLocal(plainText, usernameSalt) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(`${String(usernameSalt || 'resort_salt').toLowerCase().trim()}::${plainText}`);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  async function resolvePowerUsers(data) {
+    if (Array.isArray(data.powerUsers) && data.powerUsers.length > 0) {
+      return data.powerUsers;
+    }
+    return Promise.all((data.staff || []).map(async u => ({
+      id: u.id,
+      username: u.username,
+      fullName: u.name,
+      role: u.role === 'admin' ? 'admin' : 'user',
+      passwordHash: await hashPowerPasswordLocal(u.password || '123456', u.username),
+      mustChangePassword: false,
+      createdAt: u.createdAt || new Date().toISOString()
+    })));
+  }
+
+  function getUsersSignature(users, activeUsername) {
+    const compact = (users || []).map(u => `${u.username}:${u.role}:${u.fullName}:${u.passwordHash}`).sort().join('|');
+    return `${activeUsername || ''}::${compact}`;
+  }
+
+  // ==================== 1. SỔ DUTY (duty.html) ====================
   function applyToDuty(data) {
     if (!isDutyModule() || !data || !data.currentUser) return;
     const u = data.currentUser;
@@ -71,25 +100,22 @@
     }
   }
 
-  // CHẶN CHUYỂN SANG CÁC TAB BỊ ẨN TRONG ĐIỆN NƯỚC KHI LÀ USER NHÂN VIÊN
+  // ==================== 2. ĐIỆN NƯỚC (power.html) ====================
   function enforcePowerUserView() {
-    // Ẩn tất cả mục ngoài "Ghi Chỉ Số Công Tơ" (meters) & "Thiết Bị" (equipment)
     if (!document.getElementById('unified-power-user-css')) {
       const st = document.createElement('style');
       st.id = 'unified-power-user-css';
       st.textContent = `
-        /* Ẩn các tab không dành cho User nhân viên (Desktop & Mobile) */
+        /* Ẩn các mục ngoài Chỉ số công tơ & Thiết bị cho User nhân viên */
         #nav-dashboard, #nav-sld, #nav-accounts,
         #mnav-dashboard, #mnav-sld, #mnav-accounts,
         #page-dashboard, #page-sld, #page-accounts,
         #btnWipeReportToolbar, #headerPwaBtn, [data-admin-only] {
           display: none !important;
         }
-        /* Ẩn khối Tiện ích Kỹ thuật & Backup/Restore trong Sidebar */
         aside .bg-blue-500\\/10 {
           display: none !important;
         }
-        /* Nâng thanh chuyển 2 mục (Công tơ / Thiết bị) trên mobile lên trên thanh Stardock */
         @media (max-width: 1023px) {
           body {
             padding-bottom: 160px !important;
@@ -110,7 +136,6 @@
       document.head.appendChild(st);
     }
 
-    // Hook hàm switchPage để User chỉ mở được 'meters' hoặc 'equipment'
     if (!powerSwitchPageHooked && typeof window.switchPage === 'function') {
       const origSwitchPage = window.switchPage;
       window.switchPage = function (pageId) {
@@ -123,7 +148,6 @@
       powerSwitchPageHooked = true;
     }
 
-    // Nếu đang ở trang không được phép (vd: dashboard mặc định) -> chuyển thẳng sang Chỉ số công tơ
     const activePage = document.querySelector('.page-view.active');
     const activeId = activePage ? activePage.id.replace('page-', '') : '';
     if (!POWER_USER_ALLOWED_PAGES.includes(activeId) && typeof window.switchPage === 'function') {
@@ -136,36 +160,67 @@
     if (st) st.remove();
   }
 
-  // ÁP DỤNG SSO & DANH SÁCH USER CHO ĐIỆN NƯỚC (power.html)
-  function applyToPower(data) {
+  async function applyToPower(data) {
     if (!isPowerModule() || !data || !data.currentUser) return;
     const u = data.currentUser;
     const isAdmin = u.role === 'admin';
 
+    // 1. Lấy danh sách powerUsers (đã băm SHA-256 chuẩn) và ghi đồng nhất vào localStorage
+    const powerUsers = await resolvePowerUsers(data);
+    const incomingSig = getUsersSignature(powerUsers, u.username);
+
+    let localSigBefore = '';
+    try {
+      const raw = localStorage.getItem(POWER_STATE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        localSigBefore = getUsersSignature(parsed.users || [], JSON.parse(localStorage.getItem(POWER_SESSION_KEY) || '{}').username);
+        parsed.users = powerUsers;
+        parsed.lastUpdated = Date.now();
+        localStorage.setItem(POWER_STATE_KEY, JSON.stringify(parsed));
+      }
+    } catch (e) {
+      console.warn('Power localStorage sync warning:', e);
+    }
+
+    localStorage.setItem(POWER_SESSION_KEY, JSON.stringify({ username: u.username }));
+
+    // 2. Kiểm tra trạng thái hiện tại trong DOM của power.html
     const overlay = document.getElementById('authOverlay');
-    if (overlay && !overlay.classList.contains('hidden')) {
-      const userInp = document.getElementById('loginUsername');
-      const passInp = document.getElementById('loginPassword');
-      if (userInp && passInp) {
-        userInp.value = u.username;
-        passInp.value = u.password;
-        try {
-          window.handleLogin({ preventDefault: function () {} });
-        } catch (e) {
-          console.warn('Power auto-login retry:', e);
+    const isOverlayVisible = overlay && !overlay.classList.contains('hidden');
+    const displayedUserEl = document.getElementById('accProfileUsername');
+    const displayedUser = displayedUserEl ? displayedUserEl.textContent.replace('@', '').trim().toLowerCase() : '';
+    const isDifferentUser = displayedUser && displayedUser !== String(u.username || '').toLowerCase();
+    const isUsersListChanged = localSigBefore && localSigBefore !== incomingSig;
+
+    // Nếu overlay đang hiện (chưa đăng nhập / vừa khởi tạo users rỗng) hoặc danh sách user/tài khoản vừa thay đổi
+    // -> Nạp lại iframe power.html đúng 1 lần (chống lặp bằng sessionStorage theo chữ ký) để module nhận appState.users mới nhất
+    const lastReloadedSig = sessionStorage.getItem('power_synced_sig_v4');
+    if ((isOverlayVisible || isDifferentUser || isUsersListChanged) && lastReloadedSig !== incomingSig) {
+      // Thử đăng nhập trực tiếp trước nếu danh sách user không đổi và form login đang sẵn sàng
+      if (isOverlayVisible && !isUsersListChanged) {
+        const userInp = document.getElementById('loginUsername');
+        const passInp = document.getElementById('loginPassword');
+        if (userInp && passInp) {
+          userInp.value = u.username;
+          passInp.value = u.password;
+          try { window.handleLogin({ preventDefault: function () {} }); } catch {}
         }
       }
       setTimeout(() => {
-        const ov = document.getElementById('authOverlay');
-        if (ov && !ov.classList.contains('hidden') && !sessionStorage.getItem('power_sso_reloaded')) {
-          sessionStorage.setItem('power_sso_reloaded', '1');
+        const ovNow = document.getElementById('authOverlay');
+        const stillBlocked = ovNow && !ovNow.classList.contains('hidden');
+        if (stillBlocked || isDifferentUser || isUsersListChanged) {
+          sessionStorage.setItem('power_synced_sig_v4', incomingSig);
           location.reload();
         }
-      }, 450);
-    } else {
-      sessionStorage.removeItem('power_sso_reloaded');
-      if (typeof window.renderUsersTable === 'function') window.renderUsersTable();
+      }, 250);
+      return;
     }
+
+    // Đã đồng bộ xong -> cập nhật bảng user & phân quyền giao diện
+    sessionStorage.setItem('power_synced_sig_v4', incomingSig);
+    if (typeof window.renderUsersTable === 'function') window.renderUsersTable();
 
     if (!isAdmin) {
       enforcePowerUserView();
@@ -174,7 +229,7 @@
     }
   }
 
-  // ÁP DỤNG SSO & GIAO DIỆN CHO CHECKLIST (checklist.html)
+  // ==================== 3. CHECKLIST (checklist.html) ====================
   function applyToChecklist(data) {
     if (!isChecklistModule() || !data || !data.currentUser) return;
     const u = data.currentUser;
@@ -200,7 +255,7 @@
     }
   }
 
-  // CHIỀU 1: LẮNG NGHE GÓI TIN SSO & ĐỒNG BỘ TỪ MASTER (index.html)
+  // ==================== LẮNG NGHE GÓI TIN TỪ MASTER ====================
   window.addEventListener('message', function (event) {
     const data = event.data;
     if (!data || !data.type) return;
@@ -226,7 +281,7 @@
     }
   });
 
-  // CHIỀU 2: BÁO SẴN SÀNG & THEO DÕI THAY ĐỔI TỪ MODULE CON GỬI NGƯỢC LÊN MASTER
+  // ==================== BÁO SẴN SÀNG & ĐỒNG BỘ CHIỀU NGƯỢC ====================
   window.addEventListener('load', function () {
     if (window.parent && window.parent !== window) {
       window.parent.postMessage({ type: 'MODULE_READY' }, '*');
