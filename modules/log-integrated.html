@@ -1,0 +1,1497 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HỆ THỐNG GIÁM SÁT KỸ THUẬT (CHILLER & WATER TANK)</title>
+    
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- SheetJS (xlsx) CDN for real .xlsx export -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        scada: {
+                            bg: '#060c18',
+                            panel: '#0f172a',
+                            border: '#1e293b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Custom Industrial SCADA & Glassmorphism Styles & SVG Animations -->
+    <style>
+        body {
+            background-color: #060c18;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(14, 165, 233, 0.08) 0%, transparent 45%),
+                radial-gradient(circle at 85% 80%, rgba(16, 185, 129, 0.06) 0%, transparent 45%),
+                linear-gradient(rgba(30, 41, 59, 0.25) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(30, 41, 59, 0.25) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 32px 32px, 32px 32px;
+            color: #f1f5f9;
+            overflow-x: hidden;
+        }
+
+        /* Glassmorphism Industrial Panel */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.72);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        }
+
+        .glass-card {
+            background: linear-gradient(145deg, rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.55));
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(56, 189, 248, 0.45);
+            box-shadow: 0 12px 28px -8px rgba(14, 165, 233, 0.2);
+        }
+
+        /* Chiller Rotating Fan/Impeller Animation */
+        @keyframes spinSlow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .animate-impeller {
+            transform-box: fill-box;
+            transform-origin: center;
+            animation: spinSlow 2.2s linear infinite;
+        }
+
+        /* Active Status Glow Pulse */
+        @keyframes emeraldPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.35), 0 10px 25px -5px rgba(16, 185, 129, 0.15); }
+            50% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0), 0 10px 30px -5px rgba(16, 185, 129, 0.3); }
+        }
+        .status-on-glow {
+            border-color: rgba(16, 185, 129, 0.65) !important;
+            animation: emeraldPulse 2.4s infinite;
+        }
+
+        /* Critical Alarm Red Flashing Border */
+        @keyframes alarmFlash {
+            0%, 100% {
+                border-color: rgba(239, 68, 68, 0.95);
+                box-shadow: 0 0 18px rgba(239, 68, 68, 0.45), inset 0 0 15px rgba(239, 68, 68, 0.15);
+            }
+            50% {
+                border-color: rgba(239, 68, 68, 0.25);
+                box-shadow: 0 0 4px rgba(239, 68, 68, 0.1), inset 0 0 4px rgba(239, 68, 68, 0.05);
+            }
+        }
+        .alarm-flash {
+            animation: alarmFlash 0.9s ease-in-out infinite !important;
+        }
+
+        /* Valve Alert Blinking */
+        @keyframes valveBlink {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.8), 0 0 18px rgba(245, 158, 11, 0.7);
+                border-color: #ef4444;
+                background-color: rgba(239, 68, 68, 0.22);
+            }
+            50% {
+                box-shadow: 0 0 0 6px rgba(239, 68, 68, 0), 0 0 6px rgba(245, 158, 11, 0.2);
+                border-color: #f59e0b;
+                background-color: rgba(245, 158, 11, 0.18);
+            }
+        }
+        .valve-alert-blink {
+            animation: valveBlink 0.75s ease-in-out infinite;
+        }
+
+        /* Water Level Smooth Transition */
+        .water-level-group {
+            transition: transform 0.85s cubic-bezier(0.34, 1.15, 0.64, 1);
+        }
+
+        /* Animated Water Wave Slide */
+        @keyframes waveMove {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-100px); }
+        }
+        .water-wave-front {
+            animation: waveMove 3.2s linear infinite;
+        }
+        .water-wave-back {
+            animation: waveMove 4.8s linear infinite reverse;
+        }
+
+        /* Pipe Water Flow Animation */
+        @keyframes flowDash {
+            from { stroke-dashoffset: 24; }
+            to { stroke-dashoffset: 0; }
+        }
+        .pipe-flow-active {
+            stroke-dasharray: 8 4;
+            animation: flowDash 0.6s linear infinite;
+        }
+
+        /* Chiller Coolant Flow Animation */
+        .chiller-flow-active {
+            stroke-dasharray: 6 6;
+            animation: flowDash 0.8s linear infinite;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-sky-500/30 selection:text-sky-200">
+
+    <!-- ==================== HEADER ==================== -->
+    <header class="sticky top-0 z-40 glass-panel border-b border-slate-700/60">
+        <div class="max-w-7xl mx-auto px-3 sm:px-6 py-3">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                <!-- Left: System Title & Live Indicator -->
+                <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-sky-500 to-emerald-500 p-0.5 shadow-lg shadow-sky-500/20 shrink-0">
+                        <div class="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
+                            <svg class="w-6 h-6 text-sky-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 class="text-sm sm:text-base md:text-lg font-extrabold tracking-tight text-white uppercase">
+                                HỆ THỐNG GIÁM SÁT KỸ THUẬT (CHILLER & WATER TANK)
+                            </h1>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+                            <span class="inline-flex items-center gap-1.5 text-emerald-400 font-medium">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                                BMS/SCADA ONLINE
+                            </span>
+                            <span>•</span>
+                            <span id="realtime-clock" class="font-mono text-sky-300 font-semibold">--/--/---- --:--:--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Quick Status Counters -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                    <!-- Chiller ON -->
+                    <div class="px-3 py-2 rounded-xl bg-slate-900/80 border border-slate-700/70 flex items-center justify-between gap-2">
+                        <span class="text-slate-400 font-medium">Chiller Chạy</span>
+                        <span id="kpi-chiller-on" class="font-mono font-bold text-sm text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-lg">0/2</span>
+                    </div>
+                    <!-- Chiller TRIP -->
+                    <div class="px-3 py-2 rounded-xl bg-slate-900/80 border border-slate-700/70 flex items-center justify-between gap-2">
+                        <span class="text-slate-400 font-medium">Chiller Trip</span>
+                        <span id="kpi-chiller-trip" class="font-mono font-bold text-sm text-slate-300 bg-slate-700/50 px-2 py-0.5 rounded-lg">0</span>
+                    </div>
+                    <!-- Tank Warning -->
+                    <div class="px-3 py-2 rounded-xl bg-slate-900/80 border border-slate-700/70 flex items-center justify-between gap-2">
+                        <span class="text-slate-400 font-medium">Cảnh báo Bồn</span>
+                        <span id="kpi-tank-warn" class="font-mono font-bold text-sm text-slate-300 bg-slate-700/50 px-2 py-0.5 rounded-lg">0</span>
+                    </div>
+                    <!-- Municipal Valve -->
+                    <div class="px-3 py-2 rounded-xl bg-slate-900/80 border border-slate-700/70 flex items-center justify-between gap-2">
+                        <span class="text-slate-400 font-medium">Van Thủy Cục</span>
+                        <span id="kpi-valve-status" class="font-mono font-bold text-sm text-slate-300 bg-slate-700/50 px-2 py-0.5 rounded-lg">OFF</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ==================== MAIN DASHBOARD ==================== -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-5 space-y-6">
+
+        <!-- ==================== SECTION 1: CHILLER SYSTEM ==================== -->
+        <section aria-labelledby="chiller-section-title">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-1.5 h-6 rounded-full bg-sky-400"></span>
+                    <h2 id="chiller-section-title" class="text-base sm:text-lg font-bold text-white tracking-wide uppercase">
+                        1. Hệ Thống Máy Lạnh Trung Tâm (Chiller)
+                    </h2>
+                </div>
+                <span class="text-xs text-slate-400 bg-slate-800/70 border border-slate-700/60 px-3 py-1 rounded-full">
+                    Nhấp trực tiếp vào máy Chiller để chuyển đổi ON / OFF / TRIP
+                </span>
+            </div>
+
+            <div id="chiller-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+                <!-- Rendered dynamically by JS -->
+            </div>
+        </section>
+
+        <!-- ==================== SECTION 2: WATER TANK & VALVE SYSTEM ==================== -->
+        <section aria-labelledby="tank-section-title">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-1.5 h-6 rounded-full bg-cyan-400"></span>
+                    <h2 id="tank-section-title" class="text-base sm:text-lg font-bold text-white tracking-wide uppercase">
+                        2. Hệ Thống Bồn Nước (Tank 1 - 4) & Van Thủy Cục
+                    </h2>
+                </div>
+                <span class="text-xs text-slate-400 bg-slate-800/70 border border-slate-700/60 px-3 py-1 rounded-full">
+                    Nhấp vào từng bồn để cập nhật mực nước • Nhấp vào Van Thủy Cục (Tank 1) để đóng/mở
+                </span>
+            </div>
+
+            <div id="tank-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+                <!-- Rendered dynamically by JS -->
+            </div>
+        </section>
+
+        <!-- ==================== SECTION 3: DATALOG & EXCEL EXPORT ==================== -->
+        <section aria-labelledby="datalog-section-title" class="glass-panel rounded-2xl p-4 sm:p-5">
+            <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4 pb-4 border-b border-slate-700/60">
+                <div>
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-1.5 h-6 rounded-full bg-emerald-400"></span>
+                        <h2 id="datalog-section-title" class="text-base sm:text-lg font-bold text-white tracking-wide uppercase">
+                            3. Nhật Ký Vận Hành (Datalog) & Xuất Báo Cáo Excel
+                        </h2>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-1">
+                        Tự động lưu trữ lịch sử thay đổi trạng thái Chiller, Mực nước bồn chứa và Van Thủy Cục.
+                    </p>
+                </div>
+
+                <!-- Export & Clear Actions -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <button onclick="exportExcel('chiller')" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-600/20 hover:bg-emerald-600/35 text-emerald-300 border border-emerald-500/40 transition active:scale-95">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        Xuất Excel Chiller (.xlsx)
+                    </button>
+                    <button onclick="exportExcel('tank')" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-cyan-600/20 hover:bg-cyan-600/35 text-cyan-300 border border-cyan-500/40 transition active:scale-95">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        Xuất Excel Tank & Van (.xlsx)
+                    </button>
+                    <button onclick="exportExcel('all')" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-sky-500 to-emerald-500 hover:from-sky-400 hover:to-emerald-400 text-slate-950 shadow-lg shadow-sky-500/20 transition active:scale-95">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        Xuất Tổng Hợp 2 Sheet (.xlsx)
+                    </button>
+                    <button onclick="openClearModal()" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-red-500/15 hover:bg-red-500/30 text-red-300 border border-red-500/35 transition active:scale-95">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        Xóa Datalog
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filter Tabs & Record Count -->
+            <div class="flex flex-wrap items-center justify-between gap-3 py-3">
+                <div class="flex flex-wrap items-center gap-1.5 bg-slate-900/90 p-1 rounded-xl border border-slate-800">
+                    <button id="tab-all" onclick="setLogFilter('all')" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition">
+                        Tất cả
+                    </button>
+                    <button id="tab-chiller" onclick="setLogFilter('chiller')" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition">
+                        Datalog Chiller
+                    </button>
+                    <button id="tab-tank" onclick="setLogFilter('tank')" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition">
+                        Datalog Water Tank & Van Thủy Cục
+                    </button>
+                </div>
+                <div class="text-xs text-slate-400">
+                    Hiển thị <span id="log-count" class="font-mono font-bold text-sky-400">0</span> bản ghi
+                </div>
+            </div>
+
+            <!-- Responsive Table -->
+            <div class="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950/60">
+                <table class="w-full text-left border-collapse min-w-[680px]">
+                    <thead>
+                        <tr class="bg-slate-900/90 text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-800">
+                            <th class="py-3 px-4 font-semibold">Thời gian</th>
+                            <th class="py-3 px-4 font-semibold">Thiết bị</th>
+                            <th class="py-3 px-4 font-semibold">Trạng thái cũ</th>
+                            <th class="py-3 px-4 font-semibold">Trạng thái mới</th>
+                            <th class="py-3 px-4 font-semibold">Nhân viên thao tác</th>
+                            <th class="py-3 px-4 font-semibold">Ghi chú</th>
+                        </tr>
+                    </thead>
+                    <tbody id="datalog-tbody" class="divide-y divide-slate-800/70 text-xs sm:text-sm">
+                        <!-- Rendered dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="max-w-7xl w-full mx-auto px-4 py-4 text-center text-xs text-slate-500">
+        BMS / SCADA Technical Monitoring System • Dữ liệu được lưu cục bộ tự động trên trình duyệt
+    </footer>
+
+    <!-- ==================== MODALS ==================== -->
+
+    <!-- 1. Chiller Control Modal -->
+    <div id="chiller-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+        <div class="glass-panel w-full max-w-md rounded-2xl p-5 sm:p-6 border border-slate-700 shadow-2xl transform transition-all">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div>
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-sky-400">Điều khiển thiết bị</span>
+                    <h3 id="chiller-modal-title" class="text-lg font-bold text-white">Chiller 1</h3>
+                </div>
+                <button onclick="closeModal('chiller-modal')" class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <div class="mt-4 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-2">Chọn trạng thái vận hành:</label>
+                    <div class="grid grid-cols-3 gap-2.5">
+                        <button type="button" onclick="selectChillerOption('ON')" id="opt-chiller-ON" class="chiller-opt-btn p-3 rounded-xl border text-center transition flex flex-col items-center gap-1.5">
+                            <span class="w-3.5 h-3.5 rounded-full bg-emerald-400 shadow-[0_0_10px_#10b981]"></span>
+                            <span class="font-bold text-sm">ON</span>
+                            <span class="text-[10px] opacity-80">Đang chạy</span>
+                        </button>
+                        <button type="button" onclick="selectChillerOption('OFF')" id="opt-chiller-OFF" class="chiller-opt-btn p-3 rounded-xl border text-center transition flex flex-col items-center gap-1.5">
+                            <span class="w-3.5 h-3.5 rounded-full bg-slate-400"></span>
+                            <span class="font-bold text-sm">OFF</span>
+                            <span class="text-[10px] opacity-80">Dừng nghỉ</span>
+                        </button>
+                        <button type="button" onclick="selectChillerOption('TRIP')" id="opt-chiller-TRIP" class="chiller-opt-btn p-3 rounded-xl border text-center transition flex flex-col items-center gap-1.5">
+                            <span class="w-3.5 h-3.5 rounded-full bg-red-500 shadow-[0_0_10px_#ef4444]"></span>
+                            <span class="font-bold text-sm">TRIP</span>
+                            <span class="text-[10px] opacity-80">Báo sự cố</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <div>
+                        <label for="chiller-operator" class="block text-xs font-medium text-slate-300 mb-1">Nhân viên thao tác (tùy chọn)</label>
+                        <input id="chiller-operator" type="text" placeholder="VD: Nguyễn Văn A - Ca 1" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500">
+                    </div>
+                    <div>
+                        <label for="chiller-note" class="block text-xs font-medium text-slate-300 mb-1">Ghi chú (tùy chọn)</label>
+                        <input id="chiller-note" type="text" placeholder="VD: Chạy luân phiên / Kiểm tra áp suất gas..." class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500">
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 flex items-center justify-end gap-2.5">
+                <button onclick="closeModal('chiller-modal')" class="px-4 py-2.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition">Hủy bỏ</button>
+                <button onclick="confirmChillerChange()" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-sky-500 hover:bg-sky-400 text-slate-950 shadow-lg shadow-sky-500/25 transition">Xác nhận & Lưu Log</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Water Tank Control Modal -->
+    <div id="tank-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+        <div class="glass-panel w-full max-w-md rounded-2xl p-5 sm:p-6 border border-slate-700 shadow-2xl">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div>
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-cyan-400">Cập nhật mực nước</span>
+                    <h3 id="tank-modal-title" class="text-lg font-bold text-white">Tank 1</h3>
+                </div>
+                <button onclick="closeModal('tank-modal')" class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <div class="mt-4 space-y-4">
+                <div id="tank1-warning-hint" class="hidden p-3 rounded-xl bg-amber-500/10 border border-amber-500/35 text-xs text-amber-200 flex items-start gap-2">
+                    <svg class="w-4 h-4 text-amber-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    <span><strong>Lưu ý Tank 1:</strong> Khi chọn mức thấp hơn 1/2 (mức 1/4), hệ thống sẽ kích hoạt cảnh báo đỏ và nhấp nháy Van Thủy Cục cấp nước.</span>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-2">Chọn mực nước thực tế:</label>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                        <button type="button" onclick="selectTankOption(25)" id="opt-tank-25" class="tank-opt-btn p-3 rounded-xl border text-center transition flex flex-col items-center gap-1">
+                            <span class="font-mono font-extrabold text-base">1/4</span>
+                            <span class="text-[11px] opacity-80">25%</span>
+                        </button>
+                        <button type="button" onclick="selectTankOption(50)" id="opt-tank-50" class="tank-opt-btn p-3 rounded-xl border text-center transition flex flex-col items-center gap-1">
+                            <span class="font-mono font-extrabold text-base">1/2</span>
+                            <span class="text-[11px] opacity-80">50%</span>
+                        </button>
+                        <button type="button" onclick="selectTankOption(75)" id="opt-tank-75" class="tank-opt-btn p-3 rounded-xl border text-center transition flex flex-col items-center gap-1">
+                            <span class="font-mono font-extrabold text-base">3/4</span>
+                            <span class="text-[11px] opacity-80">75%</span>
+                        </button>
+                        <button type="button" onclick="selectTankOption(100)" id="opt-tank-100" class="tank-opt-btn p-3 rounded-xl border text-center transition flex flex-col items-center gap-1">
+                            <span class="font-mono font-extrabold text-base">Đầy</span>
+                            <span class="text-[11px] opacity-80">4/4 (100%)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <div>
+                        <label for="tank-operator" class="block text-xs font-medium text-slate-300 mb-1">Nhân viên thao tác (tùy chọn)</label>
+                        <input id="tank-operator" type="text" placeholder="VD: Trần Minh B - Kỹ thuật" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500">
+                    </div>
+                    <div>
+                        <label for="tank-note" class="block text-xs font-medium text-slate-300 mb-1">Ghi chú (tùy chọn)</label>
+                        <input id="tank-note" type="text" placeholder="VD: Kiểm tra phao cơ / Mực nước giảm giờ cao điểm..." class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500">
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 flex items-center justify-end gap-2.5">
+                <button onclick="closeModal('tank-modal')" class="px-4 py-2.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition">Hủy bỏ</button>
+                <button onclick="confirmTankChange()" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-500/25 transition">Cập nhật & Lưu Log</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Municipal Valve Control Modal -->
+    <div id="valve-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+        <div class="glass-panel w-full max-w-md rounded-2xl p-5 sm:p-6 border border-slate-700 shadow-2xl">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div>
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-amber-400">Điều khiển van cấp nước Tank 1</span>
+                    <h3 class="text-lg font-bold text-white">Van Thủy Cục Cấp Nước Vào</h3>
+                </div>
+                <button onclick="closeModal('valve-modal')" class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <div class="mt-4 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-2">Chọn trạng thái Van Thủy Cục:</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button type="button" onclick="selectValveOption('ON')" id="opt-valve-ON" class="valve-opt-btn p-4 rounded-xl border text-center transition flex flex-col items-center gap-1.5">
+                            <span class="w-4 h-4 rounded-full bg-sky-400 shadow-[0_0_12px_#38bdf8]"></span>
+                            <span class="font-bold text-base">ON (MỞ VAN)</span>
+                            <span class="text-[11px] opacity-80">Đang cấp nước vào Tank 1</span>
+                        </button>
+                        <button type="button" onclick="selectValveOption('OFF')" id="opt-valve-OFF" class="valve-opt-btn p-4 rounded-xl border text-center transition flex flex-col items-center gap-1.5">
+                            <span class="w-4 h-4 rounded-full bg-slate-400"></span>
+                            <span class="font-bold text-base">OFF (ĐÓNG VAN)</span>
+                            <span class="text-[11px] opacity-80">Ngừng cấp nước thủy cục</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <div>
+                        <label for="valve-operator" class="block text-xs font-medium text-slate-300 mb-1">Nhân viên thao tác (tùy chọn)</label>
+                        <input id="valve-operator" type="text" placeholder="VD: Nguyễn Văn A - Ca trực" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500">
+                    </div>
+                    <div>
+                        <label for="valve-note" class="block text-xs font-medium text-slate-300 mb-1">Ghi chú (tùy chọn)</label>
+                        <input id="valve-note" type="text" placeholder="VD: Mở van bù nước do Tank 1 dưới 1/2..." class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500">
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 flex items-center justify-end gap-2.5">
+                <button onclick="closeModal('valve-modal')" class="px-4 py-2.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition">Hủy bỏ</button>
+                <button onclick="confirmValveChange()" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-sky-500 hover:bg-sky-400 text-slate-950 shadow-lg shadow-sky-500/25 transition">Xác nhận & Lưu Log</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Clear Datalog Confirmation Modal (No native confirm()) -->
+    <div id="clear-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+        <div class="glass-panel w-full max-w-sm rounded-2xl p-6 border border-red-500/40 shadow-2xl">
+            <div class="flex items-center gap-3 text-red-400 mb-3">
+                <div class="w-10 h-10 rounded-xl bg-red-500/15 flex items-center justify-center shrink-0">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                </div>
+                <h3 class="text-base font-bold text-white">Xác nhận xóa Datalog?</h3>
+            </div>
+            <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                Toàn bộ lịch sử vận hành Chiller, Bồn nước và Van Thủy Cục sẽ bị xóa vĩnh viễn khỏi bộ nhớ trình duyệt. Bạn nên xuất file Excel trước khi xóa.
+            </p>
+            <div class="mt-5 flex items-center justify-end gap-2.5">
+                <button onclick="closeModal('clear-modal')" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition">Hủy bỏ</button>
+                <button onclick="confirmClearDatalog()" class="px-4 py-2 rounded-xl text-xs font-bold bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-600/25 transition">Xóa toàn bộ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-xs sm:max-w-sm pointer-events-none"></div>
+
+    <!-- ==================== APPLICATION JAVASCRIPT ==================== -->
+    <script>
+        /**
+         * BMS / SCADA MONITOR APPLICATION STATE & LOGIC
+         * Lưu trữ tự động vào localStorage để đảm bảo bền vững dữ liệu khi tải lại trang.
+         */
+        const STORAGE_KEY_STATE = 'bms_scada_device_state_v1';
+        const STORAGE_KEY_LOGS = 'bms_scada_datalog_v1';
+        const STORAGE_KEY_OPERATOR = 'bms_scada_last_operator_v1';
+
+        // Helper: Format Date to dd/mm/yyyy HH:mm:ss
+        function formatDateTime(date = new Date()) {
+            const pad = (n) => String(n).padStart(2, '0');
+            return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+        }
+
+        // Helper: Convert numeric tank level to readable Vietnamese label
+        function formatTankLevel(level) {
+            switch (Number(level)) {
+                case 25: return '1/4 (25%)';
+                case 50: return '1/2 (50%)';
+                case 75: return '3/4 (75%)';
+                case 100: return 'Đầy 4/4 (100%)';
+                default: return `${level}%`;
+            }
+        }
+
+        // Default Initial State (Tank 1 starts at 25% & Valve OFF to immediately showcase warning logic)
+        function getDefaultState() {
+            const nowStr = formatDateTime();
+            return {
+                chillers: [
+                    { id: 'chiller-1', name: 'Chiller 1', code: 'CH-01', status: 'ON', updatedAt: nowStr },
+                    { id: 'chiller-2', name: 'Chiller 2', code: 'CH-02', status: 'OFF', updatedAt: nowStr }
+                ],
+                tanks: [
+                    { id: 'tank-1', name: 'Tank 1', code: 'WT-01', level: 25, updatedAt: nowStr },
+                    { id: 'tank-2', name: 'Tank 2', code: 'WT-02', level: 75, updatedAt: nowStr },
+                    { id: 'tank-3', name: 'Tank 3', code: 'WT-03', level: 50, updatedAt: nowStr },
+                    { id: 'tank-4', name: 'Tank 4', code: 'WT-04', level: 100, updatedAt: nowStr }
+                ],
+                valve: {
+                    id: 'valve-1',
+                    name: 'Van Thủy Cục (Tank 1)',
+                    status: 'OFF',
+                    updatedAt: nowStr
+                }
+            };
+        }
+
+        // Default Sample Datalogs
+        function getDefaultLogs() {
+            const now = Date.now();
+            return [
+                {
+                    id: 'log-init-4',
+                    timestamp: formatDateTime(new Date(now - 2 * 60000)),
+                    category: 'tank',
+                    device: 'Tank 1',
+                    oldStatus: '1/2 (50%)',
+                    newStatus: '1/4 (25%)',
+                    operator: 'Nguyễn Văn An (Ca 1)',
+                    note: 'Mực nước hạ thấp dưới 1/2 - Kích hoạt cảnh báo kiểm tra Van Thủy Cục'
+                },
+                {
+                    id: 'log-init-3',
+                    timestamp: formatDateTime(new Date(now - 15 * 60000)),
+                    category: 'tank',
+                    device: 'Van Thủy Cục (Tank 1)',
+                    oldStatus: 'ON',
+                    newStatus: 'OFF',
+                    operator: 'Nguyễn Văn An (Ca 1)',
+                    note: 'Đóng van sau khi hoàn tất bảo trì đường ống nhánh'
+                },
+                {
+                    id: 'log-init-2',
+                    timestamp: formatDateTime(new Date(now - 35 * 60000)),
+                    category: 'tank',
+                    device: 'Tank 2',
+                    oldStatus: '1/2 (50%)',
+                    newStatus: '3/4 (75%)',
+                    operator: 'Trần Minh Bảo',
+                    note: 'Bơm trung chuyển hoạt động bình thường'
+                },
+                {
+                    id: 'log-init-1',
+                    timestamp: formatDateTime(new Date(now - 60 * 60000)),
+                    category: 'chiller',
+                    device: 'Chiller 1',
+                    oldStatus: 'OFF',
+                    newStatus: 'ON',
+                    operator: 'Trần Minh Bảo',
+                    note: 'Khởi động Chiller 1 cấp lạnh đầu ca sáng'
+                }
+            ];
+        }
+
+        // Load State & Logs safely from localStorage
+        let appState = getDefaultState();
+        let datalogs = getDefaultLogs();
+        let currentLogFilter = 'all';
+
+        // Active modal selection context
+        let activeChillerId = null;
+        let selectedChillerStatus = 'ON';
+        let activeTankId = null;
+        let selectedTankLevel = 50;
+        let selectedValveStatus = 'OFF';
+
+        function loadFromStorage() {
+            try {
+                const savedState = localStorage.getItem(STORAGE_KEY_STATE);
+                if (savedState) {
+                    const parsed = JSON.parse(savedState);
+                    if (parsed && parsed.chillers && parsed.tanks && parsed.valve) {
+                        appState = parsed;
+                    }
+                }
+                const savedLogs = localStorage.getItem(STORAGE_KEY_LOGS);
+                if (savedLogs) {
+                    const parsedLogs = JSON.parse(savedLogs);
+                    if (Array.isArray(parsedLogs)) {
+                        datalogs = parsedLogs;
+                    }
+                }
+            } catch (err) {
+                console.error('Lỗi đọc dữ liệu localStorage:', err);
+            }
+        }
+
+        function saveToStorage() {
+            try {
+                localStorage.setItem(STORAGE_KEY_STATE, JSON.stringify(appState));
+                localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(datalogs));
+            } catch (err) {
+                console.error('Lỗi lưu dữ liệu localStorage:', err);
+            }
+        }
+
+        function getLastOperator() {
+            try {
+                return localStorage.getItem(STORAGE_KEY_OPERATOR) || '';
+            } catch {
+                return '';
+            }
+        }
+
+        function setLastOperator(name) {
+            try {
+                if (name && name.trim()) {
+                    localStorage.setItem(STORAGE_KEY_OPERATOR, name.trim());
+                }
+            } catch {}
+        }
+
+        // ==================== REAL-TIME CLOCK ====================
+        function updateClock() {
+            const el = document.getElementById('realtime-clock');
+            if (el) el.textContent = formatDateTime(new Date());
+        }
+
+        // ==================== TOAST NOTIFICATIONS ====================
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const styles = {
+                success: 'bg-emerald-950/95 border-emerald-500/60 text-emerald-200',
+                warning: 'bg-amber-950/95 border-amber-500/60 text-amber-200',
+                danger: 'bg-red-950/95 border-red-500/60 text-red-200',
+                info: 'bg-slate-900/95 border-sky-500/60 text-sky-200'
+            };
+
+            toast.className = `pointer-events-auto px-4 py-3 rounded-xl border shadow-xl text-xs sm:text-sm font-medium flex items-center gap-2.5 backdrop-blur-md transition-all duration-300 translate-y-2 opacity-0 ${styles[type] || styles.info}`;
+            toast.innerHTML = `
+                <span class="w-2 h-2 rounded-full shrink-0 ${type === 'success' ? 'bg-emerald-400' : type === 'danger' ? 'bg-red-400' : type === 'warning' ? 'bg-amber-400' : 'bg-sky-400'}"></span>
+                <span>${message}</span>
+            `;
+            container.appendChild(toast);
+
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3400);
+        }
+
+        // ==================== RENDER KPI HEADER ====================
+        function renderKPIs() {
+            const onCount = appState.chillers.filter(c => c.status === 'ON').length;
+            const tripCount = appState.chillers.filter(c => c.status === 'TRIP').length;
+            const tank1Warn = appState.tanks[0].level < 50 ? 1 : 0;
+            const valveOn = appState.valve.status === 'ON';
+
+            const kpiOn = document.getElementById('kpi-chiller-on');
+            kpiOn.textContent = `${onCount}/${appState.chillers.length}`;
+            kpiOn.className = `font-mono font-bold text-sm px-2 py-0.5 rounded-lg ${onCount > 0 ? 'text-emerald-400 bg-emerald-500/15' : 'text-slate-400 bg-slate-700/50'}`;
+
+            const kpiTrip = document.getElementById('kpi-chiller-trip');
+            kpiTrip.textContent = `${tripCount}`;
+            kpiTrip.className = `font-mono font-bold text-sm px-2 py-0.5 rounded-lg ${tripCount > 0 ? 'text-red-400 bg-red-500/20 animate-pulse' : 'text-slate-400 bg-slate-700/50'}`;
+
+            const kpiWarn = document.getElementById('kpi-tank-warn');
+            kpiWarn.textContent = tank1Warn > 0 ? '1 (Tank 1)' : '0';
+            kpiWarn.className = `font-mono font-bold text-sm px-2 py-0.5 rounded-lg ${tank1Warn > 0 ? 'text-red-400 bg-red-500/20 animate-pulse' : 'text-emerald-400 bg-emerald-500/15'}`;
+
+            const kpiValve = document.getElementById('kpi-valve-status');
+            kpiValve.textContent = appState.valve.status;
+            kpiValve.className = `font-mono font-bold text-sm px-2 py-0.5 rounded-lg ${valveOn ? 'text-sky-300 bg-sky-500/20' : (tank1Warn > 0 ? 'text-amber-300 bg-amber-500/20 animate-pulse' : 'text-slate-400 bg-slate-700/50')}`;
+        }
+
+        // ==================== RENDER CHILLERS (DETAILED INDUSTRIAL SVG) ====================
+        function renderChillers() {
+            const container = document.getElementById('chiller-grid');
+            container.innerHTML = appState.chillers.map((chiller) => {
+                const isON = chiller.status === 'ON';
+                const isTRIP = chiller.status === 'TRIP';
+                const isOFF = chiller.status === 'OFF';
+
+                // Dynamic color tokens per status
+                const cardClass = isON
+                    ? 'status-on-glow'
+                    : isTRIP
+                        ? 'alarm-flash bg-red-950/25'
+                        : 'border-slate-700/70';
+
+                const accentHex = isON ? '#10b981' : isTRIP ? '#ef4444' : '#64748b';
+                const bodyFill = isON ? '#064e3b' : isTRIP ? '#7f1d1d' : '#1e293b';
+                const bodyStroke = isON ? '#34d399' : isTRIP ? '#f87171' : '#475569';
+                const pipeColor = isON ? '#38bdf8' : isTRIP ? '#ef4444' : '#475569';
+
+                const badgeHtml = isON
+                    ? `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                           <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> ON • ĐANG CHẠY
+                       </span>`
+                    : isTRIP
+                        ? `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-500/25 text-red-300 border border-red-500/60 animate-pulse">
+                               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                               TRIP • SỰ CỐ
+                           </span>`
+                        : `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-700/60 text-slate-300 border border-slate-600/60">
+                               <span class="w-2 h-2 rounded-full bg-slate-400"></span> OFF • TẠM DỪNG
+                           </span>`;
+
+                return `
+                <div onclick="openChillerModal('${chiller.id}')" role="button" tabindex="0"
+                     onkeydown="if(event.key==='Enter'||event.key===' ') openChillerModal('${chiller.id}')"
+                     class="glass-card rounded-2xl p-4 sm:p-5 cursor-pointer select-none relative overflow-hidden ${cardClass}">
+                    
+                    <!-- Card Top Bar -->
+                    <div class="flex items-center justify-between gap-2 mb-3">
+                        <div class="flex items-center gap-2.5">
+                            <span class="px-2 py-0.5 rounded-md text-[11px] font-mono font-bold bg-slate-800 text-sky-300 border border-slate-700">${chiller.code}</span>
+                            <h3 class="text-base sm:text-lg font-extrabold text-white">${chiller.name}</h3>
+                        </div>
+                        ${badgeHtml}
+                    </div>
+
+                    <!-- Industrial Chiller SVG Schematic -->
+                    <div class="w-full bg-slate-950/65 rounded-xl border border-slate-800/80 p-3 flex items-center justify-center">
+                        <svg viewBox="0 0 380 175" class="w-full h-auto max-h-48" aria-label="Mô phỏng ${chiller.name}">
+                            <defs>
+                                <linearGradient id="barrelGrad-${chiller.id}" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stop-color="${bodyStroke}" stop-opacity="0.45"/>
+                                    <stop offset="50%" stop-color="${bodyFill}" stop-opacity="0.95"/>
+                                    <stop offset="100%" stop-color="#020617" stop-opacity="0.95"/>
+                                </linearGradient>
+                                <linearGradient id="metalGrad-${chiller.id}" x1="0" y1="0" x2="1" y2="1">
+                                    <stop offset="0%" stop-color="#334155"/>
+                                    <stop offset="100%" stop-color="#0f172a"/>
+                                </linearGradient>
+                            </defs>
+
+                            <!-- Base Skid Frame -->
+                            <rect x="24" y="152" width="332" height="12" rx="4" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+                            <rect x="52" y="138" width="16" height="14" fill="#334155"/>
+                            <rect x="200" y="138" width="16" height="14" fill="#334155"/>
+                            <rect x="305" y="138" width="16" height="14" fill="#334155"/>
+
+                            <!-- Chilled Water Pipes (Left Inlet / Outlet) -->
+                            <path d="M 10 92 L 42 92" stroke="${pipeColor}" stroke-width="8" stroke-linecap="round"/>
+                            <path d="M 10 122 L 42 122" stroke="${pipeColor}" stroke-width="8" stroke-linecap="round"/>
+                            ${isON ? `
+                                <path d="M 10 92 L 42 92" stroke="#e0f2fe" stroke-width="3" class="chiller-flow-active"/>
+                                <path d="M 42 122 L 10 122" stroke="#e0f2fe" stroke-width="3" class="chiller-flow-active"/>
+                            ` : ''}
+
+                            <!-- Condenser / Evaporator Main Shell Barrel -->
+                            <rect x="42" y="74" width="196" height="66" rx="22" fill="url(#barrelGrad-${chiller.id})" stroke="${bodyStroke}" stroke-width="2.5"/>
+                            <!-- Shell Ribs -->
+                            <line x1="78" y1="76" x2="78" y2="138" stroke="${bodyStroke}" stroke-opacity="0.35" stroke-width="2"/>
+                            <line x1="140" y1="76" x2="140" y2="138" stroke="${bodyStroke}" stroke-opacity="0.35" stroke-width="2"/>
+                            <line x1="202" y1="76" x2="202" y2="138" stroke="${bodyStroke}" stroke-opacity="0.35" stroke-width="2"/>
+                            <!-- Shell Center Label -->
+                            <rect x="92" y="96" width="96" height="22" rx="5" fill="#020617" fill-opacity="0.7" stroke="${accentHex}" stroke-width="1"/>
+                            <text x="140" y="111" text-anchor="middle" fill="${isON ? '#6ee7b7' : isTRIP ? '#fca5a5' : '#94a3b8'}" font-family="JetBrains Mono, monospace" font-size="10" font-weight="700">
+                                ${isON ? 'CHW: 7.2°C' : isTRIP ? 'FAULT / TRIP' : 'STANDBY'}
+                            </text>
+
+                            <!-- Compressor Unit on Top of Barrel -->
+                            <rect x="82" y="24" width="116" height="44" rx="10" fill="url(#metalGrad-${chiller.id})" stroke="${bodyStroke}" stroke-width="2"/>
+                            <!-- Suction & Discharge Pipes connecting Compressor to Barrel -->
+                            <rect x="104" y="68" width="14" height="10" fill="#475569"/>
+                            <rect x="162" y="68" width="14" height="10" fill="#475569"/>
+
+                            <!-- Compressor Rotating Impeller / Fan Housing -->
+                            <circle cx="114" cy="46" r="15" fill="#020617" stroke="${accentHex}" stroke-width="2"/>
+                            <g class="${isON ? 'animate-impeller' : ''}">
+                                <path d="M114 35 L117 46 L114 57 L111 46 Z" fill="${accentHex}"/>
+                                <path d="M103 46 L114 43 L125 46 L114 49 Z" fill="${accentHex}"/>
+                                <circle cx="114" cy="46" r="3.5" fill="#f8fafc"/>
+                            </g>
+
+                            <!-- Pressure Gauges on Compressor -->
+                            <circle cx="155" cy="46" r="8" fill="#0f172a" stroke="#64748b" stroke-width="1.5"/>
+                            <line x1="155" y1="46" x2="${isON ? '160' : isTRIP ? '161' : '151'}" y2="${isON ? '41' : isTRIP ? '49' : '42'}" stroke="${accentHex}" stroke-width="1.8" stroke-linecap="round"/>
+                            <circle cx="179" cy="46" r="8" fill="#0f172a" stroke="#64748b" stroke-width="1.5"/>
+                            <line x1="179" y1="46" x2="${isON ? '184' : '175'}" y2="${isON ? '42' : '43'}" stroke="${accentHex}" stroke-width="1.8" stroke-linecap="round"/>
+
+                            <!-- Electrical Control Cabinet (Right Side) -->
+                            <rect x="256" y="34" width="90" height="108" rx="8" fill="#0f172a" stroke="#475569" stroke-width="2"/>
+                            <!-- HMI Screen -->
+                            <rect x="268" y="46" width="66" height="34" rx="4" fill="${isON ? '#064e3b' : isTRIP ? '#450a0a' : '#1e293b'}" stroke="${accentHex}" stroke-width="1.5"/>
+                            <text x="301" y="61" text-anchor="middle" fill="${isON ? '#34d399' : isTRIP ? '#f87171' : '#94a3b8'}" font-family="JetBrains Mono, monospace" font-size="9" font-weight="700">${chiller.status}</text>
+                            <text x="301" y="73" text-anchor="middle" fill="#cbd5e1" font-family="Inter, sans-serif" font-size="7.5">${isON ? 'LOAD 78%' : isTRIP ? 'CHECK ALM' : 'READY'}</text>
+
+                            <!-- Indicator LEDs on Cabinet -->
+                            <circle cx="277" cy="96" r="5" fill="${isON ? '#10b981' : '#1e293b'}" stroke="#334155" stroke-width="1"/>
+                            <circle cx="301" cy="96" r="5" fill="${isOFF ? '#94a3b8' : '#1e293b'}" stroke="#334155" stroke-width="1"/>
+                            <circle cx="325" cy="96" r="5" fill="${isTRIP ? '#ef4444' : '#1e293b'}" stroke="#334155" stroke-width="1"/>
+                            
+                            <!-- Ventilation Louvers -->
+                            <line x1="270" y1="114" x2="332" y2="114" stroke="#334155" stroke-width="2" stroke-linecap="round"/>
+                            <line x1="270" y1="122" x2="332" y2="122" stroke="#334155" stroke-width="2" stroke-linecap="round"/>
+                            <line x1="270" y1="130" x2="332" y2="130" stroke="#334155" stroke-width="2" stroke-linecap="round"/>
+
+                            <!-- Connecting Conduit from Barrel to Cabinet -->
+                            <path d="M 238 106 L 256 106" stroke="#64748b" stroke-width="6"/>
+                        </svg>
+                    </div>
+
+                    <!-- Footer Metadata -->
+                    <div class="mt-3 flex items-center justify-between text-xs text-slate-400">
+                        <span>Cập nhật: <span class="font-mono text-slate-300">${chiller.updatedAt}</span></span>
+                        <span class="text-sky-400 font-semibold inline-flex items-center gap-1">
+                            Điều khiển
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                        </span>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        // ==================== RENDER WATER TANKS & MUNICIPAL VALVE ====================
+        function renderTanks() {
+            const container = document.getElementById('tank-grid');
+            const isValveON = appState.valve.status === 'ON';
+
+            container.innerHTML = appState.tanks.map((tank) => {
+                const isTank1 = tank.id === 'tank-1';
+                const isLowWarning = isTank1 && tank.level < 50; // Special rule: Tank 1 < 1/2 triggers red alarm + valve blink
+
+                // Water offset inside SVG tank interior (height = 136px, from y=32 to y=168)
+                // level 100 -> offset 0; level 75 -> 34; level 50 -> 68; level 25 -> 102
+                const maxInteriorHeight = 136;
+                const translateY = Math.round(maxInteriorHeight * (1 - tank.level / 100));
+
+                // Color theme for water & tank
+                const waterTopColor = isLowWarning ? '#f87171' : '#38bdf8';
+                const waterBottomColor = isLowWarning ? '#991b1b' : '#0369a1';
+                const waterWaveBackColor = isLowWarning ? '#ef4444' : '#0ea5e9';
+                const tankBorderColor = isLowWarning ? '#ef4444' : '#38bdf8';
+                const levelText = formatTankLevel(tank.level);
+
+                return `
+                <div class="glass-card rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden ${isLowWarning ? 'alarm-flash bg-red-950/25' : ''}">
+                    
+                    <!-- Top Header -->
+                    <div class="flex items-start justify-between gap-2 mb-2">
+                        <div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-800 text-cyan-300 border border-slate-700">${tank.code}</span>
+                                <h3 class="text-base font-extrabold text-white">${tank.name}</h3>
+                            </div>
+                            <p class="text-[11px] text-slate-400 mt-0.5 font-mono">Mực hiện tại: <strong class="${isLowWarning ? 'text-red-400' : 'text-cyan-300'}">${levelText}</strong></p>
+                        </div>
+                        ${isLowWarning
+                            ? `<span class="px-2 py-0.5 rounded-lg text-[10px] font-extrabold bg-red-500/25 text-red-300 border border-red-500/60 animate-pulse">LOW ALARM</span>`
+                            : `<span class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/35">ỔN ĐỊNH</span>`
+                        }
+                    </div>
+
+                    <!-- Tank 1 Special Low-Level Warning Banner -->
+                    ${isLowWarning ? `
+                        <div class="mb-2.5 px-2.5 py-1.5 rounded-xl bg-red-600/25 border border-red-500/70 text-[11px] font-bold text-red-200 flex items-center gap-1.5 animate-pulse">
+                            <svg class="w-4 h-4 text-red-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                            <span>CẢNH BÁO: MỰC NƯỚC THẤP &lt; 1/2</span>
+                        </div>
+                    ` : ''}
+
+                    <!-- Tank 1 Municipal Water Valve Control Strip (Integrated directly with Tank 1) -->
+                    ${isTank1 ? `
+                        <button type="button" onclick="openValveModal()"
+                                class="mb-2.5 w-full p-2.5 rounded-xl border text-left transition flex items-center justify-between gap-2 cursor-pointer ${
+                                    isLowWarning
+                                        ? 'valve-alert-blink'
+                                        : isValveON
+                                            ? 'bg-sky-500/15 border-sky-400/60 hover:bg-sky-500/25'
+                                            : 'bg-slate-900/85 border-slate-700 hover:border-sky-400/50'
+                                }">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <!-- Valve SVG Icon -->
+                                <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isValveON ? 'bg-sky-500/25 text-sky-300' : isLowWarning ? 'bg-red-500/30 text-red-200' : 'bg-slate-800 text-slate-400'}">
+                                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 14h16M12 14V6M8 6h8M5 10l7 4-7 4v-8zm14 0l-7 4 7 4v-8z"/>
+                                    </svg>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="text-[11px] font-bold text-white truncate">Van Thủy Cục Cấp Nước</div>
+                                    <div class="text-[10px] ${isLowWarning ? 'text-amber-200 font-semibold' : 'text-slate-400'} truncate">
+                                        ${isValveON ? 'Đang mở cấp nước vào Tank 1' : (isLowWarning ? 'Nhấp để mở van bù nước!' : 'Nhấp để điều khiển ON/OFF')}
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="px-2.5 py-1 rounded-lg font-mono font-extrabold text-xs shrink-0 ${
+                                isValveON
+                                    ? 'bg-sky-500 text-slate-950 shadow-[0_0_10px_rgba(56,189,248,0.6)]'
+                                    : isLowWarning
+                                        ? 'bg-red-600 text-white'
+                                        : 'bg-slate-700 text-slate-300'
+                            }">${appState.valve.status}</span>
+                        </button>
+                    ` : ''}
+
+                    <!-- Interactive Water Tank SVG -->
+                    <div onclick="openTankModal('${tank.id}')" role="button" tabindex="0"
+                         onkeydown="if(event.key==='Enter'||event.key===' ') openTankModal('${tank.id}')"
+                         class="flex-1 bg-slate-950/65 rounded-xl border border-slate-800/80 p-2.5 flex items-center justify-center cursor-pointer group hover:border-cyan-500/50 transition">
+                        <svg viewBox="0 0 200 198" class="w-full h-auto max-h-52" aria-label="Bồn nước ${tank.name} mức ${levelText}">
+                            <defs>
+                                <clipPath id="tankClip-${tank.id}">
+                                    <rect x="44" y="32" width="112" height="136" rx="10"/>
+                                </clipPath>
+                                <linearGradient id="waterGrad-${tank.id}" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stop-color="${waterTopColor}" stop-opacity="0.92"/>
+                                    <stop offset="100%" stop-color="${waterBottomColor}" stop-opacity="0.98"/>
+                                </linearGradient>
+                                <linearGradient id="tankGlass-${tank.id}" x1="0" y1="0" x2="1" y2="0">
+                                    <stop offset="0%" stop-color="#ffffff" stop-opacity="0.14"/>
+                                    <stop offset="22%" stop-color="#ffffff" stop-opacity="0.03"/>
+                                    <stop offset="80%" stop-color="#000000" stop-opacity="0.05"/>
+                                    <stop offset="100%" stop-color="#ffffff" stop-opacity="0.1"/>
+                                </linearGradient>
+                            </defs>
+
+                            <!-- Tank 1 Inlet Pipe from Municipal Water Valve -->
+                            ${isTank1 ? `
+                                <path d="M 8 18 L 76 18 L 76 34" fill="none" stroke="${isValveON ? '#38bdf8' : '#475569'}" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+                                ${isValveON ? `
+                                    <path d="M 8 18 L 76 18 L 76 34" fill="none" stroke="#e0f2fe" stroke-width="3" class="pipe-flow-active"/>
+                                    <!-- Falling water stream inside Tank 1 when Valve is ON -->
+                                    <line x1="76" y1="34" x2="76" y2="165" stroke="#38bdf8" stroke-width="3.5" stroke-opacity="0.85" class="pipe-flow-active"/>
+                                ` : ''}
+                                <!-- Mini Valve Indicator on Pipe -->
+                                <circle cx="34" cy="18" r="7" fill="${isValveON ? '#0284c7' : (isLowWarning ? '#dc2626' : '#334155')}" stroke="${isValveON ? '#7dd3fc' : '#94a3b8'}" stroke-width="1.5"/>
+                            ` : `
+                                <!-- Standard Top Vent / Inlet Cap for Tanks 2, 3, 4 -->
+                                <rect x="86" y="18" width="28" height="10" rx="3" fill="#334155" stroke="#64748b" stroke-width="1.5"/>
+                            `}
+
+                            <!-- Tank Support Legs & Base -->
+                            <rect x="34" y="176" width="132" height="10" rx="3" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+                            <rect x="56" y="168" width="12" height="10" fill="#334155"/>
+                            <rect x="132" y="168" width="12" height="10" fill="#334155"/>
+
+                            <!-- Tank Outer Shell Background -->
+                            <rect x="40" y="28" width="120" height="144" rx="13" fill="#0f172a" stroke="${tankBorderColor}" stroke-opacity="${isLowWarning ? '0.95' : '0.45'}" stroke-width="2.5"/>
+
+                            <!-- Clipped Animated Water Body -->
+                            <g clip-path="url(#tankClip-${tank.id})">
+                                <g class="water-level-group" style="transform: translateY(${translateY}px);">
+                                    <!-- Back Wave -->
+                                    <path class="water-wave-back" d="M 0 36 Q 25 28 50 36 T 100 36 T 150 36 T 200 36 T 250 36 T 300 36 L 300 200 L 0 200 Z" fill="${waterWaveBackColor}" fill-opacity="0.55"/>
+                                    <!-- Front Wave & Water Fill -->
+                                    <path class="water-wave-front" d="M 0 34 Q 25 42 50 34 T 100 34 T 150 34 T 200 34 T 250 34 T 300 34 L 300 200 L 0 200 Z" fill="url(#waterGrad-${tank.id})"/>
+                                </g>
+                            </g>
+
+                            <!-- Glass Reflection Overlay -->
+                            <rect x="44" y="32" width="112" height="136" rx="10" fill="url(#tankGlass-${tank.id})" pointer-events="none"/>
+
+                            <!-- Level Graduation Lines & Labels (4/4, 3/4, 1/2, 1/4) -->
+                            <!-- 4/4 (100%) -> y = 36 -->
+                            <line x1="146" y1="36" x2="156" y2="36" stroke="#cbd5e1" stroke-width="1.5"/>
+                            <text x="166" y="40" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="9" font-weight="600">4/4</text>
+
+                            <!-- 3/4 (75%) -> y = 66 -->
+                            <line x1="46" y1="66" x2="154" y2="66" stroke="#cbd5e1" stroke-opacity="0.22" stroke-dasharray="3 3" stroke-width="1"/>
+                            <line x1="146" y1="66" x2="156" y2="66" stroke="#cbd5e1" stroke-width="1.5"/>
+                            <text x="166" y="70" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="9" font-weight="600">3/4</text>
+
+                            <!-- 1/2 (50%) -> y = 100 -->
+                            <line x1="46" y1="100" x2="154" y2="100" stroke="${isTank1 ? '#f59e0b' : '#cbd5e1'}" stroke-opacity="${isTank1 ? '0.6' : '0.28'}" stroke-dasharray="4 3" stroke-width="${isTank1 ? '1.5' : '1'}"/>
+                            <line x1="146" y1="100" x2="156" y2="100" stroke="${isTank1 ? '#f59e0b' : '#cbd5e1'}" stroke-width="1.8"/>
+                            <text x="166" y="104" fill="${isTank1 ? '#fbbf24' : '#cbd5e1'}" font-family="JetBrains Mono, monospace" font-size="9" font-weight="700">1/2</text>
+
+                            <!-- 1/4 (25%) -> y = 134 -->
+                            <line x1="46" y1="134" x2="154" y2="134" stroke="${isLowWarning ? '#ef4444' : '#cbd5e1'}" stroke-opacity="0.3" stroke-dasharray="3 3" stroke-width="1"/>
+                            <line x1="146" y1="134" x2="156" y2="134" stroke="${isLowWarning ? '#ef4444' : '#cbd5e1'}" stroke-width="1.5"/>
+                            <text x="166" y="138" fill="${isLowWarning ? '#f87171' : '#94a3b8'}" font-family="JetBrains Mono, monospace" font-size="9" font-weight="600">1/4</text>
+
+                            <!-- Center Percentage Badge -->
+                            <rect x="70" y="88" width="60" height="26" rx="8" fill="#020617" fill-opacity="0.72" stroke="${isLowWarning ? '#ef4444' : '#38bdf8'}" stroke-opacity="0.7" stroke-width="1.2"/>
+                            <text x="100" y="105" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono, monospace" font-size="13" font-weight="800">${tank.level}%</text>
+                        </svg>
+                    </div>
+
+                    <!-- Footer Info -->
+                    <div class="mt-2.5 flex items-center justify-between text-[11px] text-slate-400">
+                        <span class="font-mono truncate">${tank.updatedAt.split(' ')[1] || tank.updatedAt}</span>
+                        <button type="button" onclick="openTankModal('${tank.id}')" class="text-cyan-400 hover:text-cyan-300 font-semibold inline-flex items-center gap-0.5">
+                            Chọn mức
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                        </button>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        // ==================== RENDER DATALOG TABLE ====================
+        function getStatusBadge(statusText) {
+            const text = String(statusText || '');
+            if (text === 'ON') {
+                return `<span class="inline-flex px-2 py-0.5 rounded-md text-[11px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/35">ON</span>`;
+            }
+            if (text === 'OFF') {
+                return `<span class="inline-flex px-2 py-0.5 rounded-md text-[11px] font-mono font-bold bg-slate-700/70 text-slate-300 border border-slate-600/60">OFF</span>`;
+            }
+            if (text === 'TRIP') {
+                return `<span class="inline-flex px-2 py-0.5 rounded-md text-[11px] font-mono font-bold bg-red-500/25 text-red-300 border border-red-500/50">TRIP</span>`;
+            }
+            if (text.includes('1/4')) {
+                return `<span class="inline-flex px-2 py-0.5 rounded-md text-[11px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">${text}</span>`;
+            }
+            return `<span class="inline-flex px-2 py-0.5 rounded-md text-[11px] font-mono font-bold bg-sky-500/15 text-sky-300 border border-sky-500/35">${text}</span>`;
+        }
+
+        function setLogFilter(filter) {
+            currentLogFilter = filter;
+            renderDatalog();
+        }
+
+        function renderDatalog() {
+            // Update tab active styles
+            const tabs = ['all', 'chiller', 'tank'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                if (!btn) return;
+                if (t === currentLogFilter) {
+                    btn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold bg-sky-500 text-slate-950 shadow transition';
+                } else {
+                    btn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition';
+                }
+            });
+
+            const filtered = datalogs.filter(log => {
+                if (currentLogFilter === 'all') return true;
+                return log.category === currentLogFilter;
+            });
+
+            document.getElementById('log-count').textContent = filtered.length;
+            const tbody = document.getElementById('datalog-tbody');
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="py-10 px-4 text-center text-slate-500 text-sm">
+                            Chưa có bản ghi Datalog nào trong mục này.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(log => {
+                const isChiller = log.category === 'chiller';
+                return `
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="py-3 px-4 font-mono text-xs text-slate-300 whitespace-nowrap">${log.timestamp}</td>
+                        <td class="py-3 px-4 font-semibold text-white whitespace-nowrap">
+                            <span class="inline-block w-2 h-2 rounded-full mr-1.5 ${isChiller ? 'bg-sky-400' : 'bg-cyan-400'}"></span>
+                            ${escapeHtml(log.device)}
+                        </td>
+                        <td class="py-3 px-4 whitespace-nowrap">${getStatusBadge(log.oldStatus)}</td>
+                        <td class="py-3 px-4 whitespace-nowrap">${getStatusBadge(log.newStatus)}</td>
+                        <td class="py-3 px-4 text-slate-300">${escapeHtml(log.operator || '—')}</td>
+                        <td class="py-3 px-4 text-slate-400 max-w-xs truncate" title="${escapeHtml(log.note || '')}">${escapeHtml(log.note || '—')}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        // ==================== MODAL HELPERS ====================
+        function openModal(id) {
+            const modal = document.getElementById(id);
+            if (!modal) return;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeModal(id) {
+            const modal = document.getElementById(id);
+            if (!modal) return;
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        // --- Chiller Modal ---
+        function openChillerModal(chillerId) {
+            const chiller = appState.chillers.find(c => c.id === chillerId);
+            if (!chiller) return;
+            activeChillerId = chillerId;
+            document.getElementById('chiller-modal-title').textContent = `${chiller.name} (${chiller.code})`;
+            document.getElementById('chiller-operator').value = getLastOperator();
+            document.getElementById('chiller-note').value = '';
+            selectChillerOption(chiller.status);
+            openModal('chiller-modal');
+        }
+
+        function selectChillerOption(status) {
+            selectedChillerStatus = status;
+            ['ON', 'OFF', 'TRIP'].forEach(opt => {
+                const btn = document.getElementById(`opt-chiller-${opt}`);
+                if (!btn) return;
+                const activeStyles = {
+                    ON: 'bg-emerald-500/20 border-emerald-400 text-emerald-200 ring-2 ring-emerald-500/40',
+                    OFF: 'bg-slate-700/60 border-slate-400 text-white ring-2 ring-slate-400/30',
+                    TRIP: 'bg-red-500/25 border-red-400 text-red-200 ring-2 ring-red-500/40'
+                };
+                if (opt === status) {
+                    btn.className = `chiller-opt-btn p-3 rounded-xl border text-center transition flex flex-col items-center gap-1.5 ${activeStyles[opt]}`;
+                } else {
+                    btn.className = 'chiller-opt-btn p-3 rounded-xl border border-slate-700/80 bg-slate-900/70 text-slate-400 hover:border-slate-500 text-center transition flex flex-col items-center gap-1.5';
+                }
+            });
+        }
+
+        function confirmChillerChange() {
+            const chiller = appState.chillers.find(c => c.id === activeChillerId);
+            if (!chiller) return;
+
+            const oldStatus = chiller.status;
+            const newStatus = selectedChillerStatus;
+            const operator = document.getElementById('chiller-operator').value.trim() || 'Nhân viên trực ca';
+            const note = document.getElementById('chiller-note').value.trim();
+            const nowStr = formatDateTime();
+
+            setLastOperator(operator);
+            chiller.status = newStatus;
+            chiller.updatedAt = nowStr;
+
+            datalogs.unshift({
+                id: 'log-' + Date.now(),
+                timestamp: nowStr,
+                category: 'chiller',
+                device: chiller.name,
+                oldStatus: oldStatus,
+                newStatus: newStatus,
+                operator: operator,
+                note: note || (oldStatus === newStatus ? 'Xác nhận kiểm tra định kỳ' : `Chuyển trạng thái từ ${oldStatus} sang ${newStatus}`)
+            });
+
+            saveToStorage();
+            renderAll();
+            closeModal('chiller-modal');
+
+            showToast(`${chiller.name} đã chuyển sang ${newStatus}`, newStatus === 'TRIP' ? 'danger' : newStatus === 'ON' ? 'success' : 'info');
+        }
+
+        // --- Water Tank Modal ---
+        function openTankModal(tankId) {
+            const tank = appState.tanks.find(t => t.id === tankId);
+            if (!tank) return;
+            activeTankId = tankId;
+            document.getElementById('tank-modal-title').textContent = `${tank.name} (${tank.code})`;
+            document.getElementById('tank-operator').value = getLastOperator();
+            document.getElementById('tank-note').value = '';
+
+            const hint = document.getElementById('tank1-warning-hint');
+            if (tankId === 'tank-1') {
+                hint.classList.remove('hidden');
+            } else {
+                hint.classList.add('hidden');
+            }
+
+            selectTankOption(tank.level);
+            openModal('tank-modal');
+        }
+
+        function selectTankOption(level) {
+            selectedTankLevel = Number(level);
+            [25, 50, 75, 100].forEach(lvl => {
+                const btn = document.getElementById(`opt-tank-${lvl}`);
+                if (!btn) return;
+                if (lvl === selectedTankLevel) {
+                    const isWarn = activeTankId === 'tank-1' && lvl < 50;
+                    btn.className = isWarn
+                        ? 'tank-opt-btn p-3 rounded-xl border text-center transition flex flex-col items-center gap-1 bg-red-500/25 border-red-400 text-red-200 ring-2 ring-red-500/40'
+                        : 'tank-opt-btn p-3 rounded-xl border text-center transition flex flex-col items-center gap-1 bg-cyan-500/20 border-cyan-400 text-cyan-200 ring-2 ring-cyan-500/40';
+                } else {
+                    btn.className = 'tank-opt-btn p-3 rounded-xl border border-slate-700/80 bg-slate-900/70 text-slate-400 hover:border-slate-500 text-center transition flex flex-col items-center gap-1';
+                }
+            });
+        }
+
+        function confirmTankChange() {
+            const tank = appState.tanks.find(t => t.id === activeTankId);
+            if (!tank) return;
+
+            const oldLabel = formatTankLevel(tank.level);
+            const newLabel = formatTankLevel(selectedTankLevel);
+            const operator = document.getElementById('tank-operator').value.trim() || 'Nhân viên trực ca';
+            const note = document.getElementById('tank-note').value.trim();
+            const nowStr = formatDateTime();
+
+            setLastOperator(operator);
+            tank.level = selectedTankLevel;
+            tank.updatedAt = nowStr;
+
+            const isTank1Low = tank.id === 'tank-1' && tank.level < 50;
+            const autoNote = isTank1Low
+                ? 'Cảnh báo mực nước Tank 1 < 1/2 - Yêu cầu kiểm tra Van Thủy Cục'
+                : `Cập nhật mực nước từ ${oldLabel} sang ${newLabel}`;
+
+            datalogs.unshift({
+                id: 'log-' + Date.now(),
+                timestamp: nowStr,
+                category: 'tank',
+                device: tank.name,
+                oldStatus: oldLabel,
+                newStatus: newLabel,
+                operator: operator,
+                note: note || autoNote
+            });
+
+            saveToStorage();
+            renderAll();
+            closeModal('tank-modal');
+
+            if (isTank1Low) {
+                showToast(`CẢNH BÁO: Tank 1 dưới 1/2 (${newLabel})! Vui lòng kiểm tra Van Thủy Cục.`, 'danger');
+            } else {
+                showToast(`Đã cập nhật ${tank.name} lên mức ${newLabel}`, 'success');
+            }
+        }
+
+        // --- Municipal Valve Modal ---
+        function openValveModal() {
+            document.getElementById('valve-operator').value = getLastOperator();
+            document.getElementById('valve-note').value = '';
+            selectValveOption(appState.valve.status);
+            openModal('valve-modal');
+        }
+
+        function selectValveOption(status) {
+            selectedValveStatus = status;
+            ['ON', 'OFF'].forEach(opt => {
+                const btn = document.getElementById(`opt-valve-${opt}`);
+                if (!btn) return;
+                if (opt === status) {
+                    btn.className = opt === 'ON'
+                        ? 'valve-opt-btn p-4 rounded-xl border text-center transition flex flex-col items-center gap-1.5 bg-sky-500/20 border-sky-400 text-sky-200 ring-2 ring-sky-500/40'
+                        : 'valve-opt-btn p-4 rounded-xl border text-center transition flex flex-col items-center gap-1.5 bg-slate-700/60 border-slate-400 text-white ring-2 ring-slate-400/30';
+                } else {
+                    btn.className = 'valve-opt-btn p-4 rounded-xl border border-slate-700/80 bg-slate-900/70 text-slate-400 hover:border-slate-500 text-center transition flex flex-col items-center gap-1.5';
+                }
+            });
+        }
+
+        function confirmValveChange() {
+            const oldStatus = appState.valve.status;
+            const newStatus = selectedValveStatus;
+            const operator = document.getElementById('valve-operator').value.trim() || 'Nhân viên trực ca';
+            const note = document.getElementById('valve-note').value.trim();
+            const nowStr = formatDateTime();
+
+            setLastOperator(operator);
+            appState.valve.status = newStatus;
+            appState.valve.updatedAt = nowStr;
+
+            datalogs.unshift({
+                id: 'log-' + Date.now(),
+                timestamp: nowStr,
+                category: 'tank',
+                device: appState.valve.name,
+                oldStatus: oldStatus,
+                newStatus: newStatus,
+                operator: operator,
+                note: note || (newStatus === 'ON' ? 'Mở Van Thủy Cục cấp nước vào Tank 1' : 'Đóng Van Thủy Cục ngừng cấp nước')
+            });
+
+            saveToStorage();
+            renderAll();
+            closeModal('valve-modal');
+
+            showToast(`Van Thủy Cục đã chuyển sang ${newStatus}`, newStatus === 'ON' ? 'success' : 'info');
+        }
+
+        // --- Clear Datalog Modal ---
+        function openClearModal() {
+            openModal('clear-modal');
+        }
+
+        function confirmClearDatalog() {
+            datalogs = [];
+            saveToStorage();
+            renderDatalog();
+            closeModal('clear-modal');
+            showToast('Đã xóa toàn bộ dữ liệu Datalog.', 'warning');
+        }
+
+        // ==================== EXCEL EXPORT (.XLSX VIA SHEETJS) ====================
+        function buildSheetData(logs) {
+            if (logs.length === 0) {
+                return [{
+                    'STT': '',
+                    'Thời gian': 'Chưa có dữ liệu',
+                    'Thiết bị': '',
+                    'Trạng thái cũ': '',
+                    'Trạng thái mới': '',
+                    'Nhân viên thao tác': '',
+                    'Ghi chú': ''
+                }];
+            }
+            return logs.map((log, index) => ({
+                'STT': index + 1,
+                'Thời gian': log.timestamp,
+                'Thiết bị': log.device,
+                'Trạng thái cũ': log.oldStatus,
+                'Trạng thái mới': log.newStatus,
+                'Nhân viên thao tác': log.operator || '',
+                'Ghi chú': log.note || ''
+            }));
+        }
+
+        function applyColumnWidths(ws) {
+            ws['!cols'] = [
+                { wch: 6 },  // STT
+                { wch: 22 }, // Thời gian
+                { wch: 24 }, // Thiết bị
+                { wch: 16 }, // Trạng thái cũ
+                { wch: 16 }, // Trạng thái mới
+                { wch: 24 }, // Nhân viên
+                { wch: 44 }  // Ghi chú
+            ];
+        }
+
+        function exportExcel(mode) {
+            try {
+                if (typeof XLSX === 'undefined') {
+                    showToast('Không thể tải thư viện SheetJS. Vui lòng kiểm tra kết nối mạng.', 'danger');
+                    return;
+                }
+
+                const now = new Date();
+                const dateStamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+                const wb = XLSX.utils.book_new();
+
+                const chillerLogs = datalogs.filter(l => l.category === 'chiller');
+                const tankLogs = datalogs.filter(l => l.category === 'tank');
+
+                if (mode === 'chiller') {
+                    const ws = XLSX.utils.json_to_sheet(buildSheetData(chillerLogs));
+                    applyColumnWidths(ws);
+                    XLSX.utils.book_append_sheet(wb, ws, 'Chiller');
+                    XLSX.writeFile(wb, `Datalog_Chiller_${dateStamp}.xlsx`);
+                    showToast(`Đã xuất file Excel Chiller (${chillerLogs.length} dòng).`, 'success');
+                } else if (mode === 'tank') {
+                    const ws = XLSX.utils.json_to_sheet(buildSheetData(tankLogs));
+                    applyColumnWidths(ws);
+                    XLSX.utils.book_append_sheet(wb, ws, 'WaterTank_Van');
+                    XLSX.writeFile(wb, `Datalog_WaterTank_Van_${dateStamp}.xlsx`);
+                    showToast(`Đã xuất file Excel Tank & Van (${tankLogs.length} dòng).`, 'success');
+                } else {
+                    const wsChiller = XLSX.utils.json_to_sheet(buildSheetData(chillerLogs));
+                    applyColumnWidths(wsChiller);
+                    XLSX.utils.book_append_sheet(wb, wsChiller, 'Chiller');
+
+                    const wsTank = XLSX.utils.json_to_sheet(buildSheetData(tankLogs));
+                    applyColumnWidths(wsTank);
+                    XLSX.utils.book_append_sheet(wb, wsTank, 'WaterTank_Van');
+
+                    XLSX.writeFile(wb, `BaoCao_TongHop_BMS_${dateStamp}.xlsx`);
+                    showToast('Đã xuất file Excel Tổng Hợp 2 Sheet thành công!', 'success');
+                }
+            } catch (err) {
+                console.error('Lỗi xuất Excel:', err);
+                showToast('Có lỗi xảy ra khi xuất file Excel.', 'danger');
+            }
+        }
+
+        // ==================== RENDER ALL & INITIALIZE ====================
+        function renderAll() {
+            renderKPIs();
+            renderChillers();
+            renderTanks();
+            renderDatalog();
+        }
+
+        // Close modals on Escape key or backdrop click
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                ['chiller-modal', 'tank-modal', 'valve-modal', 'clear-modal'].forEach(closeModal);
+            }
+        });
+
+        ['chiller-modal', 'tank-modal', 'valve-modal', 'clear-modal'].forEach(modalId => {
+            const el = document.getElementById(modalId);
+            if (el) {
+                el.addEventListener('click', (e) => {
+                    if (e.target === el) closeModal(modalId);
+                });
+            }
+        });
+
+        // Boot application
+        window.addEventListener('DOMContentLoaded', () => {
+            loadFromStorage();
+            updateClock();
+            setInterval(updateClock, 1000);
+            renderAll();
+        });
+    </script>
+    <script src="../bridge.js"></script>
+</body>
+</html>
