@@ -1,4 +1,4 @@
-/* bridge-v10.js — Cầu nối SSO, Phân Ca & Đồng Bộ 2 Chiều cho cả 5 Module (Checklist, Duty, Điện Nước, Chiller & Kho Vật Tư) */
+/* bridge-v11.js (Final) — Cầu nối SSO, Phân Ca, Đồng Bộ 2 Chiều & Tự Đẩy Menu Bar Các Module Khớp Stardock Đáy */
 (function () {
   let isApplyingFromMaster = false;
   let lastMasterData = null;
@@ -359,14 +359,15 @@
           padding-right: 0.65rem !important;
         }
 
-        /* 6. Dời menu bar (Công tơ / Thiết bị) xuống sát dưới cùng & hỗ trợ tự động ẩn */
+        /* 6. Menu bar (Công tơ / Thiết bị) tự động đẩy lên vừa khớp trên Stardock đáy & hỗ trợ tự ẩn */
         body {
-          padding-bottom: 72px !important;
+          padding-bottom: calc(var(--unified-dock-offset, 74px) + 74px) !important;
+          transition: padding-bottom 280ms ease;
         }
         nav.fixed.bottom-0 {
           display: flex !important;
           position: fixed !important;
-          bottom: calc(0.45rem + env(safe-area-inset-bottom, 0px)) !important;
+          bottom: calc(var(--unified-dock-offset, 74px) + 6px + env(safe-area-inset-bottom, 0px)) !important;
           left: 50% !important;
           right: auto !important;
           transform: translateX(-50%) !important;
@@ -376,30 +377,29 @@
           box-shadow: 0 10px 28px rgba(0, 0, 0, 0.38) !important;
           padding: 0.3rem 0.75rem !important;
           z-index: 45 !important;
-          transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms ease !important;
-          will-change: transform, opacity;
+          transition: bottom 280ms cubic-bezier(0.22, 1, 0.36, 1), transform 280ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms ease !important;
+          will-change: bottom, transform, opacity;
         }
         nav.fixed.bottom-0.power-nav-autohidden {
-          transform: translate(-50%, calc(100% + 1.5rem)) !important;
+          transform: translate(-50%, 16px) scale(0.92) !important;
           opacity: 0 !important;
           pointer-events: none !important;
         }
 
-        /* Dấu vạch nhỏ sát mép dưới khi menu bar đang ẩn */
+        /* Dấu vạch nhỏ nằm ngay trên Stardock khi menu bar Điện Nước đang ẩn */
         #powerNavRevealHandle {
           position: fixed;
-          bottom: 0;
+          bottom: calc(var(--unified-dock-offset, 74px) + env(safe-area-inset-bottom, 0px));
           left: 50%;
           transform: translateX(-50%);
           width: 140px;
-          height: 24px;
+          height: 22px;
           display: flex;
-          align-items: flex-end;
+          align-items: center;
           justify-content: center;
-          padding-bottom: calc(5px + env(safe-area-inset-bottom, 0px));
           z-index: 44;
           cursor: pointer;
-          transition: opacity 220ms ease, transform 240ms ease;
+          transition: bottom 280ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms ease, transform 240ms ease;
         }
         #powerNavRevealHandle.handle-hidden {
           opacity: 0;
@@ -731,6 +731,79 @@
     }
   }
 
+  // ==================== 6. TỰ ĐỘNG ĐẨY MENU BAR CÁC MODULE KHỚP STARDOCK ĐÁY ====================
+  function applyDockOffsetToModule(dockState) {
+    const active = Boolean(dockState && dockState.active);
+    const offset = active ? Math.max(0, Number(dockState.offset) || 0) : 0;
+    document.documentElement.style.setProperty('--unified-dock-offset', `${offset}px`);
+
+    const existing = document.getElementById('unified-dock-clearance-css');
+    if (!active) {
+      if (existing) existing.remove();
+      return;
+    }
+
+    if (!existing) {
+      const st = document.createElement('style');
+      st.id = 'unified-dock-clearance-css';
+      let css = `
+        body {
+          padding-bottom: calc(var(--unified-dock-offset, 74px) + 64px) !important;
+          transition: padding-bottom 280ms ease;
+        }
+        #toast-container {
+          bottom: calc(var(--unified-dock-offset, 74px) + 16px + env(safe-area-inset-bottom, 0px)) !important;
+          transition: bottom 280ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+        }
+      `;
+
+      // Sổ Duty: đẩy thanh menu bar đáy mobile lên vừa khớp ngay trên Stardock
+      if (isDutyModule()) {
+        css += `
+          nav.fixed.bottom-0 {
+            bottom: calc(var(--unified-dock-offset, 74px) + env(safe-area-inset-bottom, 0px)) !important;
+            transition: bottom 280ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+            border-radius: 1.15rem 1.15rem 0 0;
+            box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.14);
+          }
+          body {
+            padding-bottom: calc(var(--unified-dock-offset, 74px) + 78px) !important;
+          }
+        `;
+      }
+
+      // Checklist: đẩy các thanh bottom bar cố định (loại trừ modal .inset-0) & nút nổi lên trên Stardock
+      if (isChecklistModule()) {
+        css += `
+          #root nav.fixed.bottom-0,
+          #root .fixed.bottom-0:not(.inset-0) {
+            bottom: calc(var(--unified-dock-offset, 74px) + env(safe-area-inset-bottom, 0px)) !important;
+            transition: bottom 280ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+          }
+          #root .fixed.bottom-6 {
+            bottom: calc(var(--unified-dock-offset, 74px) + 1.5rem + env(safe-area-inset-bottom, 0px)) !important;
+            transition: bottom 280ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+          }
+          body {
+            padding-bottom: calc(var(--unified-dock-offset, 74px) + 84px) !important;
+          }
+        `;
+      }
+
+      // Chiller & Kho Vật Tư: chừa đệm đáy rộng rãi để không che dòng cuối bảng
+      if (isBmsLogModule() || isStockModule()) {
+        css += `
+          body {
+            padding-bottom: calc(var(--unified-dock-offset, 74px) + 32px) !important;
+          }
+        `;
+      }
+
+      st.textContent = css;
+      document.head.appendChild(st);
+    }
+  }
+
   // ==================== LẮNG NGHE GÓI TIN TỪ MASTER ====================
   window.addEventListener('message', function (event) {
     const data = event.data;
@@ -748,6 +821,11 @@
       return;
     }
 
+    if (data.type === 'UNIFIED_DOCK_STATE' && data.dockState) {
+      applyDockOffsetToModule(data.dockState);
+      return;
+    }
+
     if (data.type !== 'UNIFIED_SYNC' || !data.currentUser) return;
 
     isApplyingFromMaster = true;
@@ -759,6 +837,7 @@
       applyToChecklist(data);
       applyToBmsLog(data);
       applyToStock(data);
+      if (data.dockState) applyDockOffsetToModule(data.dockState);
     } finally {
       setTimeout(() => { isApplyingFromMaster = false; }, 400);
     }
