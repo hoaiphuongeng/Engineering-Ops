@@ -1,4 +1,4 @@
-/* bridge-v9.js — Cầu nối SSO, Phân Ca & Đồng Bộ 2 Chiều cho cả 4 Module (Checklist, Duty, Điện Nước, Chiller & Bồn Nước) */
+/* bridge-v10.js — Cầu nối SSO, Phân Ca & Đồng Bộ 2 Chiều cho cả 5 Module (Checklist, Duty, Điện Nước, Chiller & Kho Vật Tư) */
 (function () {
   let isApplyingFromMaster = false;
   let lastMasterData = null;
@@ -45,6 +45,10 @@
 
   function isBmsLogModule() {
     return !!document.getElementById('chiller-grid') && !!document.getElementById('tank-grid') && typeof datalogs !== 'undefined';
+  }
+
+  function isStockModule() {
+    return !!document.getElementById('view-inventory') && !!document.getElementById('tab-stocktake');
   }
 
   async function hashPowerPasswordLocal(plainText, usernameSalt) {
@@ -662,6 +666,71 @@
     }
   }
 
+  // ==================== 5. KHO VẬT TƯ KỸ THUẬT (stock.html) ====================
+  function applyToStock(data) {
+    if (!isStockModule() || !data || !data.currentUser) return;
+    const u = data.currentUser;
+    const isAdmin = u.role === 'admin';
+
+    // 1. Phân quyền giao diện: User (duty) ẩn nút Xóa VT, Cài đặt hệ thống & Chốt kiểm kê
+    const existingCss = document.getElementById('unified-stock-user-css');
+    if (!isAdmin) {
+      if (!existingCss) {
+        const st = document.createElement('style');
+        st.id = 'unified-stock-user-css';
+        st.textContent = `
+          button[onclick*="deleteItem"],
+          button[onclick*="openSettingsModal"],
+          #btn-finalize-stocktake {
+            display: none !important;
+          }
+          body {
+            padding-bottom: 48px !important;
+          }
+        `;
+        document.head.appendChild(st);
+      }
+    } else if (existingCss) {
+      existingCss.remove();
+    }
+
+    // 2. Đồng bộ danh sách nhân sự từ BẢNG PHÂN CA vào EMPLOYEE_LIST của Kho Vật Tư
+    const onDutyNow = Array.isArray(data.onDutyNow) ? data.onDutyNow : [];
+    const rosterStaff = Array.isArray(data.rosterStaff) ? data.rosterStaff : [];
+    const mergedNames = [];
+    const seen = new Set();
+
+    onDutyNow.forEach(r => {
+      if (r && r.name && !seen.has(r.name)) { seen.add(r.name); mergedNames.push(r.name); }
+    });
+    rosterStaff.forEach(r => {
+      if (r && r.name && !seen.has(r.name)) { seen.add(r.name); mergedNames.push(r.name); }
+    });
+    if (isAdmin && u.name && !seen.has(u.name)) {
+      seen.add(u.name);
+      mergedNames.push(u.name);
+    }
+
+    if (typeof EMPLOYEE_LIST !== 'undefined' && Array.isArray(EMPLOYEE_LIST) && mergedNames.length > 0) {
+      EMPLOYEE_LIST.length = 0;
+      mergedNames.forEach(n => EMPLOYEE_LIST.push(n));
+    }
+
+    // 3. Tự động điền sẵn Người thực hiện (theo nhân sự đang trực ca hoặc Admin) nếu ô đang trống
+    const defaultPerformer = (!isAdmin && onDutyNow.length > 0)
+      ? onDutyNow[0].name
+      : (isAdmin ? u.name : (mergedNames[0] || ''));
+
+    if (defaultPerformer) {
+      ['import-performer', 'export-performer', 'stocktake-performer-input'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && !el.value.trim()) {
+          el.value = defaultPerformer;
+        }
+      });
+    }
+  }
+
   // ==================== LẮNG NGHE GÓI TIN TỪ MASTER ====================
   window.addEventListener('message', function (event) {
     const data = event.data;
@@ -689,6 +758,7 @@
       applyToPower(data);
       applyToChecklist(data);
       applyToBmsLog(data);
+      applyToStock(data);
     } finally {
       setTimeout(() => { isApplyingFromMaster = false; }, 400);
     }
