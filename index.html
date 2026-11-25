@@ -148,6 +148,7 @@
     .ios3d-power     { background: linear-gradient(160deg, #fde047 0%, #f59e0b 55%, #b45309 100%); }
     .ios3d-roster    { background: linear-gradient(160deg, #fb7185 0%, #e11d48 55%, #881337 100%); }
     .ios3d-log       { background: linear-gradient(160deg, #38bdf8 0%, #0284c7 55%, #0c4a6e 100%); }
+    .ios3d-stock     { background: linear-gradient(160deg, #c084fc 0%, #9333ea 55%, #581c87 100%); }
 
     /* Vùng vuốt cạnh trái & Dấu nhận diện siêu nhỏ khi Stardock đang ẩn */
     #stardockRevealHandle {
@@ -202,7 +203,7 @@
         </div>
         <div>
           <h1 class="text-xl font-bold tracking-tight">Engineering Unified OS</h1>
-          <p class="text-xs text-slate-400">Đăng nhập 1 lần • Checklist, Sổ Duty, Điện Nước & Chiller</p>
+          <p class="text-xs text-slate-400">Đăng nhập 1 lần • Checklist, Duty, Điện Nước, Chiller & Kho VT</p>
         </div>
       </div>
 
@@ -453,6 +454,7 @@
       <button onclick="openTab('duty')" data-nav="duty" class="nav-pill px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white cursor-pointer">Ghi Sổ Duty</button>
       <button onclick="openTab('power')" data-nav="power" class="nav-pill px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white cursor-pointer">Chỉ Số Điện Nước</button>
       <button onclick="openTab('log')" data-nav="log" class="nav-pill px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white cursor-pointer">Chiller & Bồn Nước</button>
+      <button onclick="openTab('stock')" data-nav="stock" class="nav-pill px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white cursor-pointer">Kho Vật Tư</button>
     </nav>
 
     <div class="flex items-center gap-2 shrink-0">
@@ -579,6 +581,11 @@
             <p class="text-xs text-slate-400">Giám sát Chiller 1-2, Bồn nước 1-4 & Van Thủy Cục. Đồng bộ Real-time 2 chiều; User bị ẩn nút <b>Xóa Datalog</b> và tự điền tên theo Bảng Phân Ca.</p>
             <button onclick="openTab('log')" class="mt-2 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold cursor-pointer">Mở Giám Sát Chiller →</button>
           </div>
+          <div class="glass p-5 rounded-2xl space-y-2">
+            <h3 class="font-bold text-purple-400 text-sm">5. Kho Vật Tư Kỹ Thuật</h3>
+            <p class="text-xs text-slate-400">Quản lý nhập/xuất/tồn kho đồng bộ Firestore <code>stockmana-e133d</code>. Ánh xạ người thực hiện từ Bảng Phân Ca; User bị ẩn nút <b>Xóa VT</b>, <b>Cài đặt</b> & <b>Chốt kiểm kê</b>.</p>
+            <button onclick="openTab('stock')" class="mt-2 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold cursor-pointer">Mở Kho Vật Tư →</button>
+          </div>
         </div>
       </div>
     </section>
@@ -601,6 +608,11 @@
     <!-- 4B. MODULE GIÁM SÁT CHILLER & BỒN NƯỚC (SCADA / DATALOG) -->
     <section id="panel-log" class="view-panel">
       <iframe id="frame-log" class="mod-frame" data-src="modules/log.html"></iframe>
+    </section>
+
+    <!-- 4C. MODULE QUẢN LÝ KHO VẬT TƯ KỸ THUẬT -->
+    <section id="panel-stock" class="view-panel">
+      <iframe id="frame-stock" class="mod-frame" data-src="modules/stock.html"></iframe>
     </section>
 
     <!-- 5. BẢNG PHÂN CA DÀNH CHO NHÂN VIÊN (CHỈ XEM - ĐỒNG BỘ REAL-TIME) -->
@@ -703,7 +715,19 @@
         </div>
       </button>
 
-      <!-- 5. Bảng phân ca -->
+      <!-- 5. Kho vật tư kỹ thuật -->
+      <button onclick="handleDockClick('stock')" data-dock="stock" title="Kho vật tư kỹ thuật" aria-label="Kho vật tư kỹ thuật"
+        class="dock-btn flex items-center justify-center p-1.5 pl-2.5 rounded-2xl cursor-pointer">
+        <div class="ios3d-icon ios3d-stock">
+          <svg viewBox="0 0 32 32" class="w-5 h-5 drop-shadow-[0_2px_3px_rgba(0,0,0,0.35)]" fill="none">
+            <path d="M16 5L26 10.2V21.8L16 27L6 21.8V10.2L16 5Z" fill="#ffffff" fill-opacity="0.96"/>
+            <path d="M16 5L26 10.2L16 15.4L6 10.2L16 5Z" fill="#f3e8ff"/>
+            <path d="M16 15.4V27M16 15.4L26 10.2M16 15.4L6 10.2" stroke="#7e22ce" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </button>
+
+      <!-- 6. Bảng phân ca -->
       <button onclick="handleDockClick('roster')" data-dock="roster" title="Bảng phân ca" aria-label="Bảng phân ca"
         class="dock-btn flex items-center justify-center p-1.5 pl-2.5 rounded-2xl cursor-pointer">
         <div class="ios3d-icon ios3d-roster">
@@ -1218,7 +1242,7 @@
         onDutyNow                            // Danh sách anh em đang trực ca hiện tại
       };
 
-      ['frame-checklist', 'frame-duty', 'frame-power', 'frame-log'].forEach(id => {
+      ['frame-checklist', 'frame-duty', 'frame-power', 'frame-log', 'frame-stock'].forEach(id => {
         const fr = document.getElementById(id);
         if (fr && fr.contentWindow) fr.contentWindow.postMessage(payload, '*');
       });
@@ -1350,7 +1374,7 @@
       await syncLocalStorageForAllTabs();
       pushMasterAndAllBackends();
 
-      ['frame-checklist', 'frame-duty', 'frame-power', 'frame-log'].forEach(id => {
+      ['frame-checklist', 'frame-duty', 'frame-power', 'frame-log', 'frame-stock'].forEach(id => {
         const fr = document.getElementById(id);
         const targetSrc = fr.getAttribute('data-src');
         fr.onload = () => {
@@ -1822,7 +1846,7 @@
     };
 
     window.logoutSSO = () => {
-      ['frame-checklist', 'frame-duty', 'frame-power', 'frame-log'].forEach(id => {
+      ['frame-checklist', 'frame-duty', 'frame-power', 'frame-log', 'frame-stock'].forEach(id => {
         const fr = document.getElementById(id);
         if (fr && fr.contentWindow) fr.contentWindow.postMessage({ type: 'UNIFIED_LOGOUT' }, '*');
       });
@@ -1951,7 +1975,7 @@
 
     window.openTab = (tabName) => {
       if (tabName === 'admin' && currentUser?.role !== 'admin') return;
-      ['admin', 'checklist', 'duty', 'power', 'log', 'roster'].forEach(t => {
+      ['admin', 'checklist', 'duty', 'power', 'log', 'stock', 'roster'].forEach(t => {
         document.getElementById(`panel-${t}`).classList.toggle('active', t === tabName);
       });
       document.querySelectorAll('[data-nav]').forEach(btn => {
