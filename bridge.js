@@ -1,4 +1,4 @@
-/* bridge-v12.js — Chuẩn Hóa Toàn Bộ Menu Bar Nằm Ngang Phía Trên (Kiểu Quản Lý Kho) + SSO & Đồng Bộ 5 Module */
+/* bridge-v13.js — Chuẩn Hóa Menu Bar Ngang Phía Trên (Checklist Cuộn Tự Nhiên Không Cố Định) + SSO & 5 Module */
 (function () {
   let isApplyingFromMaster = false;
   let lastMasterData = null;
@@ -836,14 +836,18 @@
       const st = document.createElement('style');
       st.id = 'unified-checklist-topbar-css';
       st.textContent = `
-        /* Chuyển thanh điều hướng React từ bottom-0 lên top cố định ngay dưới Header */
+        /* Đảm bảo khung trang Checklist là gốc định vị để thanh menu bar cuộn tự nhiên theo trang */
+        #root > div {
+          position: relative !important;
+        }
+        /* Đưa thanh điều hướng React lên ngay dưới Header và CUỘN THEO TRANG (không cố định khi cuộn) */
         .unified-cl-nav-wrap {
-          position: fixed !important;
+          position: absolute !important;
           top: var(--unified-cl-header-h, 58px) !important;
           bottom: auto !important;
           left: 0 !important;
           right: 0 !important;
-          z-index: 35 !important;
+          z-index: 25 !important;
           transform: none !important;
           opacity: 1 !important;
           pointer-events: auto !important;
@@ -909,9 +913,9 @@
           margin-top: 0 !important;
           font-size: 12px !important;
         }
-        /* Chừa khoảng trống phía trên nội dung chính để không bị thanh top menu che */
+        /* Chừa khoảng trống phía trên nội dung chính khớp chiều cao thực tế của thanh menu bar */
         #root main {
-          padding-top: 60px !important;
+          padding-top: var(--unified-cl-nav-h, 62px) !important;
         }
       `;
       document.head.appendChild(st);
@@ -925,8 +929,13 @@
       const nav = document.querySelector('nav[aria-label="Thanh điều hướng iOS"]');
       if (nav) {
         const wrap = nav.closest('div.fixed') || (nav.parentElement && nav.parentElement.parentElement);
-        if (wrap && !wrap.classList.contains('unified-cl-nav-wrap')) {
-          wrap.classList.add('unified-cl-nav-wrap');
+        if (wrap) {
+          if (!wrap.classList.contains('unified-cl-nav-wrap')) {
+            wrap.classList.add('unified-cl-nav-wrap');
+          }
+          if (wrap.offsetHeight > 0) {
+            document.documentElement.style.setProperty('--unified-cl-nav-h', `${wrap.offsetHeight + 8}px`);
+          }
         }
       }
     };
