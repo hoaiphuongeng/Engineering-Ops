@@ -24,10 +24,6 @@
       --glass-bg: rgba(15, 23, 42, 0.72);
       --glass-border: rgba(255, 255, 255, 0.14);
     }
-    html, body {
-      height: 100vh;
-      height: 100dvh;
-    }
     body {
       background: #0b1120;
       color: #f8fafc;
@@ -55,62 +51,52 @@
       pointer-events: auto;
       z-index: 10;
     }
-    /* === STARDOCK SÁT ĐÁY MÀN HÌNH ĐIỆN THOẠI & TỰ ĐỘNG CÂN CHỈNH === */
+    /* === STARDOCK DƯỚI CÙNG MÀN HÌNH XANH LÁ 3D iOS (CHỈ ICON + GHIM / TỰ ẨN + VUỐT CẠNH DƯỚI) === */
     #userStardock {
-      left: 0;
-      right: 0;
-      bottom: 0;
-      width: 100%;
-      transform: translateY(0);
+      left: 50%;
+      bottom: calc(0.45rem + env(safe-area-inset-bottom, 0px));
+      transform: translate(-50%, 0);
       transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms ease;
       will-change: transform, opacity;
     }
     #userStardock.dock-autohidden {
-      transform: translateY(calc(100% + 12px));
+      transform: translate(-50%, calc(100% + 1.5rem));
       opacity: 0;
       pointer-events: none;
     }
     .stardock-green {
-      width: 100%;
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      justify-content: space-between;
-      gap: 2px;
-      padding: 5px 6px calc(6px + env(safe-area-inset-bottom, 0px)) 6px;
-      border-radius: 18px 18px 0 0;
-      background: linear-gradient(155deg, rgba(52, 211, 153, 0.44) 0%, rgba(22, 163, 74, 0.62) 52%, rgba(20, 83, 45, 0.84) 100%),
-                  rgba(6, 26, 15, 0.84);
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      background: linear-gradient(145deg, rgba(52, 211, 153, 0.42) 0%, rgba(22, 163, 74, 0.58) 52%, rgba(20, 83, 45, 0.78) 100%),
+                  rgba(6, 26, 15, 0.78);
       backdrop-filter: blur(26px) saturate(195%);
       -webkit-backdrop-filter: blur(26px) saturate(195%);
-      border-top: 1px solid rgba(187, 247, 208, 0.5);
-      border-left: 1px solid rgba(187, 247, 208, 0.25);
-      border-right: 1px solid rgba(187, 247, 208, 0.25);
-      border-bottom: 0;
+      border: 1px solid rgba(187, 247, 208, 0.48);
       box-shadow:
-        0 -10px 30px -6px rgba(22, 163, 74, 0.38),
-        0 -4px 14px rgba(0, 0, 0, 0.42),
-        inset 0 1.5px 0 rgba(220, 252, 231, 0.5);
+        0 14px 34px -6px rgba(22, 163, 74, 0.45),
+        0 6px 16px rgba(0, 0, 0, 0.45),
+        inset 0 1.5px 0 rgba(220, 252, 231, 0.5),
+        inset 0 -1px 0 rgba(20, 83, 45, 0.5);
     }
+    .stardock-green::-webkit-scrollbar { display: none; }
     .dock-btn {
       position: relative;
-      flex: 1 1 0%;
-      min-width: 0;
-      padding: 4px 1px 3px 1px;
-      border-radius: 12px;
       transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1), background 180ms ease, box-shadow 180ms ease;
       border: 1px solid transparent;
     }
     .dock-btn:hover {
       background: rgba(220, 252, 231, 0.14);
+      transform: translateY(-2px);
     }
     .dock-btn:active {
       transform: scale(0.92);
     }
     .dock-btn.active {
       background: linear-gradient(180deg, rgba(236, 253, 245, 0.28) 0%, rgba(34, 197, 94, 0.24) 100%);
-      border-color: rgba(187, 247, 208, 0.58);
-      box-shadow: 0 4px 10px rgba(20, 83, 45, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+      border-color: rgba(187, 247, 208, 0.6);
+      box-shadow: 0 5px 12px rgba(20, 83, 45, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+      transform: translateY(-2px);
     }
     /* Vạch sáng nhỏ phía trên mục đang chọn */
     .dock-btn::after {
@@ -129,11 +115,11 @@
     .dock-btn.active::after {
       transform: translateX(-50%) scale(1);
     }
-    /* Icon hiện đại tối giản + tiêu đề ngắn gọn tự co giãn theo độ rộng màn hình */
+    /* Icon hiện đại tối giản (Modern Minimal Glass Badge) + tiêu đề ngắn gọn */
     .modern-dock-icon {
-      width: clamp(26px, 7.2vw, 32px);
-      height: clamp(26px, 7.2vw, 32px);
-      border-radius: 9px;
+      width: 30px;
+      height: 30px;
+      border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -150,62 +136,26 @@
       background: #ffffff;
       color: #15803d;
       border-color: #ffffff;
-      transform: translateY(-1px) scale(1.05);
-      box-shadow: 0 5px 12px -2px rgba(20, 83, 45, 0.45);
+      transform: translateY(-1px) scale(1.06);
+      box-shadow: 0 6px 14px -2px rgba(20, 83, 45, 0.45);
     }
     .dock-short-label {
-      font-size: clamp(8.5px, 2.35vw, 10.5px);
-      line-height: 1.15;
+      font-size: 9.5px;
+      line-height: 1.1;
       font-weight: 600;
-      color: rgba(236, 253, 245, 0.88);
-      margin-top: 2px;
+      color: rgba(236, 253, 245, 0.85);
+      margin-top: 3px;
       white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 100%;
-      letter-spacing: -0.02em;
+      letter-spacing: -0.01em;
       transition: color 180ms ease;
     }
     .dock-btn.active .dock-short-label {
       color: #ffffff;
       font-weight: 700;
     }
-    /* Trên màn hình Tablet / Desktop (>= 640px): dạng thanh nổi căn giữa gọn đẹp */
     @media (min-width: 640px) {
-      #userStardock {
-        left: 50%;
-        right: auto;
-        width: auto;
-        max-width: 96vw;
-        bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
-        transform: translate(-50%, 0);
-      }
-      #userStardock.dock-autohidden {
-        transform: translate(-50%, calc(100% + 1.5rem));
-      }
-      .stardock-green {
-        width: auto;
-        gap: 6px;
-        padding: 6px 8px;
-        border-radius: 22px;
-        border: 1px solid rgba(187, 247, 208, 0.48);
-        box-shadow:
-          0 14px 34px -6px rgba(22, 163, 74, 0.45),
-          0 6px 16px rgba(0, 0, 0, 0.45),
-          inset 0 1.5px 0 rgba(220, 252, 231, 0.5),
-          inset 0 -1px 0 rgba(20, 83, 45, 0.5);
-      }
-      .dock-btn {
-        flex: 0 0 auto;
-        padding: 6px 10px;
-        border-radius: 14px;
-      }
-      .dock-btn:hover {
-        transform: translateY(-2px);
-      }
-      .dock-btn.active {
-        transform: translateY(-2px);
-      }
+      .modern-dock-icon { width: 32px; height: 32px; }
+      .dock-short-label { font-size: 10.5px; }
     }
 
     /* Vùng vuốt cạnh dưới & Dấu nhận diện siêu nhỏ khi Stardock đang ẩn */
@@ -248,7 +198,7 @@
 
   </style>
 </head>
-<body class="h-full w-screen flex flex-col">
+<body class="h-screen w-screen flex flex-col">
 
   <!-- MÀN HÌNH ĐĂNG NHẬP HỢP NHẤT (SSO CHO CẢ 3 TAB) -->
   <div id="ssoOverlay" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-xl p-4">
@@ -711,13 +661,13 @@
     <div class="edge-indicator-dot"></div>
   </div>
 
-  <!-- THANH STARDOCK SÁT ĐÁY MÀN HÌNH ĐIỆN THOẠI (TỰ CÂN CHỈNH + GHIM / TỰ ẨN) -->
-  <div id="userStardock" class="hidden fixed z-40"
+  <!-- THANH STARDOCK DƯỚI CÙNG XANH LÁ (ICON HIỆN ĐẠI + TIÊU ĐỀ NGẮN GỌN + GHIM / TỰ ẨN) -->
+  <div id="userStardock" class="hidden fixed z-40 max-w-[98vw]"
     onmouseenter="pauseStardockAutoHide()" onmouseleave="scheduleStardockAutoHide()">
-    <div class="stardock-green">
+    <div class="stardock-green rounded-[22px] px-1.5 sm:px-2 py-1.5 flex flex-row items-center gap-0.5 sm:gap-1.5">
       <!-- 0. Quản trị & Phân ca (Chỉ hiện với Admin) -->
       <button id="dockAdminBtn" onclick="handleDockClick('admin')" data-dock="admin" title="Quản trị & Phân ca" aria-label="Quản trị & Phân ca"
-        class="hidden dock-btn flex flex-col items-center justify-center cursor-pointer">
+        class="hidden dock-btn flex flex-col items-center justify-center px-1.5 sm:px-2.5 py-1.5 rounded-2xl cursor-pointer shrink-0">
         <div class="modern-dock-icon">
           <i data-lucide="shield-check" class="w-4 h-4 sm:w-[18px] sm:h-[18px] stroke-[2.2]"></i>
         </div>
@@ -726,7 +676,7 @@
 
       <!-- 1. Kiểm tra biểu mẫu -->
       <button onclick="handleDockClick('checklist')" data-dock="checklist" title="Kiểm tra biểu mẫu" aria-label="Kiểm tra biểu mẫu"
-        class="dock-btn flex flex-col items-center justify-center cursor-pointer">
+        class="dock-btn flex flex-col items-center justify-center px-1.5 sm:px-2.5 py-1.5 rounded-2xl cursor-pointer shrink-0">
         <div class="modern-dock-icon">
           <i data-lucide="clipboard-check" class="w-4 h-4 sm:w-[18px] sm:h-[18px] stroke-[2.2]"></i>
         </div>
@@ -735,7 +685,7 @@
 
       <!-- 2. Ghi sổ duty -->
       <button onclick="handleDockClick('duty')" data-dock="duty" title="Ghi sổ duty" aria-label="Ghi sổ duty"
-        class="dock-btn flex flex-col items-center justify-center cursor-pointer">
+        class="dock-btn flex flex-col items-center justify-center px-1.5 sm:px-2.5 py-1.5 rounded-2xl cursor-pointer shrink-0">
         <div class="modern-dock-icon">
           <i data-lucide="book-open-text" class="w-4 h-4 sm:w-[18px] sm:h-[18px] stroke-[2.2]"></i>
         </div>
@@ -744,7 +694,7 @@
 
       <!-- 3. Ghi chỉ số điện nước -->
       <button onclick="handleDockClick('power')" data-dock="power" title="Ghi chỉ số điện nước" aria-label="Ghi chỉ số điện nước"
-        class="dock-btn flex flex-col items-center justify-center cursor-pointer">
+        class="dock-btn flex flex-col items-center justify-center px-1.5 sm:px-2.5 py-1.5 rounded-2xl cursor-pointer shrink-0">
         <div class="modern-dock-icon">
           <i data-lucide="zap" class="w-4 h-4 sm:w-[18px] sm:h-[18px] stroke-[2.2]"></i>
         </div>
@@ -753,7 +703,7 @@
 
       <!-- 4. Giám sát Chiller & Bồn nước -->
       <button onclick="handleDockClick('log')" data-dock="log" title="Giám sát Chiller & Bồn nước" aria-label="Giám sát Chiller & Bồn nước"
-        class="dock-btn flex flex-col items-center justify-center cursor-pointer">
+        class="dock-btn flex flex-col items-center justify-center px-1.5 sm:px-2.5 py-1.5 rounded-2xl cursor-pointer shrink-0">
         <div class="modern-dock-icon">
           <i data-lucide="thermometer-snowflake" class="w-4 h-4 sm:w-[18px] sm:h-[18px] stroke-[2.2]"></i>
         </div>
@@ -762,7 +712,7 @@
 
       <!-- 5. Kho vật tư kỹ thuật -->
       <button onclick="handleDockClick('stock')" data-dock="stock" title="Kho vật tư kỹ thuật" aria-label="Kho vật tư kỹ thuật"
-        class="dock-btn flex flex-col items-center justify-center cursor-pointer">
+        class="dock-btn flex flex-col items-center justify-center px-1.5 sm:px-2.5 py-1.5 rounded-2xl cursor-pointer shrink-0">
         <div class="modern-dock-icon">
           <i data-lucide="package" class="w-4 h-4 sm:w-[18px] sm:h-[18px] stroke-[2.2]"></i>
         </div>
@@ -771,7 +721,7 @@
 
       <!-- 6. Bảng phân ca -->
       <button onclick="handleDockClick('roster')" data-dock="roster" title="Bảng phân ca" aria-label="Bảng phân ca"
-        class="dock-btn flex flex-col items-center justify-center cursor-pointer">
+        class="dock-btn flex flex-col items-center justify-center px-1.5 sm:px-2.5 py-1.5 rounded-2xl cursor-pointer shrink-0">
         <div class="modern-dock-icon">
           <i data-lucide="calendar-days" class="w-4 h-4 sm:w-[18px] sm:h-[18px] stroke-[2.2]"></i>
         </div>
@@ -779,13 +729,13 @@
       </button>
 
       <!-- Vách ngăn dọc mảnh -->
-      <div class="w-px h-7 bg-emerald-100/25 mx-0.5 shrink-0"></div>
+      <div class="w-px h-8 bg-emerald-100/30 mx-0.5 shrink-0"></div>
 
       <!-- Nút Ghim / Tự ẩn -->
       <button id="btnToggleDockPin" onclick="toggleStardockPin()"
-        class="w-7 h-8 sm:w-8 sm:h-9 rounded-xl flex items-center justify-center cursor-pointer transition border border-emerald-200/45 bg-emerald-500/35 text-emerald-50 hover:bg-emerald-400/45 shrink-0"
+        class="w-8 h-9 rounded-xl flex items-center justify-center cursor-pointer transition border border-emerald-200/45 bg-emerald-500/35 text-emerald-50 hover:bg-emerald-400/45 shrink-0"
         title="Đang ghim (Bấm để bật Tự ẩn)" aria-label="Ghim hoặc tự ẩn thanh Stardock">
-        <i id="dockPinIcon" data-lucide="pin" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+        <i id="dockPinIcon" data-lucide="pin" class="w-4 h-4"></i>
       </button>
     </div>
   </div>
@@ -1904,13 +1854,14 @@
         return { active: false, visible: false, pinned: false, offset: 0 };
       }
       const dock = document.getElementById('userStardock');
-      let dockHeight = 56;
+      let dockHeight = 58;
       if (dock) {
         const rect = dock.getBoundingClientRect();
         if (rect && rect.height > 20) dockHeight = Math.ceil(rect.height);
       }
-      const isMobile = window.innerWidth < 640;
-      const offset = stardockVisible ? (dockHeight + (isMobile ? 6 : 14)) : 14;
+      // Khi Stardock hiện: đẩy menu bar module lên cách đáy = chiều cao Stardock + 16px đệm an toàn
+      // Khi Stardock ẩn: chỉ chừa 16px cho vạch xanh nhận diện sát mép dưới
+      const offset = stardockVisible ? (dockHeight + 16) : 16;
       return {
         active: true,
         visible: stardockVisible,
@@ -1944,8 +1895,8 @@
       if (btn) {
         btn.title = stardockPinned ? 'Đang ghim cố định (Bấm để chuyển Tự ẩn)' : 'Đang Tự ẩn (Bấm để Ghim cố định)';
         btn.className = stardockPinned
-          ? 'w-7 h-8 sm:w-8 sm:h-9 rounded-xl flex items-center justify-center cursor-pointer transition border border-emerald-200/55 bg-emerald-400/35 text-white hover:bg-emerald-400/50 shrink-0 shadow-inner'
-          : 'w-7 h-8 sm:w-8 sm:h-9 rounded-xl flex items-center justify-center cursor-pointer transition border border-emerald-200/25 bg-slate-950/45 text-emerald-200/80 hover:bg-slate-900/60 shrink-0';
+          ? 'w-8 h-8 rounded-xl flex items-center justify-center cursor-pointer transition border border-emerald-200/55 bg-emerald-400/35 text-white hover:bg-emerald-400/50 shrink-0 shadow-inner'
+          : 'w-8 h-8 rounded-xl flex items-center justify-center cursor-pointer transition border border-emerald-200/25 bg-slate-950/45 text-emerald-200/80 hover:bg-slate-900/60 shrink-0';
       }
       lucide.createIcons();
       clearTimeout(stardockHideTimer);
@@ -2040,11 +1991,9 @@
         }, { passive: true });
       }
 
-      const syncDockOnViewport = () => {
-        if (currentUser) requestAnimationFrame(broadcastDockState);
-      };
-      window.addEventListener('resize', syncDockOnViewport);
-      window.addEventListener('orientationchange', () => setTimeout(syncDockOnViewport, 200));
+      window.addEventListener('resize', () => {
+        if (currentUser) broadcastDockState();
+      });
     })();
 
     window.openTab = (tabName) => {
