@@ -1,4 +1,4 @@
-/* bridge-v14.js — Sửa Lỗi Cuộn Trang Kho Vật Tư + Chuẩn Hóa Menu Bar Ngang & SSO 5 Module */
+/* bridge-v15.js — Bỏ Ghim Menu Khi Cuộn Ở Tất Cả Module + Hỗ Trợ Admin Bỏ Qua QR Checklist & SSO 5 Module */
 (function () {
   let isApplyingFromMaster = false;
   let lastMasterData = null;
@@ -400,6 +400,48 @@
       if (rootEl) window._unifiedChecklistHideObserver.observe(rootEl, { childList: true, subtree: true });
     }
 
+    // Hỗ trợ Admin không cần quét mã QR khi thực hiện kiểm tra
+    window.__UNIFIED_ADMIN_BYPASS_QR__ = isAdmin;
+    try {
+      if (isAdmin) {
+        sessionStorage.setItem('dailycheck_admin_bypass_qr', 'true');
+      } else {
+        sessionStorage.removeItem('dailycheck_admin_bypass_qr');
+      }
+    } catch {}
+
+    if (isAdmin && !window._unifiedChecklistAdminQrObserver) {
+      let lastBypassClickAt = 0;
+      const tryAutoBypassQrForAdmin = () => {
+        if (!window.__UNIFIED_ADMIN_BYPASS_QR__) return;
+        const now = Date.now();
+        if (now - lastBypassClickAt < 600) return;
+
+        // Nếu trong hộp thoại quét QR có nút bỏ qua / tiếp tục không cần QR -> tự động bấm cho Admin
+        const buttons = document.querySelectorAll('#root button');
+        for (const btn of buttons) {
+          const txt = (btn.textContent || '').trim().toLowerCase();
+          if (
+            txt.includes('bỏ qua qr') ||
+            txt.includes('bỏ qua quét') ||
+            txt.includes('không cần qr') ||
+            txt.includes('không cần quét') ||
+            txt.includes('skip qr') ||
+            txt === 'bỏ qua (admin)'
+          ) {
+            lastBypassClickAt = now;
+            btn.click();
+            break;
+          }
+        }
+      };
+
+      tryAutoBypassQrForAdmin();
+      window._unifiedChecklistAdminQrObserver = new MutationObserver(tryAutoBypassQrForAdmin);
+      const rootEl = document.getElementById('root');
+      if (rootEl) window._unifiedChecklistAdminQrObserver.observe(rootEl, { childList: true, subtree: true });
+    }
+
     standardizeChecklistTopMenuBar();
   }
 
@@ -494,6 +536,7 @@
 
   // ==================== 5. KHO VẬT TƯ KỸ THUẬT (stock.html) ====================
   function ensureStockScrollFix() {
+    ensureAllModulesUnpinnedMenu();
     if (!isStockModule() || document.getElementById('unified-stock-scroll-fix-css')) return;
     const st = document.createElement('style');
     st.id = 'unified-stock-scroll-fix-css';
@@ -588,7 +631,27 @@
   let dutySwitchViewHooked = false;
   let checklistTopNavObserver = null;
 
+  function ensureAllModulesUnpinnedMenu() {
+    if (document.getElementById('unified-unpin-menu-css')) return;
+    const st = document.createElement('style');
+    st.id = 'unified-unpin-menu-css';
+    st.textContent = `
+      /* Bỏ tính năng ghim (sticky/fixed) Header & thanh Menu Bar khi cuộn trang trên TẤT CẢ 5 module */
+      header,
+      header.sticky,
+      #root header,
+      .glass-header,
+      .unified-stock-topbar-wrap,
+      #unified-stock-topbar {
+        position: relative !important;
+        top: auto !important;
+      }
+    `;
+    document.head.appendChild(st);
+  }
+
   function ensureUnifiedTopBarStyles() {
+    ensureAllModulesUnpinnedMenu();
     if (document.getElementById('unified-stock-topbar-css')) return;
     const st = document.createElement('style');
     st.id = 'unified-stock-topbar-css';
@@ -1037,6 +1100,7 @@
     lastMasterData = data;
 
     try {
+      ensureAllModulesUnpinnedMenu();
       applyToDuty(data);
       applyToPower(data);
       applyToChecklist(data);
@@ -1050,6 +1114,7 @@
 
   // ==================== BÁO SẴN SÀNG & ĐỒNG BỘ CHIỀU NGƯỢC ====================
   window.addEventListener('load', function () {
+    ensureAllModulesUnpinnedMenu();
     if (isChecklistModule()) standardizeChecklistTopMenuBar();
     if (isBmsLogModule()) standardizeBmsLogTopMenuBar();
     if (isStockModule()) ensureStockScrollFix();
