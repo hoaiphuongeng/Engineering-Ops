@@ -65,6 +65,9 @@
       pointer-events: none;
     }
     .stardock-green {
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
       background: linear-gradient(145deg, rgba(52, 211, 153, 0.42) 0%, rgba(22, 163, 74, 0.58) 52%, rgba(20, 83, 45, 0.78) 100%),
                   rgba(6, 26, 15, 0.78);
       backdrop-filter: blur(26px) saturate(195%);
@@ -76,6 +79,7 @@
         inset 0 1.5px 0 rgba(220, 252, 231, 0.5),
         inset 0 -1px 0 rgba(20, 83, 45, 0.5);
     }
+    .stardock-green::-webkit-scrollbar { display: none; }
     .dock-btn {
       position: relative;
       transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1), background 180ms ease, box-shadow 180ms ease;
@@ -452,22 +456,11 @@
       </div>
     </div>
 
-    <!-- Menu nhanh cho ADMIN -->
-    <nav id="adminTopNav" class="hidden lg:flex items-center gap-1 bg-slate-950/70 p-1 rounded-2xl border border-slate-800">
-      <button onclick="openTab('admin')" data-nav="admin" class="nav-pill px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white cursor-pointer">Quản Trị & Phân Ca</button>
-      <button onclick="openTab('checklist')" data-nav="checklist" class="nav-pill px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white cursor-pointer">Kiểm Tra Biểu Mẫu</button>
-      <button onclick="openTab('duty')" data-nav="duty" class="nav-pill px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white cursor-pointer">Ghi Sổ Duty</button>
-      <button onclick="openTab('power')" data-nav="power" class="nav-pill px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white cursor-pointer">Chỉ Số Điện Nước</button>
-      <button onclick="openTab('log')" data-nav="log" class="nav-pill px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white cursor-pointer">Chiller & Bồn Nước</button>
-      <button onclick="openTab('stock')" data-nav="stock" class="nav-pill px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white cursor-pointer">Kho Vật Tư</button>
-    </nav>
-
     <div class="flex items-center gap-2 shrink-0">
       <div id="cloudBadge" class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-800 border border-slate-700 text-[11px] font-semibold text-slate-300" title="Trạng thái đồng bộ SSO & 3 hệ thống">
         <span id="cloudDot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
         <span id="cloudLabel" class="hidden sm:inline">Đang kết nối...</span>
       </div>
-      <button id="btnAdminQuick" onclick="openTab('admin')" class="hidden lg:hidden px-2.5 py-1.5 rounded-xl bg-indigo-500/20 text-indigo-300 text-xs font-semibold cursor-pointer">Admin</button>
       <button onclick="logoutSSO()" class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 text-xs font-semibold flex items-center gap-1.5 cursor-pointer">
         <i data-lucide="log-out" class="w-3.5 h-3.5"></i><span class="hidden sm:inline">Thoát</span>
       </button>
@@ -498,11 +491,11 @@
           </div>
         </div>
 
-        <div class="flex gap-2 border-b border-slate-800 pb-3 overflow-x-auto">
-          <button onclick="switchAdminSub('staff')" id="subBtn-staff" class="px-4 py-2 rounded-xl text-xs font-bold bg-sky-500 text-slate-950 cursor-pointer whitespace-nowrap">1. Tài Khoản Đăng Nhập (Admin / Duty)</button>
-          <button onclick="switchAdminSub('roster')" id="subBtn-roster" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 cursor-pointer whitespace-nowrap">2. Bảng Phân Ca (Ánh Xạ Thực Hiện)</button>
-          <button onclick="switchAdminSub('perms')" id="subBtn-perms" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 cursor-pointer whitespace-nowrap">3. Phân Quyền & Giám Sát</button>
-        </div>
+        <nav class="flex bg-slate-900/90 p-1 rounded-2xl border border-slate-800 gap-1 overflow-x-auto">
+          <button onclick="switchAdminSub('staff')" id="subBtn-staff" class="flex-1 min-w-max px-4 py-2 rounded-xl text-xs font-bold bg-slate-700 text-white shadow cursor-pointer whitespace-nowrap transition">1. Tài Khoản Đăng Nhập (Admin / Duty)</button>
+          <button onclick="switchAdminSub('roster')" id="subBtn-roster" class="flex-1 min-w-max px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white cursor-pointer whitespace-nowrap transition">2. Bảng Phân Ca (Ánh Xạ Thực Hiện)</button>
+          <button onclick="switchAdminSub('perms')" id="subBtn-perms" class="flex-1 min-w-max px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white cursor-pointer whitespace-nowrap transition">3. Phân Quyền & Giám Sát</button>
+        </nav>
 
         <!-- SUB 1: TÀI KHOẢN ĐĂNG NHẬP (KHÔNG LIÊN KẾT BẢNG PHÂN CA) -->
         <div id="adminSub-staff" class="space-y-4">
@@ -672,6 +665,15 @@
   <div id="userStardock" class="hidden fixed z-40 max-w-[98vw]"
     onmouseenter="pauseStardockAutoHide()" onmouseleave="scheduleStardockAutoHide()">
     <div class="stardock-green rounded-[22px] px-1.5 sm:px-2 py-1.5 flex flex-row items-center gap-0.5 sm:gap-1.5">
+      <!-- 0. Quản trị & Phân ca (Chỉ hiện với Admin) -->
+      <button id="dockAdminBtn" onclick="handleDockClick('admin')" data-dock="admin" title="Quản trị & Phân ca" aria-label="Quản trị & Phân ca"
+        class="hidden dock-btn flex flex-col items-center justify-center px-1.5 sm:px-2.5 py-1.5 rounded-2xl cursor-pointer shrink-0">
+        <div class="modern-dock-icon">
+          <i data-lucide="shield-check" class="w-4 h-4 sm:w-[18px] sm:h-[18px] stroke-[2.2]"></i>
+        </div>
+        <span class="dock-short-label">Quản trị</span>
+      </button>
+
       <!-- 1. Kiểm tra biểu mẫu -->
       <button onclick="handleDockClick('checklist')" data-dock="checklist" title="Kiểm tra biểu mẫu" aria-label="Kiểm tra biểu mẫu"
         class="dock-btn flex flex-col items-center justify-center px-1.5 sm:px-2.5 py-1.5 rounded-2xl cursor-pointer shrink-0">
@@ -1340,12 +1342,11 @@
       const namesStr = onDuty.length > 0 ? onDuty.map(r => r.name).join(', ') : 'Chưa xếp lịch ca này';
       document.getElementById('hdrShiftInfo').textContent = `${shiftNow} (${getTodayDateStr().split('-').reverse().join('/')}): ${namesStr}`;
 
-      document.getElementById('adminTopNav').classList.toggle('hidden', !isAdmin);
-      document.getElementById('btnAdminQuick').classList.toggle('hidden', !isAdmin);
-      document.getElementById('userStardock').classList.toggle('hidden', isAdmin);
-      document.getElementById('stardockRevealHandle').classList.toggle('hidden', isAdmin);
-      if (!isAdmin) applyStardockPinState();
-      else broadcastDockState();
+      const dockAdminBtn = document.getElementById('dockAdminBtn');
+      if (dockAdminBtn) dockAdminBtn.classList.toggle('hidden', !isAdmin);
+      document.getElementById('userStardock').classList.remove('hidden');
+      document.getElementById('stardockRevealHandle').classList.remove('hidden');
+      applyStardockPinState();
     }
 
     async function completeSSO(user) {
@@ -1849,8 +1850,7 @@
     let stardockHideTimer = null;
 
     function getDockStatePayload() {
-      const isUserMode = Boolean(currentUser && currentUser.role !== 'admin');
-      if (!isUserMode) {
+      if (!currentUser) {
         return { active: false, visible: false, pinned: false, offset: 0 };
       }
       const dock = document.getElementById('userStardock');
@@ -1992,7 +1992,7 @@
       }
 
       window.addEventListener('resize', () => {
-        if (currentUser && currentUser.role !== 'admin') broadcastDockState();
+        if (currentUser) broadcastDockState();
       });
     })();
 
@@ -2021,8 +2021,8 @@
         document.getElementById(`adminSub-${s}`).classList.toggle('hidden', s !== sub);
         const btn = document.getElementById(`subBtn-${s}`);
         btn.className = s === sub
-          ? 'px-4 py-2 rounded-xl text-xs font-bold bg-sky-500 text-slate-950 cursor-pointer whitespace-nowrap'
-          : 'px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 cursor-pointer whitespace-nowrap';
+          ? 'flex-1 min-w-max px-4 py-2 rounded-xl text-xs font-bold bg-slate-700 text-white shadow cursor-pointer whitespace-nowrap transition'
+          : 'flex-1 min-w-max px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white cursor-pointer whitespace-nowrap transition';
       });
     };
 
