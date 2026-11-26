@@ -456,6 +456,11 @@
             <option value="Ca Sáng">Ca Sáng (Ca 1)</option>
             <option value="Ca Chiều">Ca Chiều (Ca 2)</option>
             <option value="Ca Đêm">Ca Đêm (Ca 3)</option>
+            <option value="Hành Chánh">Hành Chánh</option>
+            <option value="M-Boiler">M-Boiler</option>
+            <option value="E-Boiler">E-Boiler</option>
+            <option value="BQ1">BQ1</option>
+            <option value="BQ2">BQ2</option>
             <option value="OFF">OFF (Nghỉ)</option>
           </select>
         </div>
@@ -785,9 +790,14 @@
 
         <!-- Chú thích màu ca -->
         <div class="flex flex-wrap items-center gap-3 text-[11px] text-slate-400 px-1">
-          <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-sky-400"></span>Ca Sáng (06:00–14:00)</span>
-          <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>Ca Chiều (14:00–22:00)</span>
-          <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-purple-400"></span>Ca Đêm (22:00–06:00)</span>
+          <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-sky-400"></span>Ca Sáng</span>
+          <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>Ca Chiều</span>
+          <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-purple-400"></span>Ca Đêm</span>
+          <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>Hành Chánh</span>
+          <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>M-Boiler</span>
+          <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-orange-400"></span>E-Boiler</span>
+          <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-pink-400"></span>BQ1</span>
+          <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-fuchsia-400"></span>BQ2</span>
           <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-slate-500"></span>OFF (Nghỉ)</span>
         </div>
       </div>
@@ -923,7 +933,7 @@
     const POWER_STATE_KEY = 'RESORT_UTILITY_OS_STATE_V5';
     const POWER_SESSION_KEY = 'RESORT_UTILITY_SESSION_V5';
     const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
-    const SHIFT_OPTS = ['', 'Ca Sáng', 'Ca Chiều', 'Ca Đêm', 'OFF'];
+    const SHIFT_OPTS = ['', 'Ca Sáng', 'Ca Chiều', 'Ca Đêm', 'Hành Chánh', 'M-Boiler', 'E-Boiler', 'BQ1', 'BQ2', 'OFF'];
 
     const SUPER_ADMIN_USERNAME = 'shp';
     const DEFAULT_SUPER_ADMIN = {
@@ -968,18 +978,22 @@
       datedRosterRaw: {},
       rosterPeriod: null,
       shiftCodeMap: [
-        { code: 'M',   systemShift: 'Ca Sáng',  timeRange: '06:00 - 14:00', note: 'Ca Sáng (Morning)' },
-        { code: 'M1',  systemShift: 'Ca Sáng',  timeRange: '06:00 - 14:00', note: 'Ca Sáng 1' },
-        { code: 'M2',  systemShift: 'Ca Sáng',  timeRange: '07:00 - 15:00', note: 'Ca Sáng 2' },
-        { code: 'HC',  systemShift: 'Ca Sáng',  timeRange: '08:00 - 17:00', note: 'Hành chính (Ánh xạ Ca Sáng)' },
-        { code: 'E',   systemShift: 'Ca Chiều', timeRange: '14:00 - 22:00', note: 'Ca Chiều (Evening)' },
-        { code: 'E1',  systemShift: 'Ca Chiều', timeRange: '14:00 - 22:00', note: 'Ca Chiều 1' },
-        { code: 'N',   systemShift: 'Ca Đêm',   timeRange: '22:00 - 06:00', note: 'Ca Đêm (Night)' },
-        { code: 'N1',  systemShift: 'Ca Đêm',   timeRange: '22:00 - 06:00', note: 'Ca Đêm 1' },
-        { code: 'OFF', systemShift: 'OFF',      timeRange: 'Nghỉ',          note: 'Ngày nghỉ tuần' },
-        { code: 'AL',  systemShift: 'OFF',      timeRange: 'Nghỉ',          note: 'Nghỉ phép năm (Annual Leave)' },
-        { code: 'PH',  systemShift: 'OFF',      timeRange: 'Nghỉ',          note: 'Nghỉ lễ (Public Holiday)' },
-        { code: 'RO',  systemShift: 'OFF',      timeRange: 'Nghỉ',          note: 'Nghỉ bù (Roster Off)' }
+        { code: 'M',        systemShift: 'Ca Sáng',    timeRange: '06:00 - 14:00', note: 'Ca Sáng (Morning)' },
+        { code: 'M1',       systemShift: 'Ca Sáng',    timeRange: '06:00 - 14:00', note: 'Ca Sáng 1' },
+        { code: 'M2',       systemShift: 'Ca Sáng',    timeRange: '07:00 - 15:00', note: 'Ca Sáng 2' },
+        { code: 'HC',       systemShift: 'Hành Chánh', timeRange: '08:00 - 17:00', note: 'Ca Hành Chánh' },
+        { code: 'M-BOILER', systemShift: 'M-Boiler',   timeRange: '06:00 - 14:00', note: 'Ca Sáng Lò Hơi (M-Boiler)' },
+        { code: 'E',        systemShift: 'Ca Chiều',   timeRange: '14:00 - 22:00', note: 'Ca Chiều (Evening)' },
+        { code: 'E1',       systemShift: 'Ca Chiều',   timeRange: '14:00 - 22:00', note: 'Ca Chiều 1' },
+        { code: 'E-BOILER', systemShift: 'E-Boiler',   timeRange: '14:00 - 22:00', note: 'Ca Chiều Lò Hơi (E-Boiler)' },
+        { code: 'N',        systemShift: 'Ca Đêm',     timeRange: '22:00 - 06:00', note: 'Ca Đêm (Night)' },
+        { code: 'N1',       systemShift: 'Ca Đêm',     timeRange: '22:00 - 06:00', note: 'Ca Đêm 1' },
+        { code: 'BQ1',      systemShift: 'BQ1',        timeRange: 'Banquet 1',     note: 'Trực Banquet 1 (BQ1)' },
+        { code: 'BQ2',      systemShift: 'BQ2',        timeRange: 'Banquet 2',     note: 'Trực Banquet 2 (BQ2)' },
+        { code: 'OFF',      systemShift: 'OFF',        timeRange: 'Nghỉ',          note: 'Ngày nghỉ tuần' },
+        { code: 'AL',       systemShift: 'OFF',        timeRange: 'Nghỉ',          note: 'Nghỉ phép năm (Annual Leave)' },
+        { code: 'PH',       systemShift: 'OFF',        timeRange: 'Nghỉ',          note: 'Nghỉ lễ (Public Holiday)' },
+        { code: 'RO',       systemShift: 'OFF',        timeRange: 'Nghỉ',          note: 'Nghỉ bù (Roster Off)' }
       ]
     };
 
@@ -1095,11 +1109,20 @@
       }
     }
 
+    function mapToBaseShiftGroup(s) {
+      if (['Ca Sáng', 'Hành Chánh', 'M-Boiler', 'BQ1'].includes(s)) return 'Ca Sáng';
+      if (['Ca Chiều', 'E-Boiler', 'BQ2'].includes(s)) return 'Ca Chiều';
+      if (s === 'Ca Đêm') return 'Ca Đêm';
+      if (s === 'OFF') return 'OFF';
+      return '';
+    }
+
     function mapToChecklistShift(s) {
-      if (s === 'Ca Sáng') return 'Ca 1';
-      if (s === 'Ca Chiều') return 'Ca 2';
-      if (s === 'Ca Đêm') return 'Ca 3';
-      if (s === 'OFF') return 'Nghỉ';
+      const grp = mapToBaseShiftGroup(s);
+      if (grp === 'Ca Sáng') return 'Ca 1';
+      if (grp === 'Ca Chiều') return 'Ca 2';
+      if (grp === 'Ca Đêm') return 'Ca 3';
+      if (grp === 'OFF') return 'Nghỉ';
       return '';
     }
 
@@ -1204,9 +1227,13 @@
     }
 
     // Lấy danh sách nhân sự đang trực ca hiện tại TỪ BẢNG PHÂN CA (ưu tiên đúng ngày hôm nay)
-    function getOnDutyRosterPeople(shiftName = getCurrentShiftByClock()) {
+    function getOnDutyRosterPeople(shiftName = getCurrentShiftByClock(), exactOnly = false) {
       const todayStr = getTodayDateStr();
-      return (masterData.rosterStaff || []).filter(r => getShiftForStaffOnDate(r.id, todayStr) === shiftName);
+      return (masterData.rosterStaff || []).filter(r => {
+        const sh = getShiftForStaffOnDate(r.id, todayStr);
+        if (!sh || sh === 'OFF') return false;
+        return exactOnly ? (sh === shiftName) : (sh === shiftName || mapToBaseShiftGroup(sh) === shiftName);
+      });
     }
 
     // Dữ liệu gửi sang Checklist:
@@ -1461,12 +1488,14 @@
         const sh = getShiftForStaffOnDate(r.id, todayStr);
         if (!sh || sh === 'OFF') return null;
         const rawCode = getRawCodeForStaffOnDate(r.id, todayStr);
+        const baseShift = mapToBaseShiftGroup(sh) || sh;
+        const tag = sh !== baseShift ? sh : (rawCode || '');
         return {
           id: `SCH-SYNC-${idx + 1}`,
           date: todayStr,
-          shift: sh,
+          shift: baseShift,
           staffName: r.name,
-          note: `Phân ca${rawCode ? ' [' + rawCode + ']' : ''} (${r.employeeCode || 'KT'})`
+          note: `Phân ca${tag ? ' [' + tag + ']' : ''} (${r.employeeCode || 'KT'})`
         };
       }).filter(Boolean);
 
@@ -1830,6 +1859,11 @@
       if (val === 'Ca Sáng') return '<span class="inline-block px-2 py-1 rounded-lg bg-sky-500/20 text-sky-300 border border-sky-500/30 font-bold text-[11px] whitespace-nowrap">Ca Sáng</span>';
       if (val === 'Ca Chiều') return '<span class="inline-block px-2 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold text-[11px] whitespace-nowrap">Ca Chiều</span>';
       if (val === 'Ca Đêm') return '<span class="inline-block px-2 py-1 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30 font-bold text-[11px] whitespace-nowrap">Ca Đêm</span>';
+      if (val === 'Hành Chánh') return '<span class="inline-block px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold text-[11px] whitespace-nowrap">Hành Chánh</span>';
+      if (val === 'M-Boiler') return '<span class="inline-block px-2 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-bold text-[11px] whitespace-nowrap">M-Boiler</span>';
+      if (val === 'E-Boiler') return '<span class="inline-block px-2 py-1 rounded-lg bg-orange-500/20 text-orange-300 border border-orange-500/30 font-bold text-[11px] whitespace-nowrap">E-Boiler</span>';
+      if (val === 'BQ1') return '<span class="inline-block px-2 py-1 rounded-lg bg-pink-500/20 text-pink-300 border border-pink-500/30 font-bold text-[11px] whitespace-nowrap">BQ1</span>';
+      if (val === 'BQ2') return '<span class="inline-block px-2 py-1 rounded-lg bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/30 font-bold text-[11px] whitespace-nowrap">BQ2</span>';
       if (val === 'OFF') return '<span class="inline-block px-2 py-1 rounded-lg bg-slate-800 text-slate-400 border border-slate-700 font-semibold text-[11px]">OFF</span>';
       return '<span class="text-slate-600">--</span>';
     }
@@ -1866,7 +1900,11 @@
               </div>
               <div class="flex flex-wrap gap-1.5">
                 ${people.length > 0
-                  ? people.map(p => `<span class="px-2 py-1 rounded-lg bg-slate-900/90 border border-slate-700 text-[11px] font-semibold text-slate-100">${p.name}</span>`).join('')
+                  ? people.map(p => {
+                      const sh = getShiftForStaffOnDate(p.id, getTodayDateStr());
+                      const sub = sh && sh !== def.name ? `<span class="ml-1 text-[9.5px] font-mono text-emerald-300">· ${sh}</span>` : '';
+                      return `<span class="px-2 py-1 rounded-lg bg-slate-900/90 border border-slate-700 text-[11px] font-semibold text-slate-100">${p.name}${sub}</span>`;
+                    }).join('')
                   : '<span class="text-[11px] text-slate-500 italic">Chưa phân ca</span>'
                 }
               </div>
@@ -2439,6 +2477,11 @@
               <option value="Ca Sáng" ${rule.systemShift === 'Ca Sáng' ? 'selected' : ''}>Ca Sáng (Ca 1)</option>
               <option value="Ca Chiều" ${rule.systemShift === 'Ca Chiều' ? 'selected' : ''}>Ca Chiều (Ca 2)</option>
               <option value="Ca Đêm" ${rule.systemShift === 'Ca Đêm' ? 'selected' : ''}>Ca Đêm (Ca 3)</option>
+              <option value="Hành Chánh" ${rule.systemShift === 'Hành Chánh' ? 'selected' : ''}>Hành Chánh</option>
+              <option value="M-Boiler" ${rule.systemShift === 'M-Boiler' ? 'selected' : ''}>M-Boiler</option>
+              <option value="E-Boiler" ${rule.systemShift === 'E-Boiler' ? 'selected' : ''}>E-Boiler</option>
+              <option value="BQ1" ${rule.systemShift === 'BQ1' ? 'selected' : ''}>BQ1</option>
+              <option value="BQ2" ${rule.systemShift === 'BQ2' ? 'selected' : ''}>BQ2</option>
               <option value="OFF" ${rule.systemShift === 'OFF' ? 'selected' : ''}>OFF (Nghỉ)</option>
             </select>
           </td>
@@ -2564,6 +2607,11 @@
 
       // 3. Fallback: các tên ca hệ thống tiêu chuẩn
       if (['off', 'nghi', 'nghiphep'].includes(norm) || v === '-') return { rawCode: up, systemShift: 'OFF', isUnknown: false };
+      if (['hanhchanh', 'hanhchinh', 'hc'].includes(norm)) return { rawCode: up, systemShift: 'Hành Chánh', isUnknown: false };
+      if (['mboiler', 'mb'].includes(norm)) return { rawCode: up, systemShift: 'M-Boiler', isUnknown: false };
+      if (['eboiler', 'eb'].includes(norm)) return { rawCode: up, systemShift: 'E-Boiler', isUnknown: false };
+      if (norm === 'bq1') return { rawCode: up, systemShift: 'BQ1', isUnknown: false };
+      if (norm === 'bq2') return { rawCode: up, systemShift: 'BQ2', isUnknown: false };
       if (['ca1', '1', 'c1', 'sang', 'casang', 'morning'].includes(norm) || norm.includes('casang')) return { rawCode: v, systemShift: 'Ca Sáng', isUnknown: false };
       if (['ca2', '2', 'c2', 'chieu', 'cachieu', 'afternoon'].includes(norm) || norm.includes('cachieu')) return { rawCode: v, systemShift: 'Ca Chiều', isUnknown: false };
       if (['ca3', '3', 'c3', 'dem', 'cadem', 'night'].includes(norm) || norm.includes('cadem')) return { rawCode: v, systemShift: 'Ca Đêm', isUnknown: false };
@@ -2703,7 +2751,12 @@
               if (!c || !sysRaw) return;
               const sysNorm = normalizeHeaderKey(sysRaw);
               let sysShift = '';
-              if (sysNorm.includes('sang') || sysNorm.includes('ca1')) sysShift = 'Ca Sáng';
+              if (sysNorm.includes('hanhchanh') || sysNorm.includes('hanhchinh') || sysNorm === 'hc') sysShift = 'Hành Chánh';
+              else if (sysNorm.includes('mboiler') || sysNorm === 'mb') sysShift = 'M-Boiler';
+              else if (sysNorm.includes('eboiler') || sysNorm === 'eb') sysShift = 'E-Boiler';
+              else if (sysNorm === 'bq1') sysShift = 'BQ1';
+              else if (sysNorm === 'bq2') sysShift = 'BQ2';
+              else if (sysNorm.includes('sang') || sysNorm.includes('ca1')) sysShift = 'Ca Sáng';
               else if (sysNorm.includes('chieu') || sysNorm.includes('ca2')) sysShift = 'Ca Chiều';
               else if (sysNorm.includes('dem') || sysNorm.includes('ca3')) sysShift = 'Ca Đêm';
               else if (sysNorm.includes('off') || sysNorm.includes('nghi')) sysShift = 'OFF';
