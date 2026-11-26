@@ -564,6 +564,33 @@
     </div>
   </div>
 
+  <!-- MODAL XÁC NHẬN PHỤC HỒI TOÀN HỆ THỐNG (CHỐNG THAO TÁC NHẦM) -->
+  <div id="confirmRestoreModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4">
+    <div class="glass w-full max-w-md rounded-3xl p-6 shadow-2xl border-rose-500/40 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-bold text-rose-300 flex items-center gap-2">
+          <i data-lucide="alert-triangle" class="w-5 h-5"></i> Xác Nhận Phục Hồi Cơ Sở Dữ Liệu
+        </h3>
+        <button onclick="closeConfirmRestoreModal()" class="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white cursor-pointer">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <div id="confirmRestoreSummary" class="p-3 rounded-2xl bg-rose-950/40 border border-rose-500/30 text-xs text-rose-200 leading-relaxed"></div>
+      <div class="space-y-1.5 text-xs">
+        <label class="text-slate-300 font-semibold">Nhập chính xác chữ <code class="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-bold">PHUCHOI</code> để xác nhận:</label>
+        <input id="confirmRestoreInput" type="text" placeholder="PHUCHOI" autocomplete="off"
+          class="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 font-mono font-bold uppercase text-white focus:outline-none focus:border-rose-400" />
+        <p id="confirmRestoreErr" class="hidden text-rose-400 font-medium"></p>
+      </div>
+      <div class="flex justify-end gap-2 pt-1">
+        <button type="button" onclick="closeConfirmRestoreModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold cursor-pointer">Hủy bỏ</button>
+        <button type="button" id="btnExecuteRestore" onclick="executeFullSystemRestore()" class="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold flex items-center gap-1.5 cursor-pointer">
+          <i data-lucide="check-circle-2" class="w-4 h-4"></i> Bắt Đầu Phục Hồi
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- THANH TRẠNG THÁI TRÊN CÙNG -->
   <header class="px-3 sm:px-4 flex items-center justify-between bg-slate-900/95 border-b border-slate-800 shrink-0 z-30 gap-2">
     <div class="flex items-center gap-2.5 min-w-0">
@@ -612,6 +639,9 @@
             <button onclick="exportMasterExcel()" class="px-3.5 py-2 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer">
               <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i> Xuất Excel (.xlsx)
             </button>
+            <button onclick="switchAdminSub('backup')" class="px-3.5 py-2 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/35 text-xs font-bold flex items-center gap-1.5 cursor-pointer">
+              <i data-lucide="database-backup" class="w-3.5 h-3.5"></i> Backup / Phục Hồi DB
+            </button>
           </div>
         </div>
 
@@ -619,6 +649,7 @@
           <button onclick="switchAdminSub('staff')" id="subBtn-staff" class="flex-1 min-w-max px-4 py-2 rounded-xl text-xs font-bold bg-slate-700 text-white shadow cursor-pointer whitespace-nowrap transition">1. Tài Khoản Đăng Nhập (Admin / Duty)</button>
           <button onclick="switchAdminSub('roster')" id="subBtn-roster" class="flex-1 min-w-max px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white cursor-pointer whitespace-nowrap transition">2. Bảng Phân Ca (Ánh Xạ Thực Hiện)</button>
           <button onclick="switchAdminSub('perms')" id="subBtn-perms" class="flex-1 min-w-max px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white cursor-pointer whitespace-nowrap transition">3. Phân Quyền & Giám Sát</button>
+          <button onclick="switchAdminSub('backup')" id="subBtn-backup" class="flex-1 min-w-max px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white cursor-pointer whitespace-nowrap transition">4. Sao Lưu & Phục Hồi DB</button>
         </nav>
 
         <!-- SUB 1: TÀI KHOẢN ĐĂNG NHẬP (KHÔNG LIÊN KẾT BẢNG PHÂN CA) -->
@@ -729,6 +760,118 @@
             <h3 class="font-bold text-purple-400 text-sm">5. Kho Vật Tư Kỹ Thuật</h3>
             <p class="text-xs text-slate-400">Quản lý nhập/xuất/tồn kho đồng bộ Firestore <code>stockmana-e133d</code>. Ánh xạ người thực hiện từ Bảng Phân Ca; User bị ẩn nút <b>Xóa VT</b>, <b>Cài đặt</b> & <b>Chốt kiểm kê</b>.</p>
             <button onclick="openTab('stock')" class="mt-2 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold cursor-pointer">Mở Kho Vật Tư →</button>
+          </div>
+        </div>
+
+        <!-- SUB 4: SAO LƯU & PHỤC HỒI TOÀN BỘ HỆ THỐNG CƠ SỞ DỮ LIỆU -->
+        <div id="adminSub-backup" class="hidden space-y-4">
+          <div class="glass p-5 rounded-2xl border-purple-500/30 space-y-4">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 class="text-base font-bold text-purple-300 flex items-center gap-2">
+                  <i data-lucide="database-backup" class="w-5 h-5"></i> Sao Lưu & Phục Hồi Toàn Bộ Cơ Sở Dữ Liệu Hệ Thống
+                </h3>
+                <p class="text-xs text-slate-400 mt-1">
+                  Đóng gói toàn bộ dữ liệu từ <b>4 cụm Firebase Cloud</b> (Tài khoản &amp; Phân ca, Sổ Duty, Chiller &amp; Bồn nước, Kiểm tra biểu mẫu, Điện nước, Kho vật tư) ra 1 tệp <code>.json</code> duy nhất để lưu trữ an toàn hoặc phục hồi tức thời.
+                </p>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <button type="button" onclick="inspectAllDatabasesStats()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 cursor-pointer">
+                  <i data-lucide="activity" class="w-3.5 h-3.5 text-sky-400"></i> Kiểm Tra Cloud DB
+                </button>
+                <button type="button" id="btnRunFullBackup" onclick="runFullSystemBackup()" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-lg shadow-emerald-500/20">
+                  <i data-lucide="download-cloud" class="w-4 h-4"></i> Tải Bản Sao Lưu Toàn Hệ Thống (.JSON)
+                </button>
+              </div>
+            </div>
+
+            <!-- Thống kê 5 phân hệ CSDL -->
+            <div id="backupStatsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+              <div class="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-1">
+                <div class="text-[10px] font-bold uppercase text-sky-400">1. Master &amp; Phân Ca</div>
+                <div class="text-sm font-bold text-white" id="stat-master">Chưa quét</div>
+                <div class="text-[10px] text-slate-400">RTDB <code>dutylogbook-2df88</code></div>
+              </div>
+              <div class="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-1">
+                <div class="text-[10px] font-bold uppercase text-amber-400">2. Sổ Duty &amp; Chiller</div>
+                <div class="text-sm font-bold text-white" id="stat-duty-bms">Chưa quét</div>
+                <div class="text-[10px] text-slate-400">RTDB <code>dutylogbook-2df88</code></div>
+              </div>
+              <div class="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-1">
+                <div class="text-[10px] font-bold uppercase text-indigo-400">3. Biểu Mẫu Checklist</div>
+                <div class="text-sm font-bold text-white" id="stat-checklist">Chưa quét</div>
+                <div class="text-[10px] text-slate-400">Firestore <code>daily-checklist-shp</code></div>
+              </div>
+              <div class="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-1">
+                <div class="text-[10px] font-bold uppercase text-emerald-400">4. Điện Nước &amp; Tủ Điện</div>
+                <div class="text-sm font-bold text-white" id="stat-power">Chưa quét</div>
+                <div class="text-[10px] text-slate-400">Firestore <code>resortpower</code></div>
+              </div>
+              <div class="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-1">
+                <div class="text-[10px] font-bold uppercase text-purple-400">5. Kho Vật Tư</div>
+                <div class="text-sm font-bold text-white" id="stat-stock">Chưa quét</div>
+                <div class="text-[10px] text-slate-400">Firestore <code>stockmana-e133d</code></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Khu vực Phục Hồi Dữ Liệu -->
+          <div class="glass p-5 rounded-2xl border-rose-500/25 space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h4 class="text-sm font-bold text-rose-300 flex items-center gap-2">
+                  <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Phục Hồi Dữ Liệu Từ Tệp Sao Lưu (.JSON)
+                </h4>
+                <p class="text-xs text-slate-400 mt-0.5">Chọn tệp sao lưu đã tải trước đó để xem trước nội dung và chọn phân hệ cần phục hồi lên Cloud.</p>
+              </div>
+              <div>
+                <input id="restoreBackupFileInput" type="file" accept=".json,application/json" class="hidden" onchange="handleRestoreBackupFile(event)" />
+                <button type="button" onclick="document.getElementById('restoreBackupFileInput').click()" class="px-4 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-500/40 text-xs font-bold flex items-center gap-1.5 cursor-pointer">
+                  <i data-lucide="upload-cloud" class="w-4 h-4"></i> Chọn Tệp Backup (.JSON)
+                </button>
+              </div>
+            </div>
+
+            <!-- Khung xem trước bản sao lưu trước khi phục hồi -->
+            <div id="restorePreviewBox" class="hidden p-4 rounded-2xl bg-slate-900/90 border border-slate-700 space-y-4 text-xs">
+              <div class="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-slate-800">
+                <div>
+                  <div class="font-bold text-white text-sm" id="restoreFileTitle">Tệp sao lưu</div>
+                  <div class="text-[11px] text-slate-400 mt-0.5" id="restoreFileMeta"></div>
+                </div>
+                <button type="button" onclick="clearRestorePreview()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] cursor-pointer">Hủy chọn</button>
+              </div>
+
+              <div class="space-y-2">
+                <div class="font-bold text-slate-300">Chọn các phân hệ CSDL cần phục hồi:</div>
+                <div id="restoreModuleCheckboxes" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5"></div>
+              </div>
+
+              <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-800">
+                <div class="flex flex-wrap items-center gap-4">
+                  <label class="inline-flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="restoreWriteMode" value="replace" checked class="accent-rose-500" />
+                    <span><b class="text-rose-300">Ghi đè hoàn toàn</b> (khôi phục đúng trạng thái thời điểm backup)</span>
+                  </label>
+                  <label class="inline-flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="restoreWriteMode" value="merge" class="accent-sky-400" />
+                    <span><b class="text-sky-300">Gộp dữ liệu</b> (giữ bản ghi mới, chỉ bổ sung/cập nhật bản ghi trong backup)</span>
+                  </label>
+                </div>
+                <button type="button" onclick="openConfirmRestoreModal()" class="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold flex items-center gap-1.5 cursor-pointer shadow-lg shadow-rose-600/25">
+                  <i data-lucide="shield-alert" class="w-4 h-4"></i> Tiến Hành Phục Hồi Lên Cloud
+                </button>
+              </div>
+            </div>
+
+            <!-- Nhật ký quá trình Backup / Restore -->
+            <div id="backupLogWrap" class="hidden space-y-1.5">
+              <div class="flex items-center justify-between text-[11px] text-slate-400">
+                <span class="font-bold uppercase tracking-wider">Nhật Ký Tiến Trình Sao Lưu / Phục Hồi</span>
+                <button type="button" onclick="document.getElementById('backupLogWrap').classList.add('hidden')" class="hover:text-white cursor-pointer">Ẩn</button>
+              </div>
+              <pre id="backupLogOutput" class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-[11px] font-mono text-emerald-300 max-h-48 overflow-y-auto whitespace-pre-wrap"></pre>
+            </div>
           </div>
         </div>
       </div>
@@ -896,9 +1039,9 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+    import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
     import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, collection, getDocs, setDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getFirestore, doc, collection, getDocs, setDoc, writeBatch, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     const dutyConfig = {
       apiKey: "AIzaSyCSGbsD1v5Y_p3bdI51CQU4idBgUSBfYDA",
@@ -926,6 +1069,15 @@
       storageBucket: "resortpower.firebasestorage.app",
       messagingSenderId: "880635958876",
       appId: "1:880635958876:web:b49c6bf08be4b7275c7899"
+    };
+
+    const stockConfig = {
+      apiKey: "AIzaSyDummyKeyForInitializationOnly_SHP",
+      authDomain: "stockmana-e133d.firebaseapp.com",
+      projectId: "stockmana-e133d",
+      storageBucket: "stockmana-e133d.appspot.com",
+      messagingSenderId: "100000000000",
+      appId: "1:100000000000:web:abcdef123456"
     };
 
     const MASTER_KEY = 'UNIFIED_ENG_MASTER_V1';
@@ -1065,6 +1217,8 @@
     let checklistDb = null;
     let checklistAuthReady = Promise.resolve();
     let powerDb = null;
+    let stockDb = null;
+    let masterRtdb = null;
     let cachedPowerUsers = [];
 
     function computeHash(obj) {
@@ -1308,6 +1462,7 @@
       try {
         const masterApp = initializeApp(dutyConfig, 'unified-master-app');
         const rtdb = getDatabase(masterApp);
+        masterRtdb = rtdb;
         cloudRef = ref(rtdb, 'unified_eng_os/masterData');
         bmsLogRef = ref(rtdb, 'unified_eng_os/bmsLogData');
 
@@ -1375,6 +1530,11 @@
       try {
         const pwApp = initializeApp(powerConfig, 'unified-power-sync');
         powerDb = getFirestore(pwApp);
+      } catch {}
+
+      try {
+        const stApp = initializeApp(stockConfig, 'unified-stock-sync');
+        stockDb = getFirestore(stApp);
       } catch {}
     }
 
@@ -2401,13 +2561,19 @@
     };
 
     window.switchAdminSub = (sub) => {
-      ['staff', 'roster', 'perms'].forEach(s => {
-        document.getElementById(`adminSub-${s}`).classList.toggle('hidden', s !== sub);
+      ['staff', 'roster', 'perms', 'backup'].forEach(s => {
+        const panel = document.getElementById(`adminSub-${s}`);
         const btn = document.getElementById(`subBtn-${s}`);
-        btn.className = s === sub
-          ? 'flex-1 min-w-max px-4 py-2 rounded-xl text-xs font-bold bg-slate-700 text-white shadow cursor-pointer whitespace-nowrap transition'
-          : 'flex-1 min-w-max px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white cursor-pointer whitespace-nowrap transition';
+        if (panel) panel.classList.toggle('hidden', s !== sub);
+        if (btn) {
+          btn.className = s === sub
+            ? 'flex-1 min-w-max px-4 py-2 rounded-xl text-xs font-bold bg-slate-700 text-white shadow cursor-pointer whitespace-nowrap transition'
+            : 'flex-1 min-w-max px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white cursor-pointer whitespace-nowrap transition';
+        }
       });
+      if (sub === 'backup') {
+        lucide.createIcons();
+      }
     };
 
     window.saveRosterAndSync = async () => {
@@ -3036,6 +3202,449 @@
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(mapRows), 'BangMaCa');
 
       XLSX.writeFile(wb, `Unified_TaiKhoan_PhanCa_${startDate}_den_${endDate}.xlsx`);
+    };
+
+    // === SAO LƯU & PHỤC HỒI TOÀN BỘ HỆ THỐNG CƠ SỞ DỮ LIỆU (4 CỤM FIREBASE CLOUD) ===
+    let pendingBackupPayload = null;
+
+    function appendBackupLog(msg) {
+      const wrap = document.getElementById('backupLogWrap');
+      const out = document.getElementById('backupLogOutput');
+      if (wrap) wrap.classList.remove('hidden');
+      if (out) {
+        const t = new Date().toLocaleTimeString('vi-VN', { hour12: false });
+        out.textContent += `[${t}] ${msg}\n`;
+        out.scrollTop = out.scrollHeight;
+      }
+    }
+
+    function clearBackupLog() {
+      const out = document.getElementById('backupLogOutput');
+      if (out) out.textContent = '';
+    }
+
+    function serializeFirestoreValue(val) {
+      if (val === null || val === undefined) return val;
+      if (typeof val === 'object') {
+        if (typeof val.toDate === 'function' && typeof val.seconds === 'number') {
+          return { __fsTimestamp: true, seconds: val.seconds, nanoseconds: val.nanoseconds || 0 };
+        }
+        if (val instanceof Date) {
+          return { __isoDate: val.toISOString() };
+        }
+        if (Array.isArray(val)) return val.map(serializeFirestoreValue);
+        const out = {};
+        for (const [k, v] of Object.entries(val)) {
+          if (v !== undefined) out[k] = serializeFirestoreValue(v);
+        }
+        return out;
+      }
+      return val;
+    }
+
+    function deserializeFirestoreValue(val) {
+      if (val === null || val === undefined) return val;
+      if (typeof val === 'object') {
+        if (val.__fsTimestamp === true && typeof val.seconds === 'number') {
+          return new Timestamp(val.seconds, val.nanoseconds || 0);
+        }
+        if (typeof val.__isoDate === 'string') {
+          return new Date(val.__isoDate);
+        }
+        if (Array.isArray(val)) return val.map(deserializeFirestoreValue);
+        const out = {};
+        for (const [k, v] of Object.entries(val)) {
+          if (v !== undefined) out[k] = deserializeFirestoreValue(v);
+        }
+        return out;
+      }
+      return val;
+    }
+
+    async function dumpFirestoreCollection(dbInstance, colName) {
+      if (!dbInstance) return {};
+      const snap = await getDocs(collection(dbInstance, colName));
+      const docsMap = {};
+      snap.forEach(d => {
+        docsMap[d.id] = serializeFirestoreValue(d.data());
+      });
+      return docsMap;
+    }
+
+    async function restoreFirestoreCollection(dbInstance, colName, docsMap, replaceMode = true) {
+      if (!dbInstance || !docsMap || typeof docsMap !== 'object') return 0;
+      const incomingIds = new Set(Object.keys(docsMap));
+      const ops = [];
+
+      if (replaceMode) {
+        const existingSnap = await getDocs(collection(dbInstance, colName));
+        existingSnap.forEach(d => {
+          if (!incomingIds.has(d.id)) {
+            ops.push({ type: 'delete', ref: d.ref });
+          }
+        });
+      }
+
+      Object.entries(docsMap).forEach(([docId, rawData]) => {
+        ops.push({
+          type: 'set',
+          ref: doc(dbInstance, colName, String(docId)),
+          data: deserializeFirestoreValue(rawData)
+        });
+      });
+
+      const CHUNK = 350;
+      for (let i = 0; i < ops.length; i += CHUNK) {
+        const slice = ops.slice(i, i + CHUNK);
+        const batch = writeBatch(dbInstance);
+        slice.forEach(op => {
+          if (op.type === 'delete') batch.delete(op.ref);
+          else batch.set(op.ref, op.data, replaceMode ? {} : { merge: true });
+        });
+        await batch.commit();
+      }
+      return Object.keys(docsMap).length;
+    }
+
+    async function collectFullSystemSnapshot(logProgress = true) {
+      const snapshot = {
+        meta: {
+          app: 'Engineering Unified OS',
+          backupVersion: '2.0',
+          exportedAt: new Date().toISOString(),
+          exportedBy: currentUser ? `${currentUser.name} (@${currentUser.username})` : 'Admin'
+        },
+        databases: {
+          rtdb_duty_master: null,
+          checklist_firestore: {},
+          power_firestore: {},
+          stock_firestore: {}
+        },
+        localFallback: {
+          masterData: structuredClone(masterData)
+        }
+      };
+
+      // 1. RTDB dutylogbook-2df88 (bao gồm unified_eng_os/masterData, bmsLogData và toàn bộ Sổ Duty)
+      if (masterRtdb) {
+        try {
+          if (logProgress) appendBackupLog('Đang đọc RTDB Master, Sổ Duty & Chiller/Bồn nước (dutylogbook-2df88)...');
+          const snap = await get(ref(masterRtdb, '/'));
+          snapshot.databases.rtdb_duty_master = snap.exists() ? snap.val() : {};
+        } catch (e) {
+          if (logProgress) appendBackupLog('⚠ Lỗi đọc RTDB dutylogbook-2df88: ' + (e.message || e));
+        }
+      }
+
+      // 2. Firestore Checklist (daily-checklist-shp)
+      if (checklistDb) {
+        try {
+          if (logProgress) appendBackupLog('Đang đọc Firestore Biểu Mẫu Kiểm Tra (daily-checklist-shp)...');
+          await checklistAuthReady;
+          for (const col of ['templates', 'records', 'employees', 'schedules', 'supplementalRequests']) {
+            snapshot.databases.checklist_firestore[col] = await dumpFirestoreCollection(checklistDb, col);
+          }
+        } catch (e) {
+          if (logProgress) appendBackupLog('⚠ Lỗi đọc Firestore Checklist: ' + (e.message || e));
+        }
+      }
+
+      // 3. Firestore Điện Nước (resortpower)
+      if (powerDb) {
+        try {
+          if (logProgress) appendBackupLog('Đang đọc Firestore Điện Nước & Tủ Điện (resortpower)...');
+          snapshot.databases.power_firestore.resortpower_sync = await dumpFirestoreCollection(powerDb, 'resortpower_sync');
+        } catch (e) {
+          if (logProgress) appendBackupLog('⚠ Lỗi đọc Firestore Điện Nước: ' + (e.message || e));
+        }
+      }
+
+      // 4. Firestore Kho Vật Tư (stockmana-e133d)
+      if (stockDb) {
+        try {
+          if (logProgress) appendBackupLog('Đang đọc Firestore Kho Vật Tư (stockmana-e133d)...');
+          for (const col of ['inventory', 'history', 'stocktakes']) {
+            snapshot.databases.stock_firestore[col] = await dumpFirestoreCollection(stockDb, col);
+          }
+        } catch (e) {
+          if (logProgress) appendBackupLog('⚠ Lỗi đọc Firestore Kho Vật Tư: ' + (e.message || e));
+        }
+      }
+
+      return snapshot;
+    }
+
+    function updateBackupStatsCards(snap) {
+      const rtdb = snap.databases.rtdb_duty_master || {};
+      const mData = rtdb.unified_eng_os?.masterData || masterData;
+      const bms = rtdb.unified_eng_os?.bmsLogData || {};
+      const cl = snap.databases.checklist_firestore || {};
+      const pw = snap.databases.power_firestore?.resortpower_sync?.main_state_v5 || {};
+      const st = snap.databases.stock_firestore || {};
+
+      const staffCnt = Array.isArray(mData.staff) ? mData.staff.length : Object.keys(mData.staff || {}).length;
+      const rosterCnt = Array.isArray(mData.rosterStaff) ? mData.rosterStaff.length : Object.keys(mData.rosterStaff || {}).length;
+      document.getElementById('stat-master').textContent = `${staffCnt} TK • ${rosterCnt} NV ca`;
+
+      const dutyTasks = Array.isArray(rtdb.tasks) ? rtdb.tasks.length : Object.keys(rtdb.tasks || {}).length;
+      const bmsLogs = Array.isArray(bms.datalogs) ? bms.datalogs.length : Object.keys(bms.datalogs || {}).length;
+      document.getElementById('stat-duty-bms').textContent = `${dutyTasks} việc • ${bmsLogs} log BMS`;
+
+      const tmplCnt = Object.keys(cl.templates || {}).length;
+      const recCnt = Object.keys(cl.records || {}).length;
+      document.getElementById('stat-checklist').textContent = `${tmplCnt} mẫu • ${recCnt} phiếu`;
+
+      const metersCnt = Array.isArray(pw.meters) ? pw.meters.length : 0;
+      const eqCnt = Array.isArray(pw.equipment) ? pw.equipment.length : (Array.isArray(pw.panels) ? pw.panels.length : 0);
+      document.getElementById('stat-power').textContent = `${metersCnt} công tơ • ${eqCnt} TB`;
+
+      const invCnt = Object.keys(st.inventory || {}).length;
+      const histCnt = Object.keys(st.history || {}).length;
+      document.getElementById('stat-stock').textContent = `${invCnt} vật tư • ${histCnt} GD`;
+    }
+
+    window.inspectAllDatabasesStats = async () => {
+      clearBackupLog();
+      appendBackupLog('Bắt đầu quét thống kê toàn bộ 4 cụm Cloud DB...');
+      const snap = await collectFullSystemSnapshot(true);
+      updateBackupStatsCards(snap);
+      appendBackupLog('✓ Hoàn tất quét thống kê hệ thống!');
+      showToast('Đã cập nhật thống kê toàn bộ Cloud DB!');
+    };
+
+    window.runFullSystemBackup = async () => {
+      if (!currentUser || currentUser.role !== 'admin') return;
+      const btn = document.getElementById('btnRunFullBackup');
+      if (btn) btn.disabled = true;
+      clearBackupLog();
+      appendBackupLog('Khởi tạo tiến trình Sao lưu Toàn Hệ Thống...');
+      try {
+        const snap = await collectFullSystemSnapshot(true);
+        updateBackupStatsCards(snap);
+        const jsonStr = JSON.stringify(snap, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const now = new Date();
+        const stamp = `${formatIsoDateLocal(now)}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+        const fileName = `EngineeringOS_FullBackup_${stamp}.json`;
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        const kb = (blob.size / 1024).toFixed(1);
+        appendBackupLog(`✓ Đã xuất thành công tệp ${fileName} (${kb} KB)!`);
+        showToast(`Đã tải bản sao lưu toàn hệ thống (${kb} KB)!`);
+      } catch (err) {
+        appendBackupLog('✗ Lỗi sao lưu: ' + (err.message || err));
+        alert('Lỗi khi sao lưu: ' + (err.message || err));
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    };
+
+    window.handleRestoreBackupFile = (event) => {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (!parsed || !parsed.databases) {
+            alert('Tệp JSON không phải bản sao lưu hợp lệ của Engineering Unified OS!');
+            return;
+          }
+          pendingBackupPayload = parsed;
+          const dbs = parsed.databases;
+          const rtdb = dbs.rtdb_duty_master || {};
+          const mData = rtdb.unified_eng_os?.masterData || parsed.localFallback?.masterData || {};
+          const bms = rtdb.unified_eng_os?.bmsLogData || {};
+          const cl = dbs.checklist_firestore || {};
+          const pw = dbs.power_firestore?.resortpower_sync?.main_state_v5 || {};
+          const st = dbs.stock_firestore || {};
+
+          document.getElementById('restoreFileTitle').textContent = file.name;
+          const expTime = parsed.meta?.exportedAt ? new Date(parsed.meta.exportedAt).toLocaleString('vi-VN') : 'Không rõ';
+          document.getElementById('restoreFileMeta').textContent = `Tạo lúc: ${expTime} • Bởi: ${parsed.meta?.exportedBy || 'Admin'} • Phiên bản: ${parsed.meta?.backupVersion || '1.0'}`;
+
+          const items = [
+            {
+              key: 'rtdb_duty_master',
+              title: '1. Master, Phân Ca, Sổ Duty & Chiller',
+              detail: `${(mData.staff || []).length} TK • ${(mData.rosterStaff || []).length} NV ca • ${(bms.datalogs || []).length} log BMS`,
+              available: Boolean(dbs.rtdb_duty_master)
+            },
+            {
+              key: 'checklist_firestore',
+              title: '2. Biểu Mẫu Checklist (daily-checklist-shp)',
+              detail: `${Object.keys(cl.templates || {}).length} mẫu • ${Object.keys(cl.records || {}).length} phiếu KT`,
+              available: Boolean(dbs.checklist_firestore && Object.keys(dbs.checklist_firestore).length > 0)
+            },
+            {
+              key: 'power_firestore',
+              title: '3. Điện Nước & Tủ Điện (resortpower)',
+              detail: `${(pw.meters || []).length} công tơ • ${(pw.equipment || pw.panels || []).length} thiết bị`,
+              available: Boolean(dbs.power_firestore && dbs.power_firestore.resortpower_sync)
+            },
+            {
+              key: 'stock_firestore',
+              title: '4. Kho Vật Tư (stockmana-e133d)',
+              detail: `${Object.keys(st.inventory || {}).length} vật tư • ${Object.keys(st.history || {}).length} lịch sử GD`,
+              available: Boolean(dbs.stock_firestore && Object.keys(dbs.stock_firestore).length > 0)
+            }
+          ];
+
+          document.getElementById('restoreModuleCheckboxes').innerHTML = items.map(it => `
+            <label class="flex items-start gap-2.5 p-3 rounded-xl border ${it.available ? 'bg-slate-950/70 border-slate-700 cursor-pointer hover:border-sky-500/50' : 'bg-slate-950/30 border-slate-800 opacity-50 cursor-not-allowed'}">
+              <input type="checkbox" class="restore-mod-chk mt-0.5 accent-emerald-400" value="${it.key}" ${it.available ? 'checked' : 'disabled'} />
+              <div class="leading-snug">
+                <div class="font-bold text-slate-100">${it.title}</div>
+                <div class="text-[10.5px] text-slate-400 mt-0.5">${it.available ? it.detail : 'Không có dữ liệu trong tệp'}</div>
+              </div>
+            </label>
+          `).join('');
+
+          document.getElementById('restorePreviewBox').classList.remove('hidden');
+          lucide.createIcons();
+        } catch (err) {
+          alert('Lỗi đọc tệp JSON: ' + (err.message || 'Định dạng tệp không hợp lệ.'));
+        } finally {
+          event.target.value = '';
+        }
+      };
+      reader.readAsText(file, 'utf-8');
+    };
+
+    window.clearRestorePreview = () => {
+      pendingBackupPayload = null;
+      document.getElementById('restorePreviewBox').classList.add('hidden');
+    };
+
+    window.openConfirmRestoreModal = () => {
+      if (!pendingBackupPayload) return;
+      const selected = Array.from(document.querySelectorAll('.restore-mod-chk:checked')).map(el => el.value);
+      if (selected.length === 0) {
+        alert('Vui lòng chọn ít nhất 1 phân hệ CSDL để phục hồi!');
+        return;
+      }
+      const mode = document.querySelector('input[name="restoreWriteMode"]:checked')?.value || 'replace';
+      const labels = {
+        rtdb_duty_master: 'Master, Phân Ca, Sổ Duty & Chiller',
+        checklist_firestore: 'Biểu Mẫu Checklist',
+        power_firestore: 'Điện Nước & Tủ Điện',
+        stock_firestore: 'Kho Vật Tư'
+      };
+      document.getElementById('confirmRestoreSummary').innerHTML =
+        `Bạn sắp <b>${mode === 'replace' ? 'GHI ĐÈ HOÀN TOÀN' : 'GỘP DỮ LIỆU'}</b> cho <b>${selected.length} phân hệ</b>:<br/>• ${selected.map(k => labels[k]).join('<br/>• ')}`;
+      document.getElementById('confirmRestoreInput').value = '';
+      document.getElementById('confirmRestoreErr').classList.add('hidden');
+      document.getElementById('confirmRestoreModal').classList.remove('hidden');
+      lucide.createIcons();
+    };
+
+    window.closeConfirmRestoreModal = () => {
+      document.getElementById('confirmRestoreModal').classList.add('hidden');
+    };
+
+    window.executeFullSystemRestore = async () => {
+      if (!pendingBackupPayload) return;
+      const confirmTxt = (document.getElementById('confirmRestoreInput').value || '').trim().toUpperCase();
+      const errEl = document.getElementById('confirmRestoreErr');
+      if (confirmTxt !== 'PHUCHOI') {
+        errEl.textContent = 'Vui lòng nhập chính xác chữ PHUCHOI để xác nhận!';
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      const selected = Array.from(document.querySelectorAll('.restore-mod-chk:checked')).map(el => el.value);
+      const replaceMode = (document.querySelector('input[name="restoreWriteMode"]:checked')?.value || 'replace') === 'replace';
+      const dbs = pendingBackupPayload.databases || {};
+
+      window.closeConfirmRestoreModal();
+      clearBackupLog();
+      appendBackupLog(`Bắt đầu phục hồi (${replaceMode ? 'GHI ĐÈ' : 'GỘP'}) cho ${selected.length} phân hệ...`);
+
+      try {
+        // 1. RTDB Master, Duty & Chiller
+        if (selected.includes('rtdb_duty_master') && dbs.rtdb_duty_master && masterRtdb) {
+          appendBackupLog('Đang phục hồi RTDB Master, Sổ Duty & Chiller/Bồn nước...');
+          const rtdbPayload = structuredClone(dbs.rtdb_duty_master);
+          if (rtdbPayload.unified_eng_os?.masterData) {
+            rtdbPayload.unified_eng_os.masterData = normalizeMasterData(rtdbPayload.unified_eng_os.masterData);
+            rtdbPayload.unified_eng_os.masterData.updatedAt = Date.now();
+          }
+          if (replaceMode) {
+            await set(ref(masterRtdb, '/'), rtdbPayload);
+          } else {
+            for (const [topKey, val] of Object.entries(rtdbPayload)) {
+              await set(ref(masterRtdb, '/' + topKey), val);
+            }
+          }
+          if (rtdbPayload.unified_eng_os?.masterData) {
+            masterData = normalizeMasterData(rtdbPayload.unified_eng_os.masterData);
+            localStorage.setItem(MASTER_KEY, JSON.stringify(masterData));
+          }
+          appendBackupLog('✓ Phục hồi xong RTDB Master, Sổ Duty & Chiller.');
+        }
+
+        // 2. Firestore Checklist
+        if (selected.includes('checklist_firestore') && dbs.checklist_firestore && checklistDb) {
+          appendBackupLog('Đang phục hồi Firestore Biểu Mẫu Checklist...');
+          await checklistAuthReady;
+          for (const col of ['templates', 'records', 'employees', 'schedules', 'supplementalRequests']) {
+            if (dbs.checklist_firestore[col]) {
+              const cnt = await restoreFirestoreCollection(checklistDb, col, dbs.checklist_firestore[col], replaceMode);
+              appendBackupLog(`  • ${col}: ${cnt} bản ghi`);
+            }
+          }
+          appendBackupLog('✓ Phục hồi xong Firestore Checklist.');
+        }
+
+        // 3. Firestore Điện Nước
+        if (selected.includes('power_firestore') && dbs.power_firestore?.resortpower_sync && powerDb) {
+          appendBackupLog('Đang phục hồi Firestore Điện Nước & Tủ Điện...');
+          const cnt = await restoreFirestoreCollection(powerDb, 'resortpower_sync', dbs.power_firestore.resortpower_sync, replaceMode);
+          const restoredPowerState = dbs.power_firestore.resortpower_sync.main_state_v5;
+          if (restoredPowerState) {
+            try { localStorage.setItem(POWER_STATE_KEY, JSON.stringify(restoredPowerState)); } catch {}
+          }
+          appendBackupLog(`✓ Phục hồi xong Firestore Điện Nước (${cnt} tài liệu).`);
+        }
+
+        // 4. Firestore Kho Vật Tư
+        if (selected.includes('stock_firestore') && dbs.stock_firestore && stockDb) {
+          appendBackupLog('Đang phục hồi Firestore Kho Vật Tư...');
+          for (const col of ['inventory', 'history', 'stocktakes']) {
+            if (dbs.stock_firestore[col]) {
+              const cnt = await restoreFirestoreCollection(stockDb, col, dbs.stock_firestore[col], replaceMode);
+              appendBackupLog(`  • ${col}: ${cnt} bản ghi`);
+            }
+          }
+          appendBackupLog('✓ Phục hồi xong Firestore Kho Vật Tư.');
+        }
+
+        appendBackupLog('🎉 PHỤC HỒI TOÀN HỆ THỐNG HOÀN TẤT! Đang làm mới giao diện...');
+        window.clearRestorePreview();
+        renderStaffTable();
+        renderRosterTable();
+        if (typeof window.renderUserRosterView === 'function') window.renderUserRosterView();
+        updateHeaderUI();
+        await syncLocalStorageForAllTabs();
+        broadcastToIframes();
+        showToast('Phục hồi CSDL thành công! Đang tải lại các module...');
+
+        // Reload nhẹ các iframe để nhận dữ liệu vừa phục hồi từ Cloud
+        ['frame-checklist', 'frame-duty', 'frame-power', 'frame-log', 'frame-stock'].forEach(id => {
+          const fr = document.getElementById(id);
+          if (fr && fr.src) fr.src = fr.src;
+        });
+      } catch (err) {
+        console.error('Restore error:', err);
+        appendBackupLog('✗ Lỗi trong quá trình phục hồi: ' + (err.message || err));
+        alert('Có lỗi xảy ra khi phục hồi CSDL: ' + (err.message || err));
+      }
     };
 
     window.addEventListener('DOMContentLoaded', async () => {
