@@ -1009,6 +1009,18 @@
                             <i data-lucide="download" class="w-3.5 h-3.5"></i>
                             <span>Xuất Excel Đa Sheet</span>
                         </button>
+
+                        <span class="hidden sm:inline-block w-px h-6 bg-slate-300/60 dark:bg-slate-700 mx-0.5"></span>
+
+                        <input type="file" id="meterCatalogExcelInput" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleImportMetersCatalogExcel(event)">
+                        <button onclick="exportMetersCatalogExcel()" class="px-3 py-2 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-600 dark:text-cyan-300 border border-cyan-500/30 text-xs font-bold flex items-center gap-1.5 transition" title="Xuất danh sách cấu hình công tơ điện & nước ra file Excel mẫu">
+                            <i data-lucide="file-output" class="w-3.5 h-3.5"></i>
+                            <span>Xuất DS Công Tơ</span>
+                        </button>
+                        <button onclick="document.getElementById('meterCatalogExcelInput').click()" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 shadow transition" title="Thêm hoặc cập nhật hàng loạt công tơ điện/nước bằng file Excel mẫu">
+                            <i data-lucide="file-plus-2" class="w-3.5 h-3.5"></i>
+                            <span>Thêm Công Tơ Excel</span>
+                        </button>
                     </div>
                 </div>
 
@@ -1328,7 +1340,14 @@
                         <button onclick="switchEquipSubTab('timers')" id="eqtab-timers" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-300">Timer & Lịch Sử</button>
                     </div>
 
-                    <div class="flex items-center gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <input type="file" id="cabinetExcelInput" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleImportCabinetsExcel(event)">
+                        <button onclick="exportCabinetsExcel()" class="px-3.5 py-2.5 rounded-2xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5 transition" title="Xuất danh sách tủ điện & thiết bị bên trong ra file Excel mẫu (.xlsx)">
+                            <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> Xuất Tủ Điện Excel
+                        </button>
+                        <button onclick="document.getElementById('cabinetExcelInput').click()" class="px-3.5 py-2.5 rounded-2xl bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-600 dark:text-indigo-300 border border-indigo-500/30 text-xs font-bold flex items-center gap-1.5 transition" title="Thêm hoặc cập nhật hàng loạt tủ điện (và thiết bị trong tủ) từ file Excel">
+                            <i data-lucide="upload" class="w-4 h-4"></i> Thêm Tủ Điện Excel
+                        </button>
                         <button onclick="openEquipmentModal()" class="px-4 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow">
                             <i data-lucide="plus" class="w-4 h-4"></i> Thêm Thiết Bị
                         </button>
@@ -4109,6 +4128,518 @@
                 }
             };
             reader.readAsArrayBuffer(file);
+        };
+
+        // ==================== XUẤT & THÊM CÔNG TƠ BẰNG MẪU EXCEL ====================
+        let pendingMetersCatalogImport = [];
+
+        function pickExcelCell(normRow, aliases, fallback = '') {
+            for (const alias of aliases) {
+                const key = normalizeExcelHeader(alias);
+                if (normRow[key] !== undefined && String(normRow[key]).trim() !== '') {
+                    return String(normRow[key]).trim();
+                }
+            }
+            for (const key of Object.keys(normRow)) {
+                if (aliases.some(a => key.includes(normalizeExcelHeader(a))) && String(normRow[key]).trim() !== '') {
+                    return String(normRow[key]).trim();
+                }
+            }
+            return fallback;
+        }
+
+        window.exportMetersCatalogExcel = function() {
+            if (typeof XLSX === 'undefined') { showToast('Thư viện SheetJS chưa sẵn sàng.', 'red'); return; }
+            const meters = getOrderedMeters();
+            const source = meters.length > 0 ? meters : [
+                { code: 'EM-MSB01-TOTAL', name: 'Công tơ tổng Tủ MSB-01', type: 'electric', isMaster: true, zone: 'Phòng Hạ Thế', multiplier: 80, baseReading: 0, isEffluent: false },
+                { code: 'WM-CITY-MAIN', name: 'Đồng hồ tổng Nước Thủy Cục', type: 'water', isMaster: true, zone: 'Trạm Bơm Cấp Nước', multiplier: 1, baseReading: 0, isEffluent: false }
+            ];
+
+            const rows = source.map((m, idx) => ({
+                'STT': idx + 1,
+                'Mã công tơ (*)': m.code,
+                'Tên công tơ (*)': m.name,
+                'Loại (Điện / Nước)': m.type === 'water' ? 'Nước' : 'Điện',
+                'Phân loại (Master / Sub)': m.isMaster ? 'Master' : 'Sub',
+                'Khu vực': m.zone || '',
+                'Hệ số nhân': m.multiplier ?? 1,
+                'Số bàn giao ban đầu': m.baseReading ?? 0,
+                'Xả thải STP (Có / Không)': m.isEffluent ? 'Có' : 'Không'
+            }));
+
+            const guideRows = [
+                { 'Cột': 'Mã công tơ (*)', 'Hướng dẫn': 'Bắt buộc, duy nhất. VD: EM-VILLA-01, WM-POOL-01. Nếu trùng mã cũ sẽ cập nhật cấu hình.' },
+                { 'Cột': 'Tên công tơ (*)', 'Hướng dẫn': 'Bắt buộc. Tên hiển thị hoặc vị trí lắp đặt công tơ.' },
+                { 'Cột': 'Loại (Điện / Nước)', 'Hướng dẫn': 'Nhập "Điện" (hoặc electric/kWh) hoặc "Nước" (hoặc water/m3).' },
+                { 'Cột': 'Phân loại (Master / Sub)', 'Hướng dẫn': 'Nhập "Master" (Đầu nguồn) hoặc "Sub" (Công tơ nhánh).' },
+                { 'Cột': 'Khu vực', 'Hướng dẫn': 'Tên khu vực. Nếu là khu vực mới, hệ thống tự động thêm vào danh sách khu vực.' },
+                { 'Cột': 'Hệ số nhân', 'Hướng dẫn': 'Số dương (mặc định 1). VD: 1, 10, 20, 50, 80.' },
+                { 'Cột': 'Số bàn giao ban đầu', 'Hướng dẫn': 'Chỉ số gốc ban đầu của công tơ (>= 0).' },
+                { 'Cột': 'Xả thải STP (Có / Không)', 'Hướng dẫn': 'Chỉ áp dụng cho đồng hồ nước thải đầu ra STP (nhập "Có" hoặc "Không").' }
+            ];
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(rows);
+            ws['!cols'] = [{ wch: 6 }, { wch: 20 }, { wch: 36 }, { wch: 18 }, { wch: 22 }, { wch: 32 }, { wch: 13 }, { wch: 20 }, { wch: 22 }];
+            XLSX.utils.book_append_sheet(wb, ws, 'Danh_Sach_Cong_To');
+
+            const wsGuide = XLSX.utils.json_to_sheet(guideRows);
+            wsGuide['!cols'] = [{ wch: 26 }, { wch: 76 }];
+            XLSX.utils.book_append_sheet(wb, wsGuide, 'Huong_Dan');
+
+            XLSX.writeFile(wb, `Mau_Danh_Sach_Cong_To_${new Date().toISOString().split('T')[0]}.xlsx`);
+            showToast(`Đã xuất danh sách ${rows.length} công tơ ra file Excel mẫu!`, 'emerald');
+        };
+
+        window.handleImportMetersCatalogExcel = function(e) {
+            if (!checkPermission('allowManageMeters', 'Thêm/Cập nhật công tơ bằng Excel')) { e.target.value = ''; return; }
+            const file = e.target.files?.[0];
+            if (!file) return;
+            if (typeof XLSX === 'undefined') { showToast('Thư viện SheetJS chưa sẵn sàng.', 'red'); e.target.value = ''; return; }
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    const wb = XLSX.read(evt.target.result, { type: 'array' });
+                    const targetSheetName = wb.SheetNames.find(n => normalizeExcelHeader(n).includes('congto')) || wb.SheetNames[0];
+                    const rows = XLSX.utils.sheet_to_json(wb.Sheets[targetSheetName], { defval: '' });
+                    if (!rows.length) { showToast('File Excel trống, không có dòng công tơ nào.', 'amber'); return; }
+
+                    const parsed = [];
+                    const seenCodes = new Set();
+
+                    rows.forEach(rawRow => {
+                        const norm = Object.fromEntries(Object.entries(rawRow).map(([k, v]) => [normalizeExcelHeader(k), v]));
+                        const code = pickExcelCell(norm, ['macongto', 'ma', 'code', 'id']);
+                        const name = pickExcelCell(norm, ['tencongto', 'ten', 'vitri', 'name']);
+                        if (!code || !name) return;
+                        const codeKey = code.toLowerCase();
+                        if (seenCodes.has(codeKey)) return;
+                        seenCodes.add(codeKey);
+
+                        const typeRaw = normalizeExcelHeader(pickExcelCell(norm, ['loai', 'loaicongto', 'type'], 'dien'));
+                        const type = (typeRaw.includes('nuoc') || typeRaw.includes('water') || typeRaw.includes('m3') || code.toUpperCase().startsWith('WM')) ? 'water' : 'electric';
+
+                        const roleRaw = normalizeExcelHeader(pickExcelCell(norm, ['phanloai', 'role', 'master', 'daunguon'], 'sub'));
+                        const isMaster = roleRaw.includes('master') || roleRaw.includes('daunguon') || roleRaw.includes('tong') || roleRaw === 'co' || roleRaw === 'true' || roleRaw === '1';
+
+                        const zone = pickExcelCell(norm, ['khuvuc', 'zone', 'area'], (appState.zones && appState.zones[0]) || 'Khu vực chung');
+                        const multVal = parseExcelNumber(pickExcelCell(norm, ['hesonhan', 'heso', 'multiplier'], '1'), 1);
+                        const multiplier = (multVal !== null && multVal > 0) ? multVal : 1;
+                        const baseVal = parseExcelNumber(pickExcelCell(norm, ['sobangiao', 'sobangioban', 'chisodau', 'basereading', 'base'], '0'), 0);
+                        const baseReading = (baseVal !== null && baseVal >= 0) ? baseVal : 0;
+
+                        const effRaw = normalizeExcelHeader(pickExcelCell(norm, ['xathai', 'stp', 'effluent'], 'khong'));
+                        const isEffluent = type === 'water' && (effRaw === 'co' || effRaw === 'yes' || effRaw === 'true' || effRaw === '1');
+
+                        const existing = (appState.meters || []).find(m => m.code.toLowerCase() === codeKey || m.id.toLowerCase() === codeKey);
+                        parsed.push({
+                            existingId: existing ? existing.id : null,
+                            code,
+                            name,
+                            type,
+                            isMaster,
+                            zone,
+                            multiplier,
+                            unit: type === 'electric' ? 'kWh' : 'm³',
+                            baseReading,
+                            isEffluent
+                        });
+                    });
+
+                    if (!parsed.length) {
+                        showToast('Không tìm thấy cột "Mã công tơ" và "Tên công tơ" hợp lệ. Hãy bấm "Xuất DS Công Tơ" để lấy file mẫu.', 'red');
+                        return;
+                    }
+
+                    pendingMetersCatalogImport = parsed;
+                    const newCnt = parsed.filter(x => !x.existingId).length;
+                    const updCnt = parsed.length - newCnt;
+
+                    openModal('Xem Trước Nạp Công Tơ Từ Excel', `
+                        <div class="space-y-3.5 text-xs">
+                            <div class="p-3 rounded-2xl bg-blue-500/10 border border-blue-500/25 flex flex-wrap items-center justify-between gap-2">
+                                <span>Đọc được <strong>${parsed.length} công tơ</strong> (<span class="text-emerald-500 font-bold">${newCnt} thêm mới</span> • <span class="text-blue-500 font-bold">${updCnt} trùng mã</span>)</span>
+                                <span class="font-mono text-[11px] text-slate-400 truncate max-w-[200px]">${file.name}</span>
+                            </div>
+                            <div class="flex flex-wrap gap-4 p-2.5 rounded-xl bg-slate-100/70 dark:bg-slate-800/70">
+                                <label class="inline-flex items-center gap-1.5 cursor-pointer font-semibold">
+                                    <input type="radio" name="meterCatImportMode" value="merge" checked class="accent-blue-500">
+                                    <span>Thêm mới &amp; Cập nhật trùng mã</span>
+                                </label>
+                                <label class="inline-flex items-center gap-1.5 cursor-pointer font-semibold">
+                                    <input type="radio" name="meterCatImportMode" value="add_only" class="accent-emerald-500">
+                                    <span>Chỉ thêm mới (bỏ qua mã đã có)</span>
+                                </label>
+                            </div>
+                            <div class="max-h-64 overflow-auto rounded-2xl border border-slate-200/70 dark:border-slate-700/60">
+                                <table class="w-full text-left border-collapse text-[11px]">
+                                    <thead class="sticky top-0 bg-slate-100 dark:bg-slate-800 text-[10px] uppercase text-slate-500">
+                                        <tr>
+                                            <th class="p-2">Trạng thái</th>
+                                            <th class="p-2">Mã &amp; Tên</th>
+                                            <th class="p-2 text-center">Loại</th>
+                                            <th class="p-2 text-center">HS</th>
+                                            <th class="p-2 text-right">Số gốc</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-200/50 dark:divide-slate-700/50">
+                                        ${parsed.map(m => `
+                                            <tr>
+                                                <td class="p-2 whitespace-nowrap">${m.existingId ? '<span class="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-500 font-bold">Cập nhật</span>' : '<span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-500 font-bold">Thêm mới</span>'}</td>
+                                                <td class="p-2"><div class="font-mono font-bold">${m.code} ${m.isMaster ? '<span class="text-[9px] text-amber-500">[MASTER]</span>' : ''}</div><div class="text-slate-500 truncate max-w-[180px]">${m.name}</div></td>
+                                                <td class="p-2 text-center font-bold ${m.type === 'electric' ? 'text-amber-500' : 'text-cyan-500'}">${m.type === 'electric' ? '⚡ Điện' : '💧 Nước'}</td>
+                                                <td class="p-2 text-center font-mono">×${m.multiplier}</td>
+                                                <td class="p-2 text-right font-mono">${m.baseReading}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="flex justify-end gap-2 pt-1">
+                                <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 font-bold">Hủy</button>
+                                <button type="button" onclick="confirmImportMetersCatalogExcel()" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow">Xác Nhận Nạp Công Tơ</button>
+                            </div>
+                        </div>
+                    `);
+                } catch (err) {
+                    showToast('Lỗi đọc file Excel danh sách công tơ: ' + (err.message || 'Định dạng không hợp lệ'), 'red');
+                } finally {
+                    e.target.value = '';
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        };
+
+        window.confirmImportMetersCatalogExcel = async function() {
+            if (!pendingMetersCatalogImport.length) return;
+            const mode = document.querySelector('input[name="meterCatImportMode"]:checked')?.value || 'merge';
+            if (!Array.isArray(appState.zones)) appState.zones = [];
+            if (!Array.isArray(appState.meters)) appState.meters = [];
+            if (!Array.isArray(appState.meterOrder)) appState.meterOrder = [];
+
+            let added = 0, updated = 0, skipped = 0;
+
+            pendingMetersCatalogImport.forEach((item, idx) => {
+                if (item.zone && !appState.zones.some(z => z.toLowerCase() === item.zone.toLowerCase())) {
+                    appState.zones.push(item.zone);
+                }
+                const existing = item.existingId ? appState.meters.find(m => m.id === item.existingId) : null;
+                if (existing) {
+                    if (mode === 'add_only') { skipped++; return; }
+                    Object.assign(existing, {
+                        code: item.code,
+                        name: item.name,
+                        type: item.type,
+                        isMaster: item.isMaster,
+                        zone: item.zone,
+                        multiplier: item.multiplier,
+                        unit: item.unit,
+                        baseReading: item.baseReading,
+                        isEffluent: item.isEffluent
+                    });
+                    updated++;
+                } else {
+                    const newId = `${item.type === 'electric' ? 'EM' : 'WM'}-${Date.now()}-${idx}`;
+                    appState.meters.push({
+                        id: newId,
+                        code: item.code,
+                        name: item.name,
+                        type: item.type,
+                        isMaster: item.isMaster,
+                        zone: item.zone,
+                        multiplier: item.multiplier,
+                        unit: item.unit,
+                        baseReading: item.baseReading,
+                        isEffluent: item.isEffluent,
+                        avgDaily: 0
+                    });
+                    appState.meterOrder.push(newId);
+                    added++;
+                }
+            });
+
+            pendingMetersCatalogImport = [];
+            closeModal();
+            populateChartFilterDropdowns();
+            renderMeterTables();
+            updateDashboardCharts();
+            await pushStateToFirebase();
+            showToast(`Đã nạp công tơ thành công: +${added} mới, ${updated} cập nhật${skipped ? `, ${skipped} bỏ qua` : ''}!`, 'emerald');
+        };
+
+        // ==================== XUẤT & THÊM TỦ ĐIỆN BẰNG FILE EXCEL ====================
+        let pendingCabinetsImport = { cabinets: [], children: [] };
+
+        window.exportCabinetsExcel = function() {
+            if (typeof XLSX === 'undefined') { showToast('Thư viện SheetJS chưa sẵn sàng.', 'red'); return; }
+            const allEq = (appState.equipment || []).map(normalizedEquipment);
+            const catsById = new Map((appState.categories || []).map(c => [c.id, c.name]));
+            const cabinets = allEq.filter(isCabinetEquipment);
+            const cabinetCodeById = new Map(cabinets.map(c => [c.id, c.code]));
+
+            const cabinetRows = (cabinets.length > 0 ? cabinets : [
+                { code: 'MSB-01', name: 'Tủ điện tổng MSB-01', zone: 'Phòng Hạ Thế', categoryId: 'CAT-MSB', specs: 'ACB 3200A 3P+N', status: 'ON' }
+            ]).map((cab, idx) => ({
+                'STT': idx + 1,
+                'Mã tủ điện (*)': cab.code,
+                'Tên tủ điện (*)': cab.name,
+                'Khu vực': cab.zone || '',
+                'Danh mục': catsById.get(cab.categoryId) || 'Tủ phân phối khu vực (DB / Sub-panel)',
+                'Thông số kỹ thuật': cab.specs || '',
+                'Trạng thái (ON/OFF/STANDBY/FAULT)': cab.status || 'ON'
+            }));
+
+            const childDevices = allEq.filter(eq => !isCabinetEquipment(eq));
+            const childRows = childDevices.map((eq, idx) => ({
+                'STT': idx + 1,
+                'Mã thiết bị (*)': eq.code,
+                'Tên thiết bị (*)': eq.name,
+                'Mã tủ chứa': cabinetCodeById.get(eq.parentCabinetId) || '',
+                'Loại thiết bị': eq.deviceType || 'OTHER',
+                'Khu vực': eq.zone || '',
+                'Danh mục': catsById.get(eq.categoryId) || '',
+                'Thông số kỹ thuật': eq.specs || '',
+                'Trạng thái': eq.status || 'ON'
+            }));
+
+            const guideRows = [
+                { 'Sheet': 'Danh_Sach_Tu_Dien', 'Hướng dẫn': 'Khai báo danh sách tủ điện cần thêm/cập nhật. Cột bắt buộc: "Mã tủ điện (*)", "Tên tủ điện (*)".' },
+                { 'Sheet': 'Thiet_Bi_Trong_Tu', 'Hướng dẫn': 'Tùy chọn: khai báo thiết bị bên trong tủ (MCCB, MCB, Contactor, RCBO, ELB, Timer, VFD, Relay, SPD, ATS, FUSE...). Cột "Mã tủ chứa" khớp với "Mã tủ điện (*)".' },
+                { 'Sheet': 'Trạng thái hợp lệ', 'Hướng dẫn': 'ON | OFF | STANDBY | FAULT' }
+            ];
+
+            const wb = XLSX.utils.book_new();
+            const wsCab = XLSX.utils.json_to_sheet(cabinetRows);
+            wsCab['!cols'] = [{ wch: 6 }, { wch: 18 }, { wch: 34 }, { wch: 30 }, { wch: 30 }, { wch: 34 }, { wch: 24 }];
+            XLSX.utils.book_append_sheet(wb, wsCab, 'Danh_Sach_Tu_Dien');
+
+            const wsChild = XLSX.utils.json_to_sheet(childRows.length > 0 ? childRows : [{
+                'STT': 1, 'Mã thiết bị (*)': 'MCB-MSB01-01', 'Tên thiết bị (*)': 'MCB chiếu sáng phòng hạ thế',
+                'Mã tủ chứa': cabinetRows[0]?.['Mã tủ điện (*)'] || 'MSB-01', 'Loại thiết bị': 'MCB',
+                'Khu vực': cabinetRows[0]?.['Khu vực'] || 'Phòng Hạ Thế', 'Danh mục': 'Tủ điện chính hạ thế (MSB / ACB)',
+                'Thông số kỹ thuật': '3P 63A 10kA', 'Trạng thái': 'ON'
+            }]);
+            wsChild['!cols'] = [{ wch: 6 }, { wch: 18 }, { wch: 32 }, { wch: 16 }, { wch: 14 }, { wch: 28 }, { wch: 28 }, { wch: 30 }, { wch: 12 }];
+            XLSX.utils.book_append_sheet(wb, wsChild, 'Thiet_Bi_Trong_Tu');
+
+            const wsGuide = XLSX.utils.json_to_sheet(guideRows);
+            wsGuide['!cols'] = [{ wch: 22 }, { wch: 80 }];
+            XLSX.utils.book_append_sheet(wb, wsGuide, 'Huong_Dan');
+
+            XLSX.writeFile(wb, `Danh_Sach_Tu_Dien_${new Date().toISOString().split('T')[0]}.xlsx`);
+            showToast(`Đã xuất ${cabinetRows.length} tủ điện & ${childRows.length} thiết bị ra file Excel!`, 'emerald');
+        };
+
+        function normalizeEquipStatus(raw) {
+            const s = String(raw || 'ON').trim().toUpperCase();
+            if (['ON', 'OFF', 'STANDBY', 'FAULT'].includes(s)) return s;
+            if (s.includes('TAT')) return 'OFF';
+            if (s.includes('CHO')) return 'STANDBY';
+            if (s.includes('LOI')) return 'FAULT';
+            return 'ON';
+        }
+
+        window.handleImportCabinetsExcel = function(e) {
+            if (!checkPermission('allowManageEquipment', 'Thêm/Cập nhật tủ điện bằng Excel')) { e.target.value = ''; return; }
+            const file = e.target.files?.[0];
+            if (!file) return;
+            if (typeof XLSX === 'undefined') { showToast('Thư viện SheetJS chưa sẵn sàng.', 'red'); e.target.value = ''; return; }
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    const wb = XLSX.read(evt.target.result, { type: 'array' });
+                    const cabSheetName = wb.SheetNames.find(n => normalizeExcelHeader(n).includes('tudien') || normalizeExcelHeader(n).includes('cabinet')) || wb.SheetNames[0];
+                    const cabRows = XLSX.utils.sheet_to_json(wb.Sheets[cabSheetName], { defval: '' });
+                    if (!cabRows.length) { showToast('File Excel trống, không có dòng tủ điện nào.', 'amber'); return; }
+
+                    const parsedCabinets = [];
+                    const seenCab = new Set();
+
+                    cabRows.forEach(rawRow => {
+                        const norm = Object.fromEntries(Object.entries(rawRow).map(([k, v]) => [normalizeExcelHeader(k), v]));
+                        const code = pickExcelCell(norm, ['matudien', 'matu', 'ma', 'code', 'id']);
+                        const name = pickExcelCell(norm, ['tentudien', 'tentu', 'ten', 'name']);
+                        if (!code || !name) return;
+                        const ck = code.toLowerCase();
+                        if (seenCab.has(ck)) return;
+                        seenCab.add(ck);
+
+                        const zone = pickExcelCell(norm, ['khuvuc', 'zone', 'area'], (appState.zones && appState.zones[0]) || 'Phòng Hạ Thế');
+                        const categoryName = pickExcelCell(norm, ['danhmuc', 'category', 'nhom'], 'Tủ phân phối khu vực (DB / Sub-panel)');
+                        const specs = pickExcelCell(norm, ['thongsokythuat', 'thongso', 'specs', 'mota'], '');
+                        const status = normalizeEquipStatus(pickExcelCell(norm, ['trangthai', 'status'], 'ON'));
+
+                        const existing = (appState.equipment || []).find(eq => eq.code.toLowerCase() === ck);
+                        parsedCabinets.push({ existingId: existing ? existing.id : null, code, name, zone, categoryName, specs, status });
+                    });
+
+                    // Đọc thêm sheet Thiet_Bi_Trong_Tu nếu có
+                    const parsedChildren = [];
+                    const childSheetName = wb.SheetNames.find(n => normalizeExcelHeader(n).includes('thietbi') || normalizeExcelHeader(n).includes('device'));
+                    if (childSheetName && childSheetName !== cabSheetName && wb.Sheets[childSheetName]) {
+                        const childRows = XLSX.utils.sheet_to_json(wb.Sheets[childSheetName], { defval: '' });
+                        const validTypes = new Set(commonEquipmentTypes.map(t => t.value));
+                        childRows.forEach(rawRow => {
+                            const norm = Object.fromEntries(Object.entries(rawRow).map(([k, v]) => [normalizeExcelHeader(k), v]));
+                            const code = pickExcelCell(norm, ['mathietbi', 'ma', 'code']);
+                            const name = pickExcelCell(norm, ['tenthietbi', 'ten', 'name']);
+                            if (!code || !name) return;
+                            const parentCode = pickExcelCell(norm, ['matuchua', 'matudien', 'parent', 'cabinet'], '');
+                            const rawType = pickExcelCell(norm, ['loaithietbi', 'loai', 'type'], 'OTHER').toUpperCase();
+                            const deviceType = validTypes.has(rawType) && rawType !== 'CABINET' ? rawType : 'OTHER';
+                            const zone = pickExcelCell(norm, ['khuvuc', 'zone'], '');
+                            const categoryName = pickExcelCell(norm, ['danhmuc', 'category'], '');
+                            const specs = pickExcelCell(norm, ['thongsokythuat', 'thongso', 'specs'], '');
+                            const status = normalizeEquipStatus(pickExcelCell(norm, ['trangthai', 'status'], 'ON'));
+                            const existing = (appState.equipment || []).find(eq => eq.code.toLowerCase() === code.toLowerCase());
+                            parsedChildren.push({ existingId: existing ? existing.id : null, code, name, parentCode, deviceType, zone, categoryName, specs, status });
+                        });
+                    }
+
+                    if (!parsedCabinets.length) {
+                        showToast('Không tìm thấy cột "Mã tủ điện" và "Tên tủ điện" hợp lệ. Hãy bấm "Xuất Tủ Điện Excel" để lấy file mẫu.', 'red');
+                        return;
+                    }
+
+                    pendingCabinetsImport = { cabinets: parsedCabinets, children: parsedChildren };
+                    const newCab = parsedCabinets.filter(c => !c.existingId).length;
+                    const updCab = parsedCabinets.length - newCab;
+
+                    openModal('Xem Trước Nạp Tủ Điện Từ Excel', `
+                        <div class="space-y-3.5 text-xs">
+                            <div class="p-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/25 flex flex-wrap items-center justify-between gap-2">
+                                <span>Đọc được <strong>${parsedCabinets.length} tủ điện</strong> (<span class="text-emerald-500 font-bold">${newCab} mới</span> • <span class="text-blue-500 font-bold">${updCab} cập nhật</span>)${parsedChildren.length ? ` và <strong>${parsedChildren.length} thiết bị trong tủ</strong>` : ''}</span>
+                                <span class="font-mono text-[11px] text-slate-400 truncate max-w-[200px]">${file.name}</span>
+                            </div>
+                            <div class="flex flex-wrap gap-4 p-2.5 rounded-xl bg-slate-100/70 dark:bg-slate-800/70">
+                                <label class="inline-flex items-center gap-1.5 cursor-pointer font-semibold">
+                                    <input type="radio" name="cabImportMode" value="merge" checked class="accent-blue-500">
+                                    <span>Thêm mới &amp; Cập nhật trùng mã</span>
+                                </label>
+                                <label class="inline-flex items-center gap-1.5 cursor-pointer font-semibold">
+                                    <input type="radio" name="cabImportMode" value="add_only" class="accent-emerald-500">
+                                    <span>Chỉ thêm mới (bỏ qua mã đã có)</span>
+                                </label>
+                            </div>
+                            <div class="max-h-64 overflow-auto rounded-2xl border border-slate-200/70 dark:border-slate-700/60">
+                                <table class="w-full text-left border-collapse text-[11px]">
+                                    <thead class="sticky top-0 bg-slate-100 dark:bg-slate-800 text-[10px] uppercase text-slate-500">
+                                        <tr>
+                                            <th class="p-2">Trạng thái</th>
+                                            <th class="p-2">Mã &amp; Tên Tủ Điện</th>
+                                            <th class="p-2">Khu Vực</th>
+                                            <th class="p-2">Thông Số</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-200/50 dark:divide-slate-700/50">
+                                        ${parsedCabinets.map(c => `
+                                            <tr>
+                                                <td class="p-2 whitespace-nowrap">${c.existingId ? '<span class="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-500 font-bold">Cập nhật</span>' : '<span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-500 font-bold">Thêm mới</span>'}</td>
+                                                <td class="p-2"><div class="font-mono font-bold text-indigo-500">${c.code}</div><div class="font-semibold">${c.name}</div></td>
+                                                <td class="p-2 text-slate-500">${c.zone}</td>
+                                                <td class="p-2 text-slate-500">${c.specs || '—'}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="flex justify-end gap-2 pt-1">
+                                <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 font-bold">Hủy</button>
+                                <button type="button" onclick="confirmImportCabinetsExcel()" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow">Xác Nhận Nạp Tủ Điện</button>
+                            </div>
+                        </div>
+                    `);
+                } catch (err) {
+                    showToast('Lỗi đọc file Excel tủ điện: ' + (err.message || 'Định dạng không hợp lệ'), 'red');
+                } finally {
+                    e.target.value = '';
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        };
+
+        function resolveOrCreateCategoryId(catName) {
+            const clean = String(catName || '').trim();
+            if (!Array.isArray(appState.categories)) appState.categories = [];
+            if (!clean) return appState.categories[0]?.id || 'CAT-DB';
+            const found = appState.categories.find(c => c.name.toLowerCase() === clean.toLowerCase() || c.id.toLowerCase() === clean.toLowerCase());
+            if (found) return found.id;
+            const newId = 'CAT-' + Date.now() + '-' + Math.floor(Math.random() * 100);
+            appState.categories.push({ id: newId, name: clean, color: '#6366f1', icon: 'server' });
+            return newId;
+        }
+
+        window.confirmImportCabinetsExcel = async function() {
+            const { cabinets, children } = pendingCabinetsImport;
+            if (!cabinets || !cabinets.length) return;
+            const mode = document.querySelector('input[name="cabImportMode"]:checked')?.value || 'merge';
+            if (!Array.isArray(appState.zones)) appState.zones = [];
+            if (!Array.isArray(appState.equipment)) appState.equipment = [];
+
+            let cabAdded = 0, cabUpdated = 0, childCount = 0;
+
+            cabinets.forEach((c, idx) => {
+                if (c.zone && !appState.zones.some(z => z.toLowerCase() === c.zone.toLowerCase())) {
+                    appState.zones.push(c.zone);
+                }
+                const categoryId = resolveOrCreateCategoryId(c.categoryName);
+                const existing = c.existingId ? appState.equipment.find(eq => eq.id === c.existingId) : null;
+                if (existing) {
+                    if (mode === 'add_only') return;
+                    Object.assign(existing, {
+                        code: c.code, name: c.name, zone: c.zone, categoryId,
+                        specs: c.specs, status: c.status, deviceType: 'CABINET', isCabinet: true, parentCabinetId: null
+                    });
+                    cabUpdated++;
+                } else {
+                    appState.equipment.push({
+                        id: `CAB-${Date.now()}-${idx}`,
+                        code: c.code, name: c.name, zone: c.zone, categoryId,
+                        specs: c.specs, status: c.status, deviceType: 'CABINET', isCabinet: true, parentCabinetId: null
+                    });
+                    cabAdded++;
+                }
+            });
+
+            if (Array.isArray(children) && children.length > 0) {
+                children.forEach((ch, idx) => {
+                    const parentCab = ch.parentCode
+                        ? appState.equipment.find(eq => isCabinetEquipment(eq) && eq.code.toLowerCase() === ch.parentCode.toLowerCase())
+                        : null;
+                    const zone = ch.zone || parentCab?.zone || (appState.zones[0] || 'Phòng Hạ Thế');
+                    if (zone && !appState.zones.some(z => z.toLowerCase() === zone.toLowerCase())) appState.zones.push(zone);
+                    const categoryId = ch.categoryName ? resolveOrCreateCategoryId(ch.categoryName) : (parentCab?.categoryId || 'CAT-DB');
+                    const existing = ch.existingId ? appState.equipment.find(eq => eq.id === ch.existingId) : null;
+                    if (existing) {
+                        if (mode === 'add_only') return;
+                        Object.assign(existing, {
+                            code: ch.code, name: ch.name, zone, categoryId, specs: ch.specs,
+                            status: ch.status, deviceType: ch.deviceType, isCabinet: false,
+                            parentCabinetId: parentCab ? parentCab.id : existing.parentCabinetId
+                        });
+                        childCount++;
+                    } else {
+                        appState.equipment.push({
+                            id: `EQ-${Date.now()}-${idx}`,
+                            code: ch.code, name: ch.name, zone, categoryId, specs: ch.specs,
+                            status: ch.status, deviceType: ch.deviceType, isCabinet: false,
+                            parentCabinetId: parentCab ? parentCab.id : null
+                        });
+                        childCount++;
+                    }
+                });
+            }
+
+            pendingCabinetsImport = { cabinets: [], children: [] };
+            closeModal();
+            renderEquipmentList();
+            renderCustomCategories();
+            updateDashboardCharts();
+            await pushStateToFirebase();
+            showToast(`Đã nạp ${cabAdded} tủ mới, ${cabUpdated} tủ cập nhật${childCount ? ` & ${childCount} thiết bị con` : ''}!`, 'emerald');
         };
 
         // Single-Line Diagram (SLD)
