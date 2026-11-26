@@ -778,7 +778,7 @@
         </div>
 
         <!-- Tóm tắt nhân sự trực 3 ca hôm nay -->
-        <div id="userRosterTodayCards" class="grid grid-cols-1 sm:grid-cols-3 gap-3"></div>
+        <div id="userRosterTodayCards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"></div>
 
         <!-- Bảng lịch trực cả tuần (T2 -> CN) -->
         <div class="glass rounded-2xl overflow-x-auto">
@@ -1109,21 +1109,13 @@
       }
     }
 
-    function mapToBaseShiftGroup(s) {
-      if (['Ca Sáng', 'Hành Chánh', 'M-Boiler', 'BQ1'].includes(s)) return 'Ca Sáng';
-      if (['Ca Chiều', 'E-Boiler', 'BQ2'].includes(s)) return 'Ca Chiều';
-      if (s === 'Ca Đêm') return 'Ca Đêm';
-      if (s === 'OFF') return 'OFF';
-      return '';
-    }
-
     function mapToChecklistShift(s) {
-      const grp = mapToBaseShiftGroup(s);
-      if (grp === 'Ca Sáng') return 'Ca 1';
-      if (grp === 'Ca Chiều') return 'Ca 2';
-      if (grp === 'Ca Đêm') return 'Ca 3';
-      if (grp === 'OFF') return 'Nghỉ';
-      return '';
+      if (s === 'Ca Sáng') return 'Ca 1';
+      if (s === 'Ca Chiều') return 'Ca 2';
+      if (s === 'Ca Đêm') return 'Ca 3';
+      if (s === 'OFF') return 'Nghỉ';
+      // Giữ nguyên tên các ca tách biệt (Hành Chánh, M-Boiler, E-Boiler, BQ1, BQ2), không gom vào Ca 1/2/3
+      return s || '';
     }
 
     function mapFromChecklistShift(s) {
@@ -1226,14 +1218,10 @@
       return masterData.datedRosterRaw?.[staffId]?.[dateStr] || '';
     }
 
-    // Lấy danh sách nhân sự đang trực ca hiện tại TỪ BẢNG PHÂN CA (ưu tiên đúng ngày hôm nay)
-    function getOnDutyRosterPeople(shiftName = getCurrentShiftByClock(), exactOnly = false) {
+    // Lấy danh sách nhân sự đang trực ĐÚNG ca chỉ định TỪ BẢNG PHÂN CA (không gom nhóm ca khác)
+    function getOnDutyRosterPeople(shiftName = getCurrentShiftByClock()) {
       const todayStr = getTodayDateStr();
-      return (masterData.rosterStaff || []).filter(r => {
-        const sh = getShiftForStaffOnDate(r.id, todayStr);
-        if (!sh || sh === 'OFF') return false;
-        return exactOnly ? (sh === shiftName) : (sh === shiftName || mapToBaseShiftGroup(sh) === shiftName);
-      });
+      return (masterData.rosterStaff || []).filter(r => getShiftForStaffOnDate(r.id, todayStr) === shiftName);
     }
 
     // Dữ liệu gửi sang Checklist:
@@ -1483,19 +1471,17 @@
       const todayStr = getTodayDateStr();
       const currentShift = getCurrentShiftByClock();
 
-      // Lịch trực hôm nay cho Sổ Duty lấy HOÀN TOÀN từ BẢNG PHÂN CA (ưu tiên lịch theo ngày)
+      // Lịch trực hôm nay cho Sổ Duty: tách đúng từng ca theo ánh xạ bảng phân ca (không gom chung nhóm)
       const dutyScheduleToday = (masterData.rosterStaff || []).map((r, idx) => {
         const sh = getShiftForStaffOnDate(r.id, todayStr);
         if (!sh || sh === 'OFF') return null;
         const rawCode = getRawCodeForStaffOnDate(r.id, todayStr);
-        const baseShift = mapToBaseShiftGroup(sh) || sh;
-        const tag = sh !== baseShift ? sh : (rawCode || '');
         return {
           id: `SCH-SYNC-${idx + 1}`,
           date: todayStr,
-          shift: baseShift,
+          shift: sh,
           staffName: r.name,
-          note: `Phân ca${tag ? ' [' + tag + ']' : ''} (${r.employeeCode || 'KT'})`
+          note: `Phân ca${rawCode && rawCode !== sh ? ' [' + rawCode + ']' : ''} (${r.employeeCode || 'KT'})`
         };
       }).filter(Boolean);
 
@@ -1877,13 +1863,18 @@
       const subEl = document.getElementById('userRosterSubtitle');
       if (subEl) subEl.textContent = `Hôm nay: ${dayLabels[todayKey]}, ${todayFormatted} • Ca hiện tại: ${currentShift}`;
 
-      // 3 thẻ tóm tắt nhân sự trực hôm nay
+      // Thẻ tóm tắt nhân sự trực hôm nay tách riêng từng ca theo đúng ánh xạ bảng phân ca
       const cardsEl = document.getElementById('userRosterTodayCards');
       if (cardsEl) {
         const shiftDefs = [
-          { name: 'Ca Sáng', time: '06:00 – 14:00', activeBorder: 'border-sky-400/70 ring-1 ring-sky-400/40', titleCls: 'text-sky-300', badgeCls: 'bg-sky-500/25 text-sky-300' },
-          { name: 'Ca Chiều', time: '14:00 – 22:00', activeBorder: 'border-amber-400/70 ring-1 ring-amber-400/40', titleCls: 'text-amber-300', badgeCls: 'bg-amber-500/25 text-amber-300' },
-          { name: 'Ca Đêm', time: '22:00 – 06:00', activeBorder: 'border-purple-400/70 ring-1 ring-purple-400/40', titleCls: 'text-purple-300', badgeCls: 'bg-purple-500/25 text-purple-300' }
+          { name: 'Ca Sáng',    label: 'Ca 1 · Ca Sáng',  time: '06:00 – 14:00', activeBorder: 'border-sky-400/70 ring-1 ring-sky-400/40',       titleCls: 'text-sky-300',     badgeCls: 'bg-sky-500/25 text-sky-300' },
+          { name: 'Ca Chiều',   label: 'Ca 2 · Ca Chiều', time: '14:00 – 22:00', activeBorder: 'border-amber-400/70 ring-1 ring-amber-400/40',   titleCls: 'text-amber-300',   badgeCls: 'bg-amber-500/25 text-amber-300' },
+          { name: 'Ca Đêm',     label: 'Ca 3 · Ca Đêm',   time: '22:00 – 06:00', activeBorder: 'border-purple-400/70 ring-1 ring-purple-400/40', titleCls: 'text-purple-300',  badgeCls: 'bg-purple-500/25 text-purple-300' },
+          { name: 'Hành Chánh', label: 'Hành Chánh',      time: '08:00 – 17:00', activeBorder: 'border-emerald-400/70 ring-1 ring-emerald-400/40', titleCls: 'text-emerald-300', badgeCls: 'bg-emerald-500/25 text-emerald-300' },
+          { name: 'M-Boiler',   label: 'M-Boiler',        time: 'Lò hơi sáng',   activeBorder: 'border-cyan-400/70 ring-1 ring-cyan-400/40',     titleCls: 'text-cyan-300',    badgeCls: 'bg-cyan-500/25 text-cyan-300' },
+          { name: 'E-Boiler',   label: 'E-Boiler',        time: 'Lò hơi chiều',  activeBorder: 'border-orange-400/70 ring-1 ring-orange-400/40', titleCls: 'text-orange-300',  badgeCls: 'bg-orange-500/25 text-orange-300' },
+          { name: 'BQ1',        label: 'BQ1',             time: 'Banquet 1',     activeBorder: 'border-pink-400/70 ring-1 ring-pink-400/40',     titleCls: 'text-pink-300',    badgeCls: 'bg-pink-500/25 text-pink-300' },
+          { name: 'BQ2',        label: 'BQ2',             time: 'Banquet 2',     activeBorder: 'border-fuchsia-400/70 ring-1 ring-fuchsia-400/40', titleCls: 'text-fuchsia-300', badgeCls: 'bg-fuchsia-500/25 text-fuchsia-300' }
         ];
         cardsEl.innerHTML = shiftDefs.map(def => {
           const people = getOnDutyRosterPeople(def.name);
@@ -1891,20 +1882,16 @@
           const borderCls = isNow ? def.activeBorder : 'border-slate-800';
           return `
             <div class="glass p-3.5 rounded-2xl border ${borderCls} space-y-2">
-              <div class="flex items-center justify-between">
-                <div>
-                  <span class="text-xs font-bold ${def.titleCls}">${def.name}</span>
+              <div class="flex items-center justify-between gap-1">
+                <div class="min-w-0">
+                  <span class="text-xs font-bold ${def.titleCls}">${def.label}</span>
                   <span class="text-[10px] text-slate-400 ml-1.5">${def.time}</span>
                 </div>
-                ${isNow ? `<span class="text-[9px] px-2 py-0.5 rounded-full ${def.badgeCls} font-bold">ĐANG TRỰC</span>` : ''}
+                ${isNow ? `<span class="text-[9px] px-2 py-0.5 rounded-full ${def.badgeCls} font-bold shrink-0">ĐANG TRỰC</span>` : ''}
               </div>
               <div class="flex flex-wrap gap-1.5">
                 ${people.length > 0
-                  ? people.map(p => {
-                      const sh = getShiftForStaffOnDate(p.id, getTodayDateStr());
-                      const sub = sh && sh !== def.name ? `<span class="ml-1 text-[9.5px] font-mono text-emerald-300">· ${sh}</span>` : '';
-                      return `<span class="px-2 py-1 rounded-lg bg-slate-900/90 border border-slate-700 text-[11px] font-semibold text-slate-100">${p.name}${sub}</span>`;
-                    }).join('')
+                  ? people.map(p => `<span class="px-2 py-1 rounded-lg bg-slate-900/90 border border-slate-700 text-[11px] font-semibold text-slate-100">${p.name}</span>`).join('')
                   : '<span class="text-[11px] text-slate-500 italic">Chưa phân ca</span>'
                 }
               </div>
