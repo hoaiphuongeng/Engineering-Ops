@@ -936,10 +936,6 @@
                             <i data-lucide="droplets" class="w-4 h-4"></i>
                             <span>Công Tơ Nước (m³)</span>
                         </button>
-                        <button onclick="switchMeterTab('non_consumption')" id="tab-meter-non_consumption" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition text-slate-600 dark:text-slate-300">
-                            <i data-lucide="clipboard-list" class="w-4 h-4"></i>
-                            <span>Không Tính Tiêu Thụ</span>
-                        </button>
                     </div>
 
                     <div class="flex flex-wrap items-center gap-2 sm:gap-3">
@@ -1108,48 +1104,6 @@
                                 </tr>
                             </thead>
                             <tbody id="waterMeterTableBody" class="divide-y divide-slate-200/50 dark:divide-slate-700/40 text-sm"></tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- NON-CONSUMPTION METERS TABLE -->
-                <div id="nonConsumptionMeterSection" class="glass-panel rounded-3xl overflow-hidden hidden border border-purple-500/25">
-                    <div class="p-4 sm:p-5 border-b border-slate-200/60 dark:border-slate-700/50 flex flex-wrap items-center justify-between gap-2">
-                        <div class="flex items-center gap-2.5">
-                            <div class="w-9 h-9 rounded-2xl bg-purple-500/15 text-purple-500 flex items-center justify-center">
-                                <i data-lucide="clipboard-list" class="w-5 h-5"></i>
-                            </div>
-                            <div>
-                                <h3 class="font-bold text-base">Danh Sách Công Tơ Không Tính Tiêu Thụ</h3>
-                                <p class="text-xs text-slate-500 dark:text-slate-400">Chỉ ghi nhận chỉ số tự do (không bắt buộc số mới ≥ số cũ, không tính tiêu thụ &amp; không cảnh báo ngưỡng)</p>
-                            </div>
-                        </div>
-                        <div class="text-right space-y-0.5">
-                            <div>
-                                <span class="text-xs text-slate-500">Tổng số điểm đo:</span>
-                                <span id="tableCountNonConsumption" class="ml-1 text-base font-extrabold text-purple-500">0 công tơ</span>
-                            </div>
-                            <div class="text-[11px] font-mono text-slate-500">
-                                Chế độ: Ghi nhận chỉ số độc lập
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="border-b border-slate-200/70 dark:border-slate-700/60 text-[11px] font-bold uppercase tracking-wider text-slate-500 bg-slate-100/50 dark:bg-slate-800/40">
-                                    <th class="py-3.5 px-4">Mã &amp; Tên Công Tơ</th>
-                                    <th class="py-3.5 px-3">Khu Vực</th>
-                                    <th class="py-3.5 px-3 text-center">Đơn Vị</th>
-                                    <th class="py-3.5 px-3 text-right">Chỉ Số Trước (Tham Khảo)</th>
-                                    <th class="py-3.5 px-4 text-center w-48">Chỉ Số Ghi Nhận (Tự Do)</th>
-                                    <th class="py-3.5 px-3 text-right">Tiêu Thụ</th>
-                                    <th class="py-3.5 px-3 text-center">Trạng Thái</th>
-                                    <th class="py-3.5 px-4 text-right">Thao Tác</th>
-                                </tr>
-                            </thead>
-                            <tbody id="nonConsumptionMeterTableBody" class="divide-y divide-slate-200/50 dark:divide-slate-700/40 text-sm"></tbody>
                         </table>
                     </div>
                 </div>
@@ -1877,6 +1831,20 @@
             const savedOrder = Array.isArray(state.meterOrder) ? state.meterOrder.filter(id => existingIds.has(id)) : [];
             const missingIds = (state.meters || []).map(m => m.id).filter(id => !savedOrder.includes(id));
             state.meterOrder = [...savedOrder, ...missingIds];
+            // Chuẩn hóa nếu có công tơ cũ từng lưu type = 'non_consumption' -> chuyển sang phân loại noConsumption
+            if (Array.isArray(state.meters)) {
+                state.meters.forEach(m => {
+                    if (m.type === 'non_consumption') {
+                        m.type = 'electric';
+                        m.isMaster = false;
+                        m.noConsumption = true;
+                        m.unit = m.unit || 'kWh';
+                    }
+                    if (m.noConsumption) {
+                        m.isMaster = false;
+                    }
+                });
+            }
             if (!Array.isArray(state.zones)) state.zones = [...std.zones];
             if (!Array.isArray(state.reportTariffPeriods) || !state.reportTariffPeriods.length) {
                 state.reportTariffPeriods = [{ id: `TARIFF-${Date.now()}`, from: '2000-01-01', to: '2099-12-31', electricity: Number(state.electricityTariffVnd) || 2850, water: Number(state.waterTariffVnd) || 18500 }];
@@ -2167,7 +2135,12 @@
         }
 
         function isNonConsumptionMeter(meter) {
-            return Boolean(meter && (meter.type === 'non_consumption' || meter.noConsumption === true));
+            return Boolean(meter && (meter.noConsumption === true || meter.meterRole === 'no_consumption' || meter.type === 'non_consumption'));
+        }
+
+        function getMeterRoleValue(meter) {
+            if (isNonConsumptionMeter(meter)) return 'no_consumption';
+            return meter?.isMaster ? 'master' : 'sub';
         }
 
         function evaluateMeterAnomaly(meterId, consumptionVal, dateStr) {
@@ -2418,8 +2391,8 @@
         // Master vs Sub-meter Breakdown
         function getMasterVsSubBreakdown(dateStr) {
             const dayReadings = (appState.readings && appState.readings[dateStr]) || {};
-            const elecMeters = (appState.meters || []).filter(m => m.type === 'electric');
-            const waterMeters = (appState.meters || []).filter(m => m.type === 'water');
+            const elecMeters = (appState.meters || []).filter(m => m.type === 'electric' && !isNonConsumptionMeter(m));
+            const waterMeters = (appState.meters || []).filter(m => m.type === 'water' && !isNonConsumptionMeter(m));
 
             const masterElecMeters = elecMeters.filter(m => m.isMaster);
             const subElecMeters = elecMeters.filter(m => !m.isMaster);
@@ -2469,8 +2442,8 @@
             elecZoneGroup.innerHTML = zones.map(z => `<option value="zone::${z}">Khu vực: ${z}</option>`).join('');
             waterZoneGroup.innerHTML = zones.map(z => `<option value="zone::${z}">Khu vực: ${z}</option>`).join('');
 
-            const elecMeters = (appState.meters || []).filter(m => m.type === 'electric');
-            const waterMeters = (appState.meters || []).filter(m => m.type === 'water');
+            const elecMeters = (appState.meters || []).filter(m => m.type === 'electric' && !isNonConsumptionMeter(m));
+            const waterMeters = (appState.meters || []).filter(m => m.type === 'water' && !isNonConsumptionMeter(m));
 
             elecMeterGroup.innerHTML = elecMeters.map(m => `<option value="meter::${m.id}">${m.isMaster ? '[MASTER] ' : '[SUB] '}${m.code} - ${m.name}</option>`).join('');
             waterMeterGroup.innerHTML = waterMeters.map(m => `<option value="meter::${m.id}">${m.isMaster ? '[MASTER] ' : '[SUB] '}${m.code} - ${m.name}</option>`).join('');
@@ -2557,8 +2530,8 @@
                 const actualChartType = elecTypeUI === 'area' ? 'line' : elecTypeUI;
 
                 if (elecScope === 'master_vs_sub') {
-                    const masterSeries = getTimeSeriesBuckets(m => m.type === 'electric' && m.isMaster);
-                    const subSeries = getTimeSeriesBuckets(m => m.type === 'electric' && !m.isMaster);
+                    const masterSeries = getTimeSeriesBuckets(m => m.type === 'electric' && m.isMaster && !isNonConsumptionMeter(m));
+                    const subSeries = getTimeSeriesBuckets(m => m.type === 'electric' && !m.isMaster && !isNonConsumptionMeter(m));
                     chartLabels = masterSeries.labels;
                     const lossValues = masterSeries.values.map((v, i) => Math.max(0, Math.round((v - (subSeries.values[i] || 0)) * 10) / 10));
 
@@ -2570,7 +2543,7 @@
                 } else {
                     let filterFn = m => m.type === 'electric' && m.isMaster;
                     let seriesTitle = 'Điện Đầu Nguồn Master (kWh)';
-                    if (elecScope === 'sub_total') { filterFn = m => m.type === 'electric' && !m.isMaster; seriesTitle = 'Tổng Điện Nhánh (kWh)'; }
+                    if (elecScope === 'sub_total') { filterFn = m => m.type === 'electric' && !m.isMaster && !isNonConsumptionMeter(m); seriesTitle = 'Tổng Điện Nhánh (kWh)'; }
                     const series = getTimeSeriesBuckets(filterFn);
                     chartLabels = series.labels;
                     datasets = [{ label: seriesTitle, data: series.values, backgroundColor: 'rgba(245, 158, 11, 0.85)', borderColor: '#f59e0b', borderWidth: 2, borderRadius: 8, tension: 0.35, fill: elecTypeUI === 'area' }];
@@ -2982,19 +2955,18 @@
             activeMeterTab = tabType;
             const btnElec = document.getElementById('tab-meter-electric');
             const btnWater = document.getElementById('tab-meter-water');
-            const btnNonCons = document.getElementById('tab-meter-non_consumption');
             const secElec = document.getElementById('electricMeterSection');
             const secWater = document.getElementById('waterMeterSection');
-            const secNonCons = document.getElementById('nonConsumptionMeterSection');
 
-            const inactiveCls = "px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition text-slate-600 dark:text-slate-300";
-            if (btnElec) btnElec.className = tabType === 'electric' ? "px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition bg-amber-500 text-white shadow-md" : inactiveCls;
-            if (btnWater) btnWater.className = tabType === 'water' ? "px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition bg-cyan-500 text-white shadow-md" : inactiveCls;
-            if (btnNonCons) btnNonCons.className = tabType === 'non_consumption' ? "px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition bg-purple-600 text-white shadow-md" : inactiveCls;
-
-            if (secElec) secElec.classList.toggle('hidden', tabType !== 'electric');
-            if (secWater) secWater.classList.toggle('hidden', tabType !== 'water');
-            if (secNonCons) secNonCons.classList.toggle('hidden', tabType !== 'non_consumption');
+            if (tabType === 'electric') {
+                btnElec.className = "px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition bg-amber-500 text-white shadow-md";
+                btnWater.className = "px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition text-slate-600 dark:text-slate-300";
+                secElec.classList.remove('hidden'); secWater.classList.add('hidden');
+            } else {
+                btnWater.className = "px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition bg-cyan-500 text-white shadow-md";
+                btnElec.className = "px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition text-slate-600 dark:text-slate-300";
+                secWater.classList.remove('hidden'); secElec.classList.add('hidden');
+            }
             renderMeterMatrixAll();
         };
 
@@ -3041,7 +3013,6 @@
             const orderedMeters = getOrderedMeters();
             const elecMeters = orderedMeters.filter(m => m.type === 'electric');
             const waterMeters = orderedMeters.filter(m => m.type === 'water');
-            const nonConsMeters = orderedMeters.filter(isNonConsumptionMeter);
 
             let masterElecSum = 0, subElecSum = 0;
             let masterWaterSum = 0, subWaterSupplySum = 0;
@@ -3062,24 +3033,36 @@
                         ? unsavedMeterInputs[draftKey]
                         : '';
 
+                    const nonCons = isNonConsumptionMeter(m);
                     const numericCurr = parseFloat(currVal);
-                    const hasValidCurr = !isNaN(numericCurr) && numericCurr >= prevVal;
-                    const consumption = hasValidCurr
-                        ? Math.round((numericCurr - prevVal) * (m.multiplier || 1) * 100) / 100
-                        : (savedRec ? Number(savedRec.consumption) || 0 : 0);
+                    const hasValidCurr = !nonCons && !isNaN(numericCurr) && numericCurr >= prevVal;
+                    const consumption = nonCons
+                        ? 0
+                        : (hasValidCurr
+                            ? Math.round((numericCurr - prevVal) * (m.multiplier || 1) * 100) / 100
+                            : (savedRec ? Number(savedRec.consumption) || 0 : 0));
 
-                    if (isElectric) {
-                        if (m.isMaster) masterElecSum += consumption; else subElecSum += consumption;
-                    } else {
-                        if (m.isMaster) masterWaterSum += consumption; else if (!m.isEffluent) subWaterSupplySum += consumption;
+                    if (!nonCons) {
+                        if (isElectric) {
+                            if (m.isMaster) masterElecSum += consumption; else subElecSum += consumption;
+                        } else {
+                            if (m.isMaster) masterWaterSum += consumption; else if (!m.isEffluent) subWaterSupplySum += consumption;
+                        }
                     }
 
                     const isSaved = savedRec && unsavedMeterInputs[draftKey] === undefined;
-                    const anom = evaluateMeterAnomaly(m.id, consumption, selectedDate);
-                    const roleBadge = m.isMaster ? '<span class="px-2 py-0.5 rounded text-[10px] font-extrabold bg-amber-500/20 text-amber-500">MASTER</span>' : '<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-500/15 text-blue-500">SUB</span>';
+                    const anom = nonCons ? { isAnomaly: false } : evaluateMeterAnomaly(m.id, consumption, selectedDate);
+                    const roleBadge = nonCons
+                        ? '<span class="px-2 py-0.5 rounded text-[10px] font-extrabold bg-purple-500/20 text-purple-500">KHÔNG TÍNH TT</span>'
+                        : (m.isMaster
+                            ? '<span class="px-2 py-0.5 rounded text-[10px] font-extrabold bg-amber-500/20 text-amber-500">MASTER</span>'
+                            : '<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-500/15 text-blue-500">SUB</span>');
+                    const savedNote = (nonCons && savedRec && typeof savedRec.curr === 'number')
+                        ? `<div class="text-[10px] text-emerald-500 font-mono mt-0.5 text-right">Đã chốt: ${savedRec.curr.toLocaleString('vi-VN')}</div>`
+                        : '';
 
                     return `
-                        <tr id="row-meter-${m.id}" class="${anom.isAnomaly ? 'bg-rose-500/15' : (m.isMaster ? 'bg-amber-500/5' : 'hover:bg-blue-500/5')} transition">
+                        <tr id="row-meter-${m.id}" class="${anom.isAnomaly ? 'bg-rose-500/15' : (nonCons ? 'bg-purple-500/5 hover:bg-purple-500/10' : (m.isMaster ? 'bg-amber-500/5' : 'hover:bg-blue-500/5'))} transition">
                             <td class="py-3.5 px-4">
                                 <div class="flex items-center gap-1.5 flex-wrap">
                                     <span class="font-bold font-mono">${m.code}</span>
@@ -3088,18 +3071,22 @@
                                 <div class="text-xs text-slate-500">${m.name}</div>
                             </td>
                             <td class="py-3.5 px-3"><span class="text-xs px-2.5 py-1 rounded-xl bg-slate-200/70 dark:bg-slate-800">${m.zone.split('(')[0]}</span></td>
-                            <td class="py-3.5 px-3 text-center font-semibold text-xs">×${m.multiplier || 1}</td>
-                            <td class="py-3.5 px-3 text-right font-mono font-bold">${prevVal.toLocaleString('vi-VN')}</td>
+                            <td class="py-3.5 px-3 text-center font-semibold text-xs">${nonCons ? '—' : ('×' + (m.multiplier || 1))}</td>
+                            <td class="py-3.5 px-3 text-right font-mono font-bold ${nonCons ? 'text-slate-500' : ''}">${prevVal.toLocaleString('vi-VN')}</td>
                             <td class="py-3.5 px-4">
                                 <input type="number" step="any" inputmode="decimal" id="input-meter-${m.id}" value="${currVal}" ${!canRecord ? 'disabled' : ''}
+                                    placeholder="${nonCons ? 'Nhập tự do...' : ''}"
                                     oninput="handleMeterInputChange('${m.id}', '${selectedDate}', ${prevVal}, ${m.multiplier || 1}, this.value); resizeMeterReadingInput(this)"
-                                    class="meter-reading-input px-3.5 py-2.5 rounded-2xl text-right font-mono font-bold text-base bg-white dark:bg-slate-900 border-2 ${anom.isAnomaly ? 'border-rose-500 text-rose-500' : 'border-blue-500/40'} focus:outline-none"
+                                    class="meter-reading-input px-3.5 py-2.5 rounded-2xl text-right font-mono font-bold text-base bg-white dark:bg-slate-900 border-2 ${anom.isAnomaly ? 'border-rose-500 text-rose-500' : (nonCons ? 'border-purple-500/45' : 'border-blue-500/40')} focus:outline-none"
                                     style="width: ${Math.max(112, (String(currVal || '').length + 2) * 9)}px">
+                                ${savedNote}
                             </td>
                             <td class="py-3.5 px-3 text-right">
-                                <div id="calc-cons-${m.id}" class="font-mono font-extrabold text-base ${anom.isAnomaly ? 'text-rose-500' : (isElectric ? 'text-amber-500' : 'text-cyan-500')}">
-                                    ${consumption.toLocaleString('vi-VN')} ${m.unit}
-                                </div>
+                                ${nonCons
+                                    ? `<div id="calc-cons-${m.id}" class="text-xs font-semibold text-purple-400 italic">Không tính</div>`
+                                    : `<div id="calc-cons-${m.id}" class="font-mono font-extrabold text-base ${anom.isAnomaly ? 'text-rose-500' : (isElectric ? 'text-amber-500' : 'text-cyan-500')}">
+                                        ${consumption.toLocaleString('vi-VN')} ${m.unit}
+                                       </div>`}
                             </td>
                             <td class="py-3.5 px-3 text-center" id="status-cell-${m.id}">
                                 ${anom.isAnomaly ? '<span class="px-2 py-0.5 rounded text-[10px] font-extrabold bg-rose-500 text-white">Vượt ngưỡng</span>' : (isSaved ? '<span class="text-emerald-500 font-bold text-xs">Đã lưu</span>' : '<span class="text-amber-500 font-bold text-xs">Chờ lưu</span>')}
@@ -3120,60 +3107,6 @@
 
             document.getElementById('electricMeterTableBody').innerHTML = renderRows(elecMeters, true);
             document.getElementById('waterMeterTableBody').innerHTML = renderRows(waterMeters, false);
-
-            const nonConsTbody = document.getElementById('nonConsumptionMeterTableBody');
-            const nonConsCountEl = document.getElementById('tableCountNonConsumption');
-            if (nonConsCountEl) nonConsCountEl.textContent = `${nonConsMeters.length} công tơ`;
-            if (nonConsTbody) {
-                nonConsTbody.innerHTML = nonConsMeters.length > 0 ? nonConsMeters.map(m => {
-                    const savedRec = dayRecords[m.id];
-                    const prevVal = getPreviousReadingForMeter(m.id, selectedDate);
-                    const draftKey = `${selectedDate}__${m.id}`;
-                    const currVal = unsavedMeterInputs[draftKey] !== undefined ? unsavedMeterInputs[draftKey] : '';
-                    const isSaved = savedRec && unsavedMeterInputs[draftKey] === undefined;
-                    const unitBadge = m.unit ? `<span class="font-mono text-xs font-semibold text-purple-500">${m.unit}</span>` : '<span class="text-xs text-slate-400">—</span>';
-                    const savedNote = savedRec && typeof savedRec.curr === 'number'
-                        ? `<div class="text-[10px] text-emerald-500 font-mono mt-0.5 text-right">Đã chốt: ${savedRec.curr.toLocaleString('vi-VN')}${m.unit ? ' ' + m.unit : ''}</div>`
-                        : '';
-                    return `
-                        <tr id="row-meter-${m.id}" class="hover:bg-purple-500/5 transition">
-                            <td class="py-3.5 px-4">
-                                <div class="flex items-center gap-1.5 flex-wrap">
-                                    <span class="font-bold font-mono">${m.code}</span>
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-extrabold bg-purple-500/20 text-purple-500">KHÔNG TÍNH TT</span>
-                                </div>
-                                <div class="text-xs text-slate-500">${m.name}</div>
-                            </td>
-                            <td class="py-3.5 px-3"><span class="text-xs px-2.5 py-1 rounded-xl bg-slate-200/70 dark:bg-slate-800">${(m.zone || '').split('(')[0]}</span></td>
-                            <td class="py-3.5 px-3 text-center">${unitBadge}</td>
-                            <td class="py-3.5 px-3 text-right font-mono font-bold text-slate-500">${prevVal.toLocaleString('vi-VN')}</td>
-                            <td class="py-3.5 px-4">
-                                <input type="number" step="any" inputmode="decimal" id="input-meter-${m.id}" value="${currVal}" ${!canRecord ? 'disabled' : ''}
-                                    oninput="handleMeterInputChange('${m.id}', '${selectedDate}', ${prevVal}, ${m.multiplier || 1}, this.value); resizeMeterReadingInput(this)"
-                                    placeholder="Nhập bất kỳ..."
-                                    class="meter-reading-input px-3.5 py-2.5 rounded-2xl text-right font-mono font-bold text-base bg-white dark:bg-slate-900 border-2 border-purple-500/40 focus:outline-none"
-                                    style="width: ${Math.max(112, (String(currVal || '').length + 2) * 9)}px">
-                                ${savedNote}
-                            </td>
-                            <td class="py-3.5 px-3 text-right">
-                                <div id="calc-cons-${m.id}" class="text-xs font-semibold text-slate-400 italic">Không tính</div>
-                            </td>
-                            <td class="py-3.5 px-3 text-center" id="status-cell-${m.id}">
-                                ${isSaved ? '<span class="text-emerald-500 font-bold text-xs">Đã lưu</span>' : '<span class="text-amber-500 font-bold text-xs">Chờ lưu</span>'}
-                            </td>
-                            <td class="py-3.5 px-4 text-right">
-                                <div class="inline-flex items-center gap-1.5">
-                                    <button onclick="saveSingleMeterReading('${m.id}')" class="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow ${!canRecord ? 'opacity-50' : ''}">Lưu</button>
-                                    <button onclick="moveMeterOrder('${m.id}', -1)" title="Đưa lên" class="p-2 rounded-xl hover:bg-indigo-500/15 text-slate-400 hover:text-indigo-500 ${!canManageMeters ? 'opacity-40' : ''}"><i data-lucide="chevron-up" class="w-4 h-4"></i></button>
-                                    <button onclick="moveMeterOrder('${m.id}', 1)" title="Đưa xuống" class="p-2 rounded-xl hover:bg-indigo-500/15 text-slate-400 hover:text-indigo-500 ${!canManageMeters ? 'opacity-40' : ''}"><i data-lucide="chevron-down" class="w-4 h-4"></i></button>
-                                    <button onclick="openEditMeterModal('${m.id}')" title="Chỉnh sửa cấu hình" class="p-2 rounded-xl hover:bg-blue-500/15 text-slate-400 hover:text-blue-500 ${!canManageMeters ? 'opacity-40' : ''}"><i data-lucide="pencil" class="w-4 h-4"></i></button>
-                                    <button onclick="deleteMeter('${m.id}')" title="Xóa công tơ" class="p-2 rounded-xl hover:bg-red-500/15 text-slate-400 hover:text-red-500 ${!canManageMeters ? 'opacity-40' : ''}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                                </div>
-                            </td>
-                        </tr>
-                    `;
-                }).join('') : `<tr><td colspan="8" class="py-8 px-4 text-center text-xs text-slate-500">Chưa có công tơ loại "Không Tính Tiêu Thụ". Bấm <strong>Thêm công tơ</strong> hoặc <strong>Thêm Công Tơ Excel</strong> để tạo mới.</td></tr>`;
-            }
 
             const effectiveElec = masterElecSum > 0 ? masterElecSum : subElecSum;
             document.getElementById('tableTotalElec').textContent = `${effectiveElec.toLocaleString('vi-VN')} kWh`;
@@ -3413,8 +3346,7 @@
             const dates = getMatrixDatesList();
             const orderedMeters = getOrderedMeters().filter(m => m.type === activeMeterTab);
             const isElectric = activeMeterTab === 'electric';
-            const isNonConsTab = activeMeterTab === 'non_consumption';
-            const unitLabel = isElectric ? 'kWh' : (isNonConsTab ? 'Chỉ số' : 'm³');
+            const unitLabel = isElectric ? 'kWh' : 'm³';
             const canRecord = hasPermission('allowRecordMeters');
 
             const statsEl = document.getElementById('matrixStatsSummary');
@@ -3428,9 +3360,7 @@
             const pctFilled = totalCells > 0 ? Math.round((filledCells / totalCells) * 100) : 0;
 
             if (statsEl) {
-                const tabColor = isElectric ? 'text-amber-500' : (isNonConsTab ? 'text-purple-500' : 'text-cyan-500');
-                const tabName = isElectric ? '⚡ Công tơ Điện' : (isNonConsTab ? '📋 Không Tính Tiêu Thụ' : '💧 Đồng hồ Nước');
-                statsEl.innerHTML = `<span class="${tabColor} font-bold">${tabName}</span> • ${orderedMeters.length} công tơ × ${dates.length} ngày • Đã chốt: <strong>${filledCells}/${totalCells} ô (${pctFilled}%)</strong>`;
+                statsEl.innerHTML = `<span class="${isElectric ? 'text-amber-500' : 'text-cyan-500'} font-bold">${isElectric ? '⚡ Công tơ Điện' : '💧 Đồng hồ Nước'}</span> • ${orderedMeters.length} công tơ × ${dates.length} ngày • Đã chốt: <strong>${filledCells}/${totalCells} ô (${pctFilled}%)</strong>`;
             }
             const badgeTrack = document.getElementById('trackingCompletionBadge');
             if (badgeTrack) badgeTrack.textContent = `Đã nhập: ${filledCells}/${totalCells} ô (${pctFilled}%)`;
@@ -3453,7 +3383,8 @@
                 `;
 
                 entryTbody.innerHTML = orderedMeters.map(m => {
-                    const roleBadge = isNonConsTab
+                    const nonCons = isNonConsumptionMeter(m);
+                    const roleBadge = nonCons
                         ? '<span class="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-purple-500/20 text-purple-500">KHÔNG TÍNH TT</span>'
                         : (m.isMaster
                             ? '<span class="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-amber-500/20 text-amber-500">MASTER</span>'
@@ -3467,20 +3398,20 @@
                         const displayVal = hasDraft
                             ? matrixDraftInputs[key]
                             : (savedRec && typeof savedRec.curr === 'number' ? savedRec.curr : '');
-                        const consVal = (!isNonConsTab && savedRec && typeof savedRec.consumption === 'number') ? savedRec.consumption : null;
+                        const consVal = (!nonCons && savedRec && typeof savedRec.consumption === 'number') ? savedRec.consumption : null;
 
                         return `
                             <td class="p-1.5 text-center align-top">
                                 <input type="number" step="any" inputmode="decimal"
                                     id="matrix-cell-${d}-${m.id}"
                                     value="${displayVal}"
-                                    placeholder="${isNonConsTab ? 'Nhập tự do' : 'Số cũ: ' + prevVal}"
+                                    placeholder="${nonCons ? 'Nhập tự do' : 'Số cũ: ' + prevVal}"
                                     ${!canRecord ? 'disabled' : ''}
                                     oninput="handleMatrixCellInput('${m.id}', '${d}', this.value, this)"
                                     class="w-full min-w-[104px] px-2.5 py-1.5 rounded-xl text-right font-mono font-bold text-xs bg-white dark:bg-slate-900 border ${hasDraft ? 'border-amber-500 bg-amber-500/10' : (savedRec ? 'border-emerald-500/40' : 'border-slate-300/70 dark:border-slate-700')} focus:outline-none">
                                 <div class="flex items-center justify-between text-[10px] px-1 mt-0.5 text-slate-400 font-mono">
-                                    <span>${isNonConsTab ? 'Trước:' + prevVal : 'Cũ:' + prevVal}</span>
-                                    <span class="${consVal !== null ? (isElectric ? 'text-amber-500 font-bold' : 'text-cyan-500 font-bold') : (isNonConsTab ? 'text-purple-400' : '')}">${isNonConsTab ? 'Không tính' : (consVal !== null ? `+${consVal}` : '—')}</span>
+                                    <span>${nonCons ? 'Trước:' + prevVal : 'Cũ:' + prevVal}</span>
+                                    <span class="${nonCons ? 'text-purple-400' : (consVal !== null ? (isElectric ? 'text-amber-500 font-bold' : 'text-cyan-500 font-bold') : '')}">${nonCons ? 'K.Tính' : (consVal !== null ? `+${consVal}` : '—')}</span>
                                 </div>
                             </td>
                         `;
@@ -3538,12 +3469,15 @@
                         `;
                     }).join('');
 
-                    const roleBadge = m.isMaster
-                        ? '<span class="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-amber-500/20 text-amber-500">MASTER</span>'
-                        : '<span class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-blue-500/15 text-blue-500">SUB</span>';
+                    const nonCons = isNonConsumptionMeter(m);
+                    const roleBadge = nonCons
+                        ? '<span class="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-purple-500/20 text-purple-500">KHÔNG TÍNH TT</span>'
+                        : (m.isMaster
+                            ? '<span class="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-amber-500/20 text-amber-500">MASTER</span>'
+                            : '<span class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-blue-500/15 text-blue-500">SUB</span>');
 
                     return `
-                        <tr class="${m.isMaster ? 'bg-amber-500/5' : 'hover:bg-slate-500/5'}">
+                        <tr class="${nonCons ? 'bg-purple-500/5' : (m.isMaster ? 'bg-amber-500/5' : 'hover:bg-slate-500/5')}">
                             <td class="py-2.5 px-3 sticky left-0 z-10 bg-white/95 dark:bg-slate-900/95 border-r border-slate-200/60 dark:border-slate-700/60">
                                 <div class="flex items-center gap-1.5">
                                     <span class="font-mono font-bold text-xs">${m.code}</span>
@@ -3579,33 +3513,7 @@
             // 3. Render Daily Consumption Table
             const consThead = document.getElementById('matrixConsumptionThead');
             const consTbody = document.getElementById('matrixConsumptionTbody');
-            if (consThead && consTbody && isNonConsTab) {
-                consThead.innerHTML = `
-                    <tr class="border-b border-slate-200/70 dark:border-slate-700/60">
-                        <th class="py-3 px-3 sticky left-0 z-30 bg-slate-100 dark:bg-slate-800 min-w-[210px] border-r border-slate-200/60 dark:border-slate-700/60">Công Tơ (Không Tính Tiêu Thụ)</th>
-                        <th class="py-3 px-2 text-center min-w-[64px]">Đơn Vị</th>
-                        ${dates.map(d => `<th class="py-3 px-2.5 text-right min-w-[105px] font-mono">${formatShortDate(d)}</th>`).join('')}
-                    </tr>
-                `;
-                consTbody.innerHTML = orderedMeters.length > 0 ? orderedMeters.map(m => `
-                    <tr class="hover:bg-purple-500/5">
-                        <td class="py-2.5 px-3 sticky left-0 z-10 bg-white/95 dark:bg-slate-900/95 border-r border-slate-200/60 dark:border-slate-700/60">
-                            <div class="flex items-center gap-1.5">
-                                <span class="font-mono font-bold text-xs">${m.code}</span>
-                                <span class="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-purple-500/20 text-purple-500">KHÔNG TÍNH TT</span>
-                            </div>
-                            <div class="text-[11px] text-slate-500 truncate max-w-[190px]">${m.name}</div>
-                        </td>
-                        <td class="py-2.5 px-2 text-center font-mono text-xs text-purple-500 font-bold">${m.unit || '—'}</td>
-                        ${dates.map(d => {
-                            const rec = appState.readings?.[d]?.[m.id];
-                            return rec && typeof rec.curr === 'number'
-                                ? `<td class="py-2.5 px-2.5 text-right font-mono font-bold text-purple-500">${rec.curr.toLocaleString('vi-VN')}</td>`
-                                : `<td class="py-2.5 px-2.5 text-right font-mono text-slate-400">—</td>`;
-                        }).join('')}
-                    </tr>
-                `).join('') : `<tr><td colspan="${dates.length + 2}" class="py-8 px-4 text-center text-xs text-slate-500">Loại công tơ "Không Tính Tiêu Thụ" chỉ lưu trữ chỉ số trực tiếp, không tính sản lượng tiêu thụ.</td></tr>`;
-            } else if (consThead && consTbody) {
+            if (consThead && consTbody) {
                 consThead.innerHTML = `
                     <tr class="border-b border-slate-200/70 dark:border-slate-700/60">
                         <th class="py-3 px-3 sticky left-0 z-30 bg-slate-100 dark:bg-slate-800 min-w-[210px] border-r border-slate-200/60 dark:border-slate-700/60">Công Tơ (${unitLabel})</th>
@@ -3620,10 +3528,14 @@
                 const dailySubSums = dates.map(() => 0);
 
                 const consRowsHtml = orderedMeters.map(m => {
+                    const nonCons = isNonConsumptionMeter(m);
                     let rowSum = 0;
                     let rowDays = 0;
 
                     const cells = dates.map((d, dIdx) => {
+                        if (nonCons) {
+                            return `<td class="py-2.5 px-2.5 text-right font-mono text-purple-400/80 text-[11px] italic">Không tính</td>`;
+                        }
                         const rec = appState.readings?.[d]?.[m.id];
                         const cons = rec && typeof rec.consumption === 'number' ? rec.consumption : null;
                         if (cons !== null) {
@@ -3644,12 +3556,14 @@
                     }).join('');
 
                     const avgVal = rowDays > 0 ? Math.round((rowSum / rowDays) * 10) / 10 : 0;
-                    const roleBadge = m.isMaster
-                        ? '<span class="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-amber-500/20 text-amber-500">MASTER</span>'
-                        : '<span class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-blue-500/15 text-blue-500">SUB</span>';
+                    const roleBadge = nonCons
+                        ? '<span class="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-purple-500/20 text-purple-500">KHÔNG TÍNH TT</span>'
+                        : (m.isMaster
+                            ? '<span class="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-amber-500/20 text-amber-500">MASTER</span>'
+                            : '<span class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-blue-500/15 text-blue-500">SUB</span>');
 
                     return `
-                        <tr class="${m.isMaster ? 'bg-amber-500/5' : 'hover:bg-slate-500/5'}">
+                        <tr class="${nonCons ? 'bg-purple-500/5' : (m.isMaster ? 'bg-amber-500/5' : 'hover:bg-slate-500/5')}">
                             <td class="py-2.5 px-3 sticky left-0 z-10 bg-white/95 dark:bg-slate-900/95 border-r border-slate-200/60 dark:border-slate-700/60">
                                 <div class="flex items-center gap-1.5">
                                     <span class="font-mono font-bold text-xs">${m.code}</span>
@@ -3657,10 +3571,10 @@
                                 </div>
                                 <div class="text-[11px] text-slate-500 truncate max-w-[190px]">${m.name}</div>
                             </td>
-                            <td class="py-2.5 px-2 text-center font-mono font-bold">×${m.multiplier || 1}</td>
+                            <td class="py-2.5 px-2 text-center font-mono font-bold">${nonCons ? '—' : ('×' + (m.multiplier || 1))}</td>
                             ${cells}
-                            <td class="py-2.5 px-3 text-right font-mono font-extrabold bg-slate-100/70 dark:bg-slate-800/50 ${isElectric ? 'text-amber-500' : 'text-cyan-500'}">${Math.round(rowSum * 100) / 100} ${unitLabel}</td>
-                            <td class="py-2.5 px-3 text-right font-mono font-semibold text-slate-600 dark:text-slate-300">${avgVal.toLocaleString('vi-VN')}</td>
+                            <td class="py-2.5 px-3 text-right font-mono font-extrabold bg-slate-100/70 dark:bg-slate-800/50 ${nonCons ? 'text-purple-400 italic text-[11px]' : (isElectric ? 'text-amber-500' : 'text-cyan-500')}">${nonCons ? 'Không tính' : `${Math.round(rowSum * 100) / 100} ${unitLabel}`}</td>
+                            <td class="py-2.5 px-3 text-right font-mono font-semibold text-slate-600 dark:text-slate-300">${nonCons ? '—' : avgVal.toLocaleString('vi-VN')}</td>
                         </tr>
                     `;
                 }).join('');
@@ -3850,69 +3764,61 @@
             return zones.map(z => `<option value="${z.replace(/"/g, '&quot;')}" ${z === selectedZone ? 'selected' : ''}>${z}</option>`).join('');
         }
 
-        window.toggleMeterConfigTypeFields = function() {
-            const typeVal = document.getElementById('meterConfigType')?.value || 'electric';
-            const isNonCons = typeVal === 'non_consumption';
-            const roleWrap = document.getElementById('meterConfigRoleWrap');
+        window.toggleMeterConfigRoleFields = function() {
+            const roleVal = document.getElementById('meterConfigRole')?.value || 'sub';
+            const isNonCons = roleVal === 'no_consumption';
             const multWrap = document.getElementById('meterConfigMultWrap');
-            const unitWrap = document.getElementById('meterConfigUnitWrap');
             const noteEl = document.getElementById('meterConfigNonConsNote');
-            if (roleWrap) roleWrap.classList.toggle('hidden', isNonCons);
-            if (multWrap) multWrap.classList.toggle('hidden', isNonCons);
-            if (unitWrap) unitWrap.classList.toggle('hidden', !isNonCons);
+            if (multWrap) multWrap.classList.toggle('opacity-50', isNonCons);
             if (noteEl) noteEl.classList.toggle('hidden', !isNonCons);
         };
 
         function getMeterConfigFormHtml(meter = {}) {
             const isEditing = Boolean(meter.id);
-            const curType = meter.type || (activeMeterTab === 'non_consumption' ? 'non_consumption' : (activeMeterTab === 'water' ? 'water' : 'electric'));
-            const isNonCons = curType === 'non_consumption';
+            const curRole = getMeterRoleValue(meter);
+            const isNonCons = curRole === 'no_consumption';
             return `
                 <form onsubmit="handleSaveMeter(event, ${isEditing ? `'${meter.id}'` : 'null'})" class="space-y-3.5 text-xs sm:text-sm">
                     <div class="grid grid-cols-2 gap-3">
-                        <div class="${isNonCons ? 'col-span-2' : ''}" id="meterConfigTypeCol">
-                            <label class="font-semibold text-slate-500">Loại công tơ</label>
-                            <select id="meterConfigType" onchange="toggleMeterConfigTypeFields()" class="w-full mt-1 px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border font-bold">
-                                <option value="electric" ${curType === 'electric' ? 'selected' : ''}>⚡ Điện (kWh)</option>
-                                <option value="water" ${curType === 'water' ? 'selected' : ''}>💧 Nước (m³)</option>
-                                <option value="non_consumption" ${curType === 'non_consumption' ? 'selected' : ''}>📋 Không Tính Tiêu Thụ</option>
+                        <div>
+                            <label class="font-semibold text-slate-500">Loại</label>
+                            <select id="meterConfigType" class="w-full mt-1 px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border font-bold">
+                                <option value="electric" ${meter.type !== 'water' ? 'selected' : ''}>⚡ Điện (kWh)</option>
+                                <option value="water" ${meter.type === 'water' ? 'selected' : ''}>💧 Nước (m³)</option>
                             </select>
                         </div>
-                        <div id="meterConfigRoleWrap" class="${isNonCons ? 'hidden' : ''}">
+                        <div>
                             <label class="font-semibold text-slate-500">Phân loại</label>
-                            <select id="meterConfigIsMaster" class="w-full mt-1 px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border font-bold">
-                                <option value="false" ${!meter.isMaster ? 'selected' : ''}>Nhánh (Sub-meter)</option>
-                                <option value="true" ${meter.isMaster ? 'selected' : ''}>★ Đầu nguồn (Master)</option>
+                            <select id="meterConfigRole" onchange="toggleMeterConfigRoleFields()" class="w-full mt-1 px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border font-bold">
+                                <option value="sub" ${curRole === 'sub' ? 'selected' : ''}>Nhánh (Sub-meter)</option>
+                                <option value="master" ${curRole === 'master' ? 'selected' : ''}>★ Đầu nguồn (Master)</option>
+                                <option value="no_consumption" ${curRole === 'no_consumption' ? 'selected' : ''}>📋 Không Tính Tiêu Thụ</option>
                             </select>
                         </div>
                     </div>
                     <div id="meterConfigNonConsNote" class="${isNonCons ? '' : 'hidden'} p-3 rounded-2xl bg-purple-500/10 border border-purple-500/30 text-[11px] text-purple-600 dark:text-purple-300 leading-relaxed">
-                        <strong>Không Tính Tiêu Thụ:</strong> Chỉ số ghi nhận tự do (không bắt buộc số hôm sau ≥ số hôm trước), không tính sản lượng tiêu thụ và không cộng vào tổng điện/nước.
+                        <strong>Phân loại Không Tính Tiêu Thụ:</strong> Chỉ số ghi nhận tự do (không bắt buộc số hôm sau ≥ số hôm trước), không tính tiêu thụ và không cộng vào tổng điện/nước.
                     </div>
                     <div>
                         <label class="font-semibold text-slate-500">Mã công tơ</label>
-                        <input id="meterConfigCode" type="text" required value="${meter.code || ''}" placeholder="VD: EM-VILLA-09 hoặc NC-01" class="w-full mt-1 px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border font-mono font-bold">
+                        <input id="meterConfigCode" type="text" required value="${meter.code || ''}" placeholder="VD: EM-VILLA-09" class="w-full mt-1 px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border font-mono font-bold">
                     </div>
                     <div>
                         <label class="font-semibold text-slate-500">Tên công tơ / Vị trí</label>
-                        <input id="meterConfigName" type="text" required value="${meter.name || ''}" placeholder="VD: Công tơ Villa 45 hoặc Đồng hồ áp suất" class="w-full mt-1 px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border">
+                        <input id="meterConfigName" type="text" required value="${meter.name || ''}" placeholder="VD: Công tơ Villa 45" class="w-full mt-1 px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border">
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="font-semibold text-slate-500">Khu vực</label>
                             <select id="meterConfigZone" class="w-full mt-1 px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border">${getMeterZonesOptions(meter.zone)}</select>
                         </div>
-                        <div id="meterConfigMultWrap" class="${isNonCons ? 'hidden' : ''}">
+                        <div id="meterConfigMultWrap" class="${isNonCons ? 'opacity-50' : ''}">
                             <label class="font-semibold text-slate-500">Hệ số nhân</label>
-                            <input id="meterConfigMult" type="number" min="0.000001" step="any" value="${meter.multiplier ?? 1}" class="w-full mt-1 px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border font-bold">
-                        </div>
-                        <div id="meterConfigUnitWrap" class="${isNonCons ? '' : 'hidden'}">
-                            <label class="font-semibold text-slate-500">Đơn vị (tùy chọn)</label>
-                            <input id="meterConfigUnit" type="text" value="${isNonCons ? (meter.unit || '') : ''}" placeholder="VD: Bar, °C, V, A, %" class="w-full mt-1 px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border font-mono font-bold">
+                            <input id="meterConfigMult" type="number" min="0.000001" step="any" value="${meter.multiplier ?? 1}" required class="w-full mt-1 px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border font-bold">
                         </div>
                     </div>
                     <div>
-                        <label class="font-semibold text-slate-500">Chỉ số ban đầu (Tham khảo)</label>
+                        <label class="font-semibold text-slate-500">Số bàn giao ban đầu</label>
                         <input id="meterConfigBase" type="number" step="any" value="${meter.baseReading ?? 0}" required class="w-full mt-1 px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border font-mono font-bold">
                     </div>
                     <div class="p-3 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-[11px] text-slate-500 dark:text-slate-300">
@@ -3940,29 +3846,28 @@
             if (!checkPermission('allowManageMeters', meterId ? 'Chỉnh sửa cấu hình công tơ' : 'Thêm công tơ mới')) return;
 
             const type = document.getElementById('meterConfigType').value;
-            const isNonCons = type === 'non_consumption';
+            const roleVal = document.getElementById('meterConfigRole').value;
+            const isMaster = roleVal === 'master';
+            const noConsumption = roleVal === 'no_consumption';
             const code = document.getElementById('meterConfigCode').value.trim();
             const name = document.getElementById('meterConfigName').value.trim();
             const zone = document.getElementById('meterConfigZone').value;
-            const multiplier = isNonCons ? 1 : Number(document.getElementById('meterConfigMult').value);
+            const multiplier = noConsumption ? 1 : Number(document.getElementById('meterConfigMult').value);
             const baseReading = Number(document.getElementById('meterConfigBase').value);
-            const isMaster = isNonCons ? false : (document.getElementById('meterConfigIsMaster').value === 'true');
-            const customUnit = (document.getElementById('meterConfigUnit')?.value || '').trim();
 
-            if (!code || !name || !Number.isFinite(multiplier) || multiplier <= 0 || !Number.isFinite(baseReading) || (!isNonCons && baseReading < 0)) {
-                showToast('Vui lòng kiểm tra mã, tên, hệ số và chỉ số ban đầu.', 'red'); return;
+            if (!code || !name || !Number.isFinite(multiplier) || multiplier <= 0 || !Number.isFinite(baseReading) || (!noConsumption && baseReading < 0)) {
+                showToast('Vui lòng kiểm tra mã, tên, hệ số và số bàn giao ban đầu.', 'red'); return;
             }
             const duplicate = (appState.meters || []).find(m => m.code.toLowerCase() === code.toLowerCase() && m.id !== meterId);
             if (duplicate) { showToast(`Mã công tơ “${code}” đã tồn tại.`, 'red'); return; }
 
-            const unit = type === 'electric' ? 'kWh' : (type === 'water' ? 'm³' : customUnit);
+            const unit = type === 'electric' ? 'kWh' : 'm³';
             const existing = meterId ? (appState.meters || []).find(m => m.id === meterId) : null;
-            const payload = { type, isMaster, noConsumption: isNonCons, code, name, zone, multiplier, unit, baseReading };
+            const payload = { type, isMaster, noConsumption, meterRole: roleVal, code, name, zone, multiplier, unit, baseReading };
             if (existing) {
                 Object.assign(existing, payload);
             } else {
-                const prefix = type === 'electric' ? 'EM' : (type === 'water' ? 'WM' : 'NC');
-                const newMeter = { id: `${prefix}-${Date.now()}`, ...payload, avgDaily: 0 };
+                const newMeter = { id: `${type === 'electric' ? 'EM' : 'WM'}-${Date.now()}`, ...payload, avgDaily: 0 };
                 appState.meters.push(newMeter);
                 if (!Array.isArray(appState.meterOrder)) appState.meterOrder = [];
                 appState.meterOrder.push(newMeter.id);
@@ -4221,7 +4126,7 @@
                 dates.forEach(date => { row[date] = appState.readings?.[date]?.[m.id]?.curr ?? ''; });
                 return row;
             });
-            const makeConsumptionRows = meterType => meters.filter(m => m.type === meterType).map((m, index) => {
+            const makeConsumptionRows = meterType => meters.filter(m => m.type === meterType && !isNonConsumptionMeter(m)).map((m, index) => {
                 const row = {
                     'STT': index + 1, 'Mã công tơ': m.code, 'Tên công tơ': m.name,
                     'Loại công tơ': m.type === 'electric' ? 'Điện' : 'Nước', 'Hệ số': m.multiplier || 1,
@@ -4242,23 +4147,12 @@
             appendMatrixSheet(makeConsumptionRows('electric'), 'Dien_Tieu_Thu');
             appendMatrixSheet(makeRows('water'), 'Nuoc_Chi_So');
             appendMatrixSheet(makeConsumptionRows('water'), 'Nuoc_Tieu_Thu');
-            const nonConsExportRows = meters.filter(isNonConsumptionMeter).map((m, index) => {
-                const row = {
-                    'STT': index + 1, 'Mã công tơ': m.code, 'Tên công tơ': m.name,
-                    'Loại công tơ': 'Không Tính Tiêu Thụ', 'Hệ số': m.unit || '—',
-                    'Khu vực': m.zone || '', 'Ngày bắt đầu xuất': fromDate
-                };
-                dates.forEach(date => { row[date] = appState.readings?.[date]?.[m.id]?.curr ?? ''; });
-                return row;
-            });
-            if (nonConsExportRows.length > 0) {
-                appendMatrixSheet(nonConsExportRows, 'Khong_Tinh_Tieu_Thu');
-            }
 
             const summaryRows = dates.map(date => {
                 const tariff = getTariffForDate(date);
                 let electricity = 0, water = 0;
                 meters.forEach(m => {
+                    if (isNonConsumptionMeter(m)) return;
                     const consumption = Number(appState.readings?.[date]?.[m.id]?.consumption) || 0;
                     if (m.type === 'electric') electricity += consumption;
                     if (m.type === 'water' && !m.isEffluent) water += consumption;
@@ -4372,24 +4266,22 @@
                 'STT': idx + 1,
                 'Mã công tơ (*)': m.code,
                 'Tên công tơ (*)': m.name,
-                'Loại (Điện / Nước / Không Tính Tiêu Thụ)': m.type === 'water' ? 'Nước' : (isNonConsumptionMeter(m) ? 'Không Tính Tiêu Thụ' : 'Điện'),
-                'Phân loại (Master / Sub)': isNonConsumptionMeter(m) ? '—' : (m.isMaster ? 'Master' : 'Sub'),
+                'Loại (Điện / Nước)': m.type === 'water' ? 'Nước' : 'Điện',
+                'Phân loại (Master / Sub / Không Tính Tiêu Thụ)': isNonConsumptionMeter(m) ? 'Không Tính Tiêu Thụ' : (m.isMaster ? 'Master' : 'Sub'),
                 'Khu vực': m.zone || '',
                 'Hệ số nhân': isNonConsumptionMeter(m) ? 1 : (m.multiplier ?? 1),
-                'Đơn vị': m.unit || '',
                 'Số bàn giao ban đầu': m.baseReading ?? 0,
                 'Xả thải STP (Có / Không)': m.isEffluent ? 'Có' : 'Không'
             }));
 
             const guideRows = [
-                { 'Cột': 'Mã công tơ (*)', 'Hướng dẫn': 'Bắt buộc, duy nhất. VD: EM-VILLA-01, WM-POOL-01, NC-01. Nếu trùng mã cũ sẽ cập nhật cấu hình.' },
+                { 'Cột': 'Mã công tơ (*)', 'Hướng dẫn': 'Bắt buộc, duy nhất. VD: EM-VILLA-01, WM-POOL-01. Nếu trùng mã cũ sẽ cập nhật cấu hình.' },
                 { 'Cột': 'Tên công tơ (*)', 'Hướng dẫn': 'Bắt buộc. Tên hiển thị hoặc vị trí lắp đặt công tơ.' },
-                { 'Cột': 'Loại (Điện / Nước / Không Tính Tiêu Thụ)', 'Hướng dẫn': 'Nhập "Điện", "Nước", hoặc "Không Tính Tiêu Thụ" (hoặc non_consumption / KTTT).' },
-                { 'Cột': 'Phân loại (Master / Sub)', 'Hướng dẫn': 'Nhập "Master" (Đầu nguồn) hoặc "Sub" (Công tơ nhánh). Không áp dụng cho loại Không Tính Tiêu Thụ.' },
+                { 'Cột': 'Loại (Điện / Nước)', 'Hướng dẫn': 'Nhập "Điện" (hoặc electric/kWh) hoặc "Nước" (hoặc water/m3).' },
+                { 'Cột': 'Phân loại (Master / Sub / Không Tính Tiêu Thụ)', 'Hướng dẫn': 'Nhập "Master" (Đầu nguồn), "Sub" (Công tơ nhánh) hoặc "Không Tính Tiêu Thụ" (hoặc KTTT / no_consumption).' },
                 { 'Cột': 'Khu vực', 'Hướng dẫn': 'Tên khu vực. Nếu là khu vực mới, hệ thống tự động thêm vào danh sách khu vực.' },
                 { 'Cột': 'Hệ số nhân', 'Hướng dẫn': 'Số dương (mặc định 1). VD: 1, 10, 20, 50, 80.' },
-                { 'Cột': 'Đơn vị', 'Hướng dẫn': 'Mặc định kWh (Điện) / m³ (Nước). Với loại Không Tính Tiêu Thụ có thể nhập tùy ý (Bar, °C, V, A, %...) hoặc để trống.' },
-                { 'Cột': 'Số bàn giao ban đầu', 'Hướng dẫn': 'Chỉ số gốc ban đầu của công tơ.' },
+                { 'Cột': 'Số bàn giao ban đầu', 'Hướng dẫn': 'Chỉ số gốc ban đầu của công tơ (>= 0).' },
                 { 'Cột': 'Xả thải STP (Có / Không)', 'Hướng dẫn': 'Chỉ áp dụng cho đồng hồ nước thải đầu ra STP (nhập "Có" hoặc "Không").' }
             ];
 
@@ -4433,26 +4325,21 @@
                         seenCodes.add(codeKey);
 
                         const typeRaw = normalizeExcelHeader(pickExcelCell(norm, ['loai', 'loaicongto', 'type'], 'dien'));
-                        let type = 'electric';
-                        if (typeRaw.includes('khongtinh') || typeRaw.includes('nonconsumption') || typeRaw === 'kttt' || typeRaw.includes('ghiso') || code.toUpperCase().startsWith('NC')) {
-                            type = 'non_consumption';
-                        } else if (typeRaw.includes('nuoc') || typeRaw.includes('water') || typeRaw.includes('m3') || code.toUpperCase().startsWith('WM')) {
-                            type = 'water';
-                        }
-                        const isNonCons = type === 'non_consumption';
+                        const type = (typeRaw.includes('nuoc') || typeRaw.includes('water') || typeRaw.includes('m3') || code.toUpperCase().startsWith('WM')) ? 'water' : 'electric';
 
                         const roleRaw = normalizeExcelHeader(pickExcelCell(norm, ['phanloai', 'role', 'master', 'daunguon'], 'sub'));
-                        const isMaster = isNonCons ? false : (roleRaw.includes('master') || roleRaw.includes('daunguon') || roleRaw.includes('tong') || roleRaw === 'co' || roleRaw === 'true' || roleRaw === '1');
+                        const noConsumption = roleRaw.includes('khongtinh') || roleRaw.includes('noconsumption') || roleRaw.includes('nonconsumption') || roleRaw === 'kttt';
+                        const isMaster = !noConsumption && (roleRaw.includes('master') || roleRaw.includes('daunguon') || roleRaw.includes('tong') || roleRaw === 'co' || roleRaw === 'true' || roleRaw === '1');
+                        const meterRole = noConsumption ? 'no_consumption' : (isMaster ? 'master' : 'sub');
 
                         const zone = pickExcelCell(norm, ['khuvuc', 'zone', 'area'], (appState.zones && appState.zones[0]) || 'Khu vực chung');
                         const multVal = parseExcelNumber(pickExcelCell(norm, ['hesonhan', 'heso', 'multiplier'], '1'), 1);
-                        const multiplier = isNonCons ? 1 : ((multVal !== null && multVal > 0) ? multVal : 1);
+                        const multiplier = noConsumption ? 1 : ((multVal !== null && multVal > 0) ? multVal : 1);
                         const baseVal = parseExcelNumber(pickExcelCell(norm, ['sobangiao', 'sobangioban', 'chisodau', 'basereading', 'base'], '0'), 0);
-                        const baseReading = baseVal !== null ? (isNonCons ? baseVal : Math.max(0, baseVal)) : 0;
-                        const customUnit = pickExcelCell(norm, ['donvi', 'unit'], '');
+                        const baseReading = baseVal !== null ? (noConsumption ? baseVal : Math.max(0, baseVal)) : 0;
 
                         const effRaw = normalizeExcelHeader(pickExcelCell(norm, ['xathai', 'stp', 'effluent'], 'khong'));
-                        const isEffluent = type === 'water' && (effRaw === 'co' || effRaw === 'yes' || effRaw === 'true' || effRaw === '1');
+                        const isEffluent = !noConsumption && type === 'water' && (effRaw === 'co' || effRaw === 'yes' || effRaw === 'true' || effRaw === '1');
 
                         const existing = (appState.meters || []).find(m => m.code.toLowerCase() === codeKey || m.id.toLowerCase() === codeKey);
                         parsed.push({
@@ -4461,10 +4348,11 @@
                             name,
                             type,
                             isMaster,
-                            noConsumption: isNonCons,
+                            noConsumption,
+                            meterRole,
                             zone,
                             multiplier,
-                            unit: type === 'electric' ? 'kWh' : (type === 'water' ? 'm³' : customUnit),
+                            unit: type === 'electric' ? 'kWh' : 'm³',
                             baseReading,
                             isEffluent
                         });
@@ -4510,8 +4398,8 @@
                                         ${parsed.map(m => `
                                             <tr>
                                                 <td class="p-2 whitespace-nowrap">${m.existingId ? '<span class="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-500 font-bold">Cập nhật</span>' : '<span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-500 font-bold">Thêm mới</span>'}</td>
-                                                <td class="p-2"><div class="font-mono font-bold">${m.code} ${m.isMaster ? '<span class="text-[9px] text-amber-500">[MASTER]</span>' : ''}</div><div class="text-slate-500 truncate max-w-[180px]">${m.name}</div></td>
-                                                <td class="p-2 text-center font-bold ${m.type === 'electric' ? 'text-amber-500' : (m.type === 'non_consumption' ? 'text-purple-500' : 'text-cyan-500')}">${m.type === 'electric' ? '⚡ Điện' : (m.type === 'non_consumption' ? '📋 K.Tính TT' : '💧 Nước')}</td>
+                                                <td class="p-2"><div class="font-mono font-bold">${m.code} ${m.noConsumption ? '<span class="text-[9px] text-purple-500">[K.TÍNH TT]</span>' : (m.isMaster ? '<span class="text-[9px] text-amber-500">[MASTER]</span>' : '<span class="text-[9px] text-blue-500">[SUB]</span>')}</div><div class="text-slate-500 truncate max-w-[180px]">${m.name}</div></td>
+                                                <td class="p-2 text-center font-bold ${m.type === 'electric' ? 'text-amber-500' : 'text-cyan-500'}">${m.type === 'electric' ? '⚡ Điện' : '💧 Nước'}</td>
                                                 <td class="p-2 text-center font-mono">×${m.multiplier}</td>
                                                 <td class="p-2 text-right font-mono">${m.baseReading}</td>
                                             </tr>
@@ -4556,6 +4444,7 @@
                         type: item.type,
                         isMaster: item.isMaster,
                         noConsumption: Boolean(item.noConsumption),
+                        meterRole: item.meterRole || (item.noConsumption ? 'no_consumption' : (item.isMaster ? 'master' : 'sub')),
                         zone: item.zone,
                         multiplier: item.multiplier,
                         unit: item.unit,
@@ -4564,8 +4453,7 @@
                     });
                     updated++;
                 } else {
-                    const prefix = item.type === 'electric' ? 'EM' : (item.type === 'water' ? 'WM' : 'NC');
-                    const newId = `${prefix}-${Date.now()}-${idx}`;
+                    const newId = `${item.type === 'electric' ? 'EM' : 'WM'}-${Date.now()}-${idx}`;
                     appState.meters.push({
                         id: newId,
                         code: item.code,
@@ -4573,6 +4461,7 @@
                         type: item.type,
                         isMaster: item.isMaster,
                         noConsumption: Boolean(item.noConsumption),
+                        meterRole: item.meterRole || (item.noConsumption ? 'no_consumption' : (item.isMaster ? 'master' : 'sub')),
                         zone: item.zone,
                         multiplier: item.multiplier,
                         unit: item.unit,
