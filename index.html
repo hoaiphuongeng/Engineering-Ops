@@ -24,6 +24,10 @@
       --glass-bg: rgba(15, 23, 42, 0.72);
       --glass-border: rgba(255, 255, 255, 0.14);
     }
+    html, body {
+      height: 100vh;
+      height: 100dvh;
+    }
     body {
       background: #0b1120;
       color: #f8fafc;
@@ -51,52 +55,62 @@
       pointer-events: auto;
       z-index: 10;
     }
-    /* === STARDOCK DƯỚI CÙNG MÀN HÌNH XANH LÁ 3D iOS (CHỈ ICON + GHIM / TỰ ẨN + VUỐT CẠNH DƯỚI) === */
+    /* === STARDOCK SÁT ĐÁY MÀN HÌNH ĐIỆN THOẠI & TỰ ĐỘNG CÂN CHỈNH === */
     #userStardock {
-      left: 50%;
-      bottom: calc(0.45rem + env(safe-area-inset-bottom, 0px));
-      transform: translate(-50%, 0);
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      transform: translateY(0);
       transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms ease;
       will-change: transform, opacity;
     }
     #userStardock.dock-autohidden {
-      transform: translate(-50%, calc(100% + 1.5rem));
+      transform: translateY(calc(100% + 12px));
       opacity: 0;
       pointer-events: none;
     }
     .stardock-green {
-      overflow-x: auto;
-      scrollbar-width: none;
-      -ms-overflow-style: none;
-      background: linear-gradient(145deg, rgba(52, 211, 153, 0.42) 0%, rgba(22, 163, 74, 0.58) 52%, rgba(20, 83, 45, 0.78) 100%),
-                  rgba(6, 26, 15, 0.78);
+      width: 100%;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      gap: 2px;
+      padding: 5px 6px calc(6px + env(safe-area-inset-bottom, 0px)) 6px;
+      border-radius: 18px 18px 0 0;
+      background: linear-gradient(155deg, rgba(52, 211, 153, 0.44) 0%, rgba(22, 163, 74, 0.62) 52%, rgba(20, 83, 45, 0.84) 100%),
+                  rgba(6, 26, 15, 0.84);
       backdrop-filter: blur(26px) saturate(195%);
       -webkit-backdrop-filter: blur(26px) saturate(195%);
-      border: 1px solid rgba(187, 247, 208, 0.48);
+      border-top: 1px solid rgba(187, 247, 208, 0.5);
+      border-left: 1px solid rgba(187, 247, 208, 0.25);
+      border-right: 1px solid rgba(187, 247, 208, 0.25);
+      border-bottom: 0;
       box-shadow:
-        0 14px 34px -6px rgba(22, 163, 74, 0.45),
-        0 6px 16px rgba(0, 0, 0, 0.45),
-        inset 0 1.5px 0 rgba(220, 252, 231, 0.5),
-        inset 0 -1px 0 rgba(20, 83, 45, 0.5);
+        0 -10px 30px -6px rgba(22, 163, 74, 0.38),
+        0 -4px 14px rgba(0, 0, 0, 0.42),
+        inset 0 1.5px 0 rgba(220, 252, 231, 0.5);
     }
-    .stardock-green::-webkit-scrollbar { display: none; }
     .dock-btn {
       position: relative;
+      flex: 1 1 0%;
+      min-width: 0;
+      padding: 4px 1px 3px 1px;
+      border-radius: 12px;
       transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1), background 180ms ease, box-shadow 180ms ease;
       border: 1px solid transparent;
     }
     .dock-btn:hover {
       background: rgba(220, 252, 231, 0.14);
-      transform: translateY(-2px);
     }
     .dock-btn:active {
       transform: scale(0.92);
     }
     .dock-btn.active {
       background: linear-gradient(180deg, rgba(236, 253, 245, 0.28) 0%, rgba(34, 197, 94, 0.24) 100%);
-      border-color: rgba(187, 247, 208, 0.6);
-      box-shadow: 0 5px 12px rgba(20, 83, 45, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.45);
-      transform: translateY(-2px);
+      border-color: rgba(187, 247, 208, 0.58);
+      box-shadow: 0 4px 10px rgba(20, 83, 45, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.45);
     }
     /* Vạch sáng nhỏ phía trên mục đang chọn */
     .dock-btn::after {
@@ -115,11 +129,11 @@
     .dock-btn.active::after {
       transform: translateX(-50%) scale(1);
     }
-    /* Icon hiện đại tối giản (Modern Minimal Glass Badge) + tiêu đề ngắn gọn */
+    /* Icon hiện đại tối giản + tiêu đề ngắn gọn tự co giãn theo độ rộng màn hình */
     .modern-dock-icon {
-      width: 30px;
-      height: 30px;
-      border-radius: 10px;
+      width: clamp(26px, 7.2vw, 32px);
+      height: clamp(26px, 7.2vw, 32px);
+      border-radius: 9px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -136,26 +150,62 @@
       background: #ffffff;
       color: #15803d;
       border-color: #ffffff;
-      transform: translateY(-1px) scale(1.06);
-      box-shadow: 0 6px 14px -2px rgba(20, 83, 45, 0.45);
+      transform: translateY(-1px) scale(1.05);
+      box-shadow: 0 5px 12px -2px rgba(20, 83, 45, 0.45);
     }
     .dock-short-label {
-      font-size: 9.5px;
-      line-height: 1.1;
+      font-size: clamp(8.5px, 2.35vw, 10.5px);
+      line-height: 1.15;
       font-weight: 600;
-      color: rgba(236, 253, 245, 0.85);
-      margin-top: 3px;
+      color: rgba(236, 253, 245, 0.88);
+      margin-top: 2px;
       white-space: nowrap;
-      letter-spacing: -0.01em;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+      letter-spacing: -0.02em;
       transition: color 180ms ease;
     }
     .dock-btn.active .dock-short-label {
       color: #ffffff;
       font-weight: 700;
     }
+    /* Trên màn hình Tablet / Desktop (>= 640px): dạng thanh nổi căn giữa gọn đẹp */
     @media (min-width: 640px) {
-      .modern-dock-icon { width: 32px; height: 32px; }
-      .dock-short-label { font-size: 10.5px; }
+      #userStardock {
+        left: 50%;
+        right: auto;
+        width: auto;
+        max-width: 96vw;
+        bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+        transform: translate(-50%, 0);
+      }
+      #userStardock.dock-autohidden {
+        transform: translate(-50%, calc(100% + 1.5rem));
+      }
+      .stardock-green {
+        width: auto;
+        gap: 6px;
+        padding: 6px 8px;
+        border-radius: 22px;
+        border: 1px solid rgba(187, 247, 208, 0.48);
+        box-shadow:
+          0 14px 34px -6px rgba(22, 163, 74, 0.45),
+          0 6px 16px rgba(0, 0, 0, 0.45),
+          inset 0 1.5px 0 rgba(220, 252, 231, 0.5),
+          inset 0 -1px 0 rgba(20, 83, 45, 0.5);
+      }
+      .dock-btn {
+        flex: 0 0 auto;
+        padding: 6px 10px;
+        border-radius: 14px;
+      }
+      .dock-btn:hover {
+        transform: translateY(-2px);
+      }
+      .dock-btn.active {
+        transform: translateY(-2px);
+      }
     }
 
     /* Vùng vuốt cạnh dưới & Dấu nhận diện siêu nhỏ khi Stardock đang ẩn */
@@ -198,7 +248,7 @@
 
   </style>
 </head>
-<body class="h-screen w-screen flex flex-col">
+<body class="h-full w-screen flex flex-col">
 
   <!-- MÀN HÌNH ĐĂNG NHẬP HỢP NHẤT (SSO CHO CẢ 3 TAB) -->
   <div id="ssoOverlay" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-xl p-4">
@@ -379,9 +429,84 @@
     </div>
   </div>
 
+  <!-- MODAL CẤU HÌNH BẢNG THAM CHIẾU MÃ CA (DO NGƯỜI DÙNG QUI ĐỊNH) -->
+  <div id="shiftCodeMapModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-3 sm:p-4">
+    <div class="glass w-full max-w-3xl max-h-[90vh] flex flex-col rounded-3xl p-5 sm:p-6 shadow-2xl border-sky-500/30 space-y-4">
+      <div class="flex items-center justify-between gap-2 shrink-0">
+        <div>
+          <h3 class="text-base font-bold text-sky-300 flex items-center gap-2">
+            <i data-lucide="table-properties" class="w-5 h-5"></i> Bảng Tham Chiếu Mã Ca (Tự Động Ánh Xạ Excel)
+          </h3>
+          <p class="text-[11px] text-slate-400 mt-0.5">Qui định mã ca viết tắt trong file Excel (vd: M1, E1, N1, HC, AL, RO...) để hệ thống tự động ánh xạ sang Ca Hệ Thống khi nhập/xuất.</p>
+        </div>
+        <button onclick="closeShiftCodeMapModal()" class="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white cursor-pointer">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Form thêm nhanh mã ca mới -->
+      <form id="addShiftCodeForm" onsubmit="addShiftCodeRule(event)" class="grid grid-cols-2 sm:grid-cols-12 gap-2 p-3 rounded-2xl bg-slate-900/85 border border-slate-800 text-xs shrink-0">
+        <div class="col-span-1 sm:col-span-2">
+          <label class="text-[10px] text-slate-400 font-semibold">Mã Ca Excel *</label>
+          <input id="scNewCode" required placeholder="vd: M1, HC" class="w-full mt-0.5 px-2.5 py-2 rounded-xl bg-slate-950 border border-slate-700 font-mono font-bold uppercase text-sky-300 focus:outline-none focus:border-sky-400" />
+        </div>
+        <div class="col-span-1 sm:col-span-3">
+          <label class="text-[10px] text-slate-400 font-semibold">Ánh Xạ Ca Hệ Thống *</label>
+          <select id="scNewSystem" class="w-full mt-0.5 px-2.5 py-2 rounded-xl bg-slate-950 border border-slate-700 focus:outline-none focus:border-sky-400">
+            <option value="Ca Sáng">Ca Sáng (Ca 1)</option>
+            <option value="Ca Chiều">Ca Chiều (Ca 2)</option>
+            <option value="Ca Đêm">Ca Đêm (Ca 3)</option>
+            <option value="OFF">OFF (Nghỉ)</option>
+          </select>
+        </div>
+        <div class="col-span-1 sm:col-span-2">
+          <label class="text-[10px] text-slate-400 font-semibold">Khung Giờ</label>
+          <input id="scNewTime" placeholder="06:00-14:00" class="w-full mt-0.5 px-2.5 py-2 rounded-xl bg-slate-950 border border-slate-700 focus:outline-none focus:border-sky-400" />
+        </div>
+        <div class="col-span-1 sm:col-span-3">
+          <label class="text-[10px] text-slate-400 font-semibold">Ghi Chú / Diễn Giải</label>
+          <input id="scNewNote" placeholder="Ca sáng trực vận hành" class="w-full mt-0.5 px-2.5 py-2 rounded-xl bg-slate-950 border border-slate-700 focus:outline-none focus:border-sky-400" />
+        </div>
+        <div class="col-span-2 sm:col-span-2 flex items-end">
+          <button type="submit" class="w-full py-2 px-3 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold flex items-center justify-center gap-1 cursor-pointer">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i> Thêm Mã
+          </button>
+        </div>
+      </form>
+
+      <!-- Danh sách mã ca hiện có -->
+      <div class="flex-1 min-h-0 overflow-auto rounded-2xl border border-slate-800 bg-slate-950/60">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-900 text-slate-400 text-[10px] uppercase sticky top-0 z-10">
+            <tr>
+              <th class="p-2.5 w-24">Mã Ca</th>
+              <th class="p-2.5 w-40">Ánh Xạ Ca Hệ Thống</th>
+              <th class="p-2.5 w-32">Khung Giờ</th>
+              <th class="p-2.5">Ghi Chú</th>
+              <th class="p-2.5 text-right w-16">Xóa</th>
+            </tr>
+          </thead>
+          <tbody id="shiftCodeMapBody" class="divide-y divide-slate-800/80"></tbody>
+        </table>
+      </div>
+
+      <div class="flex flex-wrap items-center justify-between gap-2 pt-1 shrink-0 text-xs">
+        <button type="button" onclick="resetDefaultShiftCodeMap()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 font-semibold flex items-center gap-1.5 cursor-pointer">
+          <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Khôi Phục Mặc Định
+        </button>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="closeShiftCodeMapModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold cursor-pointer">Đóng</button>
+          <button type="button" onclick="saveShiftCodeMapAndSync()" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold flex items-center gap-1.5 cursor-pointer">
+            <i data-lucide="save" class="w-4 h-4"></i> Lưu Bảng Mã Ca & Đồng Bộ
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL XEM TRƯỚC & XÁC NHẬN NẠP BẢNG PHÂN CA TỪ EXCEL -->
   <div id="importRosterModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-3 sm:p-4">
-    <div class="glass w-full max-w-4xl max-h-[90vh] flex flex-col rounded-3xl p-5 sm:p-6 shadow-2xl border-emerald-500/30 space-y-4">
+    <div class="glass w-full max-w-5xl max-h-[92vh] flex flex-col rounded-3xl p-5 sm:p-6 shadow-2xl border-emerald-500/30 space-y-3.5">
       <div class="flex items-center justify-between gap-2 shrink-0">
         <div>
           <h3 class="text-base font-bold text-emerald-300 flex items-center gap-2">
@@ -394,15 +519,22 @@
         </button>
       </div>
 
+      <div id="impRosterUnmappedAlert" class="hidden p-3 rounded-2xl bg-amber-500/15 border border-amber-500/40 text-xs text-amber-200 flex flex-wrap items-center justify-between gap-2 shrink-0">
+        <div id="impRosterUnmappedText" class="leading-relaxed"></div>
+        <button type="button" onclick="openShiftCodeMapModal()" class="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-[11px] shrink-0 cursor-pointer">
+          Mở Bảng Mã Ca →
+        </button>
+      </div>
+
       <div class="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-slate-900/80 border border-slate-800 text-xs shrink-0">
         <div class="flex flex-wrap items-center gap-4">
           <label class="inline-flex items-center gap-2 cursor-pointer">
             <input type="radio" name="impRosterMode" value="merge" checked class="accent-emerald-400" />
-            <span><b>Gộp & Cập nhật</b> (giữ nhân sự cũ, thêm mới nếu chưa có)</span>
+            <span><b>Gộp & Cập nhật</b> (giữ nhân sự cũ, cập nhật lịch giai đoạn mới)</span>
           </label>
           <label class="inline-flex items-center gap-2 cursor-pointer">
             <input type="radio" name="impRosterMode" value="replace" class="accent-rose-400" />
-            <span class="text-rose-300"><b>Thay thế toàn bộ</b> bảng phân ca bằng file Excel này</span>
+            <span class="text-rose-300"><b>Thay thế toàn bộ</b> danh sách nhân sự bằng file Excel này</span>
           </label>
         </div>
         <span id="impRosterFileName" class="text-[11px] font-mono text-sky-300 truncate max-w-xs"></span>
@@ -410,30 +542,17 @@
 
       <div class="flex-1 min-h-0 overflow-auto rounded-2xl border border-slate-800 bg-slate-950/60">
         <table class="w-full text-left text-xs">
-          <thead class="bg-slate-900 text-slate-400 text-[10px] uppercase sticky top-0 z-10">
-            <tr>
-              <th class="p-2.5">Trạng thái</th>
-              <th class="p-2.5">Mã NV</th>
-              <th class="p-2.5">Họ & Tên</th>
-              <th class="p-2.5 text-center">T2</th>
-              <th class="p-2.5 text-center">T3</th>
-              <th class="p-2.5 text-center">T4</th>
-              <th class="p-2.5 text-center">T5</th>
-              <th class="p-2.5 text-center">T6</th>
-              <th class="p-2.5 text-center">T7</th>
-              <th class="p-2.5 text-center">CN</th>
-            </tr>
-          </thead>
+          <thead id="impRosterPreviewHead" class="bg-slate-900 text-slate-400 text-[10px] uppercase sticky top-0 z-10"></thead>
           <tbody id="impRosterPreviewBody" class="divide-y divide-slate-800/80"></tbody>
         </table>
       </div>
 
       <div class="flex flex-wrap items-center justify-between gap-2 pt-1 shrink-0 text-xs">
-        <span class="text-[11px] text-slate-400">Hỗ trợ mã ca: <b>M/M1/Ca 1/Sáng</b> • <b>E/E1/Ca 2/Chiều</b> • <b>N/N1/Ca 3/Đêm</b> • <b>OFF/Nghỉ</b></span>
+        <span class="text-[11px] text-slate-400">Hệ thống tự động ánh xạ mã ca theo <b>Bảng Tham Chiếu Mã Ca</b> đã cấu hình (và sheet <code>BangMaCa</code> trong file nếu có).</span>
         <div class="flex items-center gap-2">
           <button type="button" onclick="closeImportRosterModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold cursor-pointer">Hủy</button>
           <button type="button" onclick="confirmImportRosterExcel()" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold flex items-center gap-1.5 cursor-pointer">
-            <i data-lucide="check-circle-2" class="w-4 h-4"></i> Xác Nhận Nạp & Đồng Bộ 3 Hệ Thống
+            <i data-lucide="check-circle-2" class="w-4 h-4"></i> Xác Nhận Nạp & Đồng Bộ Hệ Thống
           </button>
         </div>
       </div>
@@ -519,39 +638,61 @@
           </div>
         </div>
 
-        <!-- SUB 2: BẢNG PHÂN CA ĐỘC LẬP (NGUỒN ÁNH XẠ KHI NHÂN VIÊN THỰC HIỆN) -->
+        <!-- SUB 2: BẢNG PHÂN CA ĐỘC LẬP (THEO GIAI ĐOẠN & BẢNG THAM CHIẾU MÃ CA) -->
         <div id="adminSub-roster" class="hidden space-y-4">
-          <div class="glass p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs text-slate-300 border-emerald-500/20">
-            <div class="space-y-0.5">
-              <div>Bảng phân ca <b>độc lập</b> với tài khoản đăng nhập. Dữ liệu tên nhân sự và ca trực tại đây sẽ được ánh xạ trực tiếp sang <b>Checklist</b> & <b>Sổ Duty</b> khi nhân viên dùng tài khoản Duty thực hiện.</div>
-              <div class="text-[11px] text-slate-400">Quy ước: <b>Ca Sáng (Ca 1: 06:00-14:00)</b> • <b>Ca Chiều (Ca 2: 14:00-22:00)</b> • <b>Ca Đêm (Ca 3: 22:00-06:00)</b> • <b>OFF</b>.</div>
+          <div class="glass p-4 rounded-2xl space-y-3 text-xs text-slate-300 border-emerald-500/20">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div class="space-y-0.5">
+                <div>Bảng phân ca theo <b>giai đoạn ngày</b> độc lập với tài khoản đăng nhập. Mã ca trong Excel tự động ánh xạ theo <b>Bảng Tham Chiếu Mã Ca</b> sang <b>Checklist, Sổ Duty, Chiller & Kho VT</b>.</div>
+                <div class="text-[11px] text-slate-400" id="rosterPeriodMeta">Chọn ngày bắt đầu & ngày kết thúc để xem, xuất mẫu Excel hoặc nhập phân ca theo giai đoạn.</div>
+              </div>
+              <div class="flex flex-wrap items-center gap-2">
+                <input id="rosterExcelInput" type="file" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleRosterExcelFile(event)" />
+                <button onclick="openShiftCodeMapModal()" class="px-3 py-2 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/35 font-bold flex items-center gap-1.5 cursor-pointer" title="Thiết lập bảng tham chiếu mã ca tự động ánh xạ">
+                  <i data-lucide="table-properties" class="w-3.5 h-3.5"></i> Bảng Mã Ca (<span id="shiftCodeMapCount">0</span>)
+                </button>
+                <button onclick="downloadRosterExcelTemplate()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold flex items-center gap-1.5 cursor-pointer" title="Xuất file Excel mẫu đúng theo giai đoạn ngày bắt đầu → kết thúc kèm sheet Bảng Mã Ca">
+                  <i data-lucide="download" class="w-3.5 h-3.5 text-sky-400"></i> Xuất Mẫu Excel
+                </button>
+                <button onclick="document.getElementById('rosterExcelInput').click()" class="px-3.5 py-2 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 font-bold flex items-center gap-1.5 cursor-pointer" title="Nhập bảng phân ca từ file Excel theo giai đoạn (.xlsx, .xls, .csv)">
+                  <i data-lucide="upload" class="w-3.5 h-3.5"></i> Nhập Excel
+                </button>
+                <button onclick="openRosterMemberModal()" class="px-3.5 py-2 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 font-bold flex items-center gap-1.5 cursor-pointer">
+                  <i data-lucide="user-plus" class="w-3.5 h-3.5"></i> Thêm Nhân Sự
+                </button>
+                <button onclick="saveRosterAndSync()" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold flex items-center gap-1.5 cursor-pointer">
+                  <i data-lucide="save" class="w-3.5 h-3.5"></i> Lưu & Ánh Xạ
+                </button>
+              </div>
             </div>
-            <div class="flex flex-wrap items-center gap-2">
-              <input id="rosterExcelInput" type="file" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleRosterExcelFile(event)" />
-              <button onclick="downloadRosterExcelTemplate()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold flex items-center gap-1.5 cursor-pointer" title="Tải file Excel mẫu có sẵn danh sách nhân sự">
-                <i data-lucide="download" class="w-3.5 h-3.5 text-sky-400"></i> Tải File Mẫu
-              </button>
-              <button onclick="document.getElementById('rosterExcelInput').click()" class="px-3.5 py-2 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 font-bold flex items-center gap-1.5 cursor-pointer" title="Nạp bảng phân ca từ file Excel (.xlsx, .xls, .csv)">
-                <i data-lucide="upload" class="w-3.5 h-3.5"></i> Nhập Excel
-              </button>
-              <button onclick="openRosterMemberModal()" class="px-3.5 py-2 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 font-bold flex items-center gap-1.5 cursor-pointer">
-                <i data-lucide="user-plus" class="w-3.5 h-3.5"></i> Thêm Nhân Sự
-              </button>
-              <button onclick="saveRosterAndSync()" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold flex items-center gap-1.5 cursor-pointer">
-                <i data-lucide="save" class="w-3.5 h-3.5"></i> Lưu & Ánh Xạ
-              </button>
+
+            <!-- Bộ chọn Giai Đoạn (Ngày bắt đầu -> Ngày kết thúc) -->
+            <div class="flex flex-wrap items-center justify-between gap-2.5 pt-2.5 border-t border-slate-800/80">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="text-[11px] font-bold text-emerald-300 flex items-center gap-1.5">
+                  <i data-lucide="calendar-range" class="w-3.5 h-3.5"></i> Giai đoạn:
+                </span>
+                <label class="inline-flex items-center gap-1.5 bg-slate-900/90 border border-slate-700 rounded-xl px-2.5 py-1.5">
+                  <span class="text-[10px] text-slate-400 font-semibold">Từ ngày</span>
+                  <input id="rosterStartDate" type="date" onchange="handleRosterPeriodChange()" class="bg-transparent text-xs font-mono font-bold text-white focus:outline-none cursor-pointer" />
+                </label>
+                <span class="text-slate-500 font-bold">→</span>
+                <label class="inline-flex items-center gap-1.5 bg-slate-900/90 border border-slate-700 rounded-xl px-2.5 py-1.5">
+                  <span class="text-[10px] text-slate-400 font-semibold">Đến ngày</span>
+                  <input id="rosterEndDate" type="date" onchange="handleRosterPeriodChange()" class="bg-transparent text-xs font-mono font-bold text-white focus:outline-none cursor-pointer" />
+                </label>
+              </div>
+              <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
+                <button type="button" onclick="setRosterPeriodPreset('week')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold cursor-pointer">Tuần này (7N)</button>
+                <button type="button" onclick="setRosterPeriodPreset('biweek')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold cursor-pointer">14 ngày</button>
+                <button type="button" onclick="setRosterPeriodPreset('month')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold cursor-pointer">Tháng này</button>
+              </div>
             </div>
           </div>
+
           <div class="glass rounded-2xl overflow-x-auto">
             <table class="w-full text-left text-xs">
-              <thead class="bg-slate-900/90 text-slate-400 text-[10px] uppercase">
-                <tr>
-                  <th class="p-3">Nhân Sự Trực Ca</th>
-                  <th class="p-3">Thứ 2</th><th class="p-3">Thứ 3</th><th class="p-3">Thứ 4</th>
-                  <th class="p-3">Thứ 5</th><th class="p-3">Thứ 6</th><th class="p-3">Thứ 7</th><th class="p-3">Chủ Nhật</th>
-                  <th class="p-3 text-right">Thao Tác</th>
-                </tr>
-              </thead>
+              <thead id="rosterTableHead" class="bg-slate-900/90 text-slate-400 text-[10px] uppercase"></thead>
               <tbody id="rosterTableBody" class="divide-y divide-slate-800/80"></tbody>
             </table>
           </div>
@@ -661,13 +802,13 @@
     <div class="edge-indicator-dot"></div>
   </div>
 
-  <!-- THANH STARDOCK DƯỚI CÙNG XANH LÁ (ICON HIỆN ĐẠI + TIÊU ĐỀ NGẮN GỌN + GHIM / TỰ ẨN) -->
-  <div id="userStardock" class="hidden fixed z-40 max-w-[98vw]"
+  <!-- THANH STARDOCK SÁT ĐÁY MÀN HÌNH ĐIỆN THOẠI (TỰ CÂN CHỈNH + GHIM / TỰ ẨN) -->
+  <div id="userStardock" class="hidden fixed z-40"
     onmouseenter="pauseStardockAutoHide()" onmouseleave="scheduleStardockAutoHide()">
-    <div class="stardock-green rounded-[22px] px-1.5 sm:px-2 py-1.5 flex flex-row items-center gap-0.5 sm:gap-1.5">
+    <div class="stardock-green">
       <!-- 0. Quản trị & Phân ca (Chỉ hiện với Admin) -->
       <button id="dockAdminBtn" onclick="handleDockClick('admin')" data-dock="admin" title="Quản trị & Phân ca" aria-label="Quản trị & Phân ca"
-        class="hidden dock-btn flex flex-col items-center justify-center px-1.5 sm:px-2.5 py-1.5 rounded-2xl cursor-pointer shrink-0">
+        class="hidden dock-btn flex flex-col items-center justify-center cursor-pointer">
         <div class="modern-dock-icon">
           <i data-lucide="shield-check" class="w-4 h-4 sm:w-[18px] sm:h-[18px] stroke-[2.2]"></i>
         </div>
@@ -676,7 +817,7 @@
 
       <!-- 1. Kiểm tra biểu mẫu -->
       <button onclick="handleDockClick('checklist')" data-dock="checklist" title="Kiểm tra biểu mẫu" aria-label="Kiểm tra biểu mẫu"
-        class="dock-btn flex flex-col items-center justify-center px-1.5 sm:px-2.5 py-1.5 rounded-2xl cursor-pointer shrink-0">
+        class="dock-btn flex flex-col items-center justify-center cursor-pointer">
         <div class="modern-dock-icon">
           <i data-lucide="clipboard-check" class="w-4 h-4 sm:w-[18px] sm:h-[18px] stroke-[2.2]"></i>
         </div>
@@ -685,7 +826,7 @@
 
       <!-- 2. Ghi sổ duty -->
       <button onclick="handleDockClick('duty')" data-dock="duty" title="Ghi sổ duty" aria-label="Ghi sổ duty"
-        class="dock-btn flex flex-col items-center justify-center px-1.5 sm:px-2.5 py-1.5 rounded-2xl cursor-pointer shrink-0">
+        class="dock-btn flex flex-col items-center justify-center cursor-pointer">
         <div class="modern-dock-icon">
           <i data-lucide="book-open-text" class="w-4 h-4 sm:w-[18px] sm:h-[18px] stroke-[2.2]"></i>
         </div>
@@ -694,7 +835,7 @@
 
       <!-- 3. Ghi chỉ số điện nước -->
       <button onclick="handleDockClick('power')" data-dock="power" title="Ghi chỉ số điện nước" aria-label="Ghi chỉ số điện nước"
-        class="dock-btn flex flex-col items-center justify-center px-1.5 sm:px-2.5 py-1.5 rounded-2xl cursor-pointer shrink-0">
+        class="dock-btn flex flex-col items-center justify-center cursor-pointer">
         <div class="modern-dock-icon">
           <i data-lucide="zap" class="w-4 h-4 sm:w-[18px] sm:h-[18px] stroke-[2.2]"></i>
         </div>
@@ -703,7 +844,7 @@
 
       <!-- 4. Giám sát Chiller & Bồn nước -->
       <button onclick="handleDockClick('log')" data-dock="log" title="Giám sát Chiller & Bồn nước" aria-label="Giám sát Chiller & Bồn nước"
-        class="dock-btn flex flex-col items-center justify-center px-1.5 sm:px-2.5 py-1.5 rounded-2xl cursor-pointer shrink-0">
+        class="dock-btn flex flex-col items-center justify-center cursor-pointer">
         <div class="modern-dock-icon">
           <i data-lucide="thermometer-snowflake" class="w-4 h-4 sm:w-[18px] sm:h-[18px] stroke-[2.2]"></i>
         </div>
@@ -712,7 +853,7 @@
 
       <!-- 5. Kho vật tư kỹ thuật -->
       <button onclick="handleDockClick('stock')" data-dock="stock" title="Kho vật tư kỹ thuật" aria-label="Kho vật tư kỹ thuật"
-        class="dock-btn flex flex-col items-center justify-center px-1.5 sm:px-2.5 py-1.5 rounded-2xl cursor-pointer shrink-0">
+        class="dock-btn flex flex-col items-center justify-center cursor-pointer">
         <div class="modern-dock-icon">
           <i data-lucide="package" class="w-4 h-4 sm:w-[18px] sm:h-[18px] stroke-[2.2]"></i>
         </div>
@@ -721,7 +862,7 @@
 
       <!-- 6. Bảng phân ca -->
       <button onclick="handleDockClick('roster')" data-dock="roster" title="Bảng phân ca" aria-label="Bảng phân ca"
-        class="dock-btn flex flex-col items-center justify-center px-1.5 sm:px-2.5 py-1.5 rounded-2xl cursor-pointer shrink-0">
+        class="dock-btn flex flex-col items-center justify-center cursor-pointer">
         <div class="modern-dock-icon">
           <i data-lucide="calendar-days" class="w-4 h-4 sm:w-[18px] sm:h-[18px] stroke-[2.2]"></i>
         </div>
@@ -729,13 +870,13 @@
       </button>
 
       <!-- Vách ngăn dọc mảnh -->
-      <div class="w-px h-8 bg-emerald-100/30 mx-0.5 shrink-0"></div>
+      <div class="w-px h-7 bg-emerald-100/25 mx-0.5 shrink-0"></div>
 
       <!-- Nút Ghim / Tự ẩn -->
       <button id="btnToggleDockPin" onclick="toggleStardockPin()"
-        class="w-8 h-9 rounded-xl flex items-center justify-center cursor-pointer transition border border-emerald-200/45 bg-emerald-500/35 text-emerald-50 hover:bg-emerald-400/45 shrink-0"
+        class="w-7 h-8 sm:w-8 sm:h-9 rounded-xl flex items-center justify-center cursor-pointer transition border border-emerald-200/45 bg-emerald-500/35 text-emerald-50 hover:bg-emerald-400/45 shrink-0"
         title="Đang ghim (Bấm để bật Tự ẩn)" aria-label="Ghim hoặc tự ẩn thanh Stardock">
-        <i id="dockPinIcon" data-lucide="pin" class="w-4 h-4"></i>
+        <i id="dockPinIcon" data-lucide="pin" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
       </button>
     </div>
   </div>
@@ -822,7 +963,24 @@
       weeklyRoster: {
         'rst-001': { mon: 'Ca Sáng', tue: 'Ca Sáng', wed: 'Ca Chiều', thu: 'Ca Chiều', fri: 'Ca Đêm', sat: 'OFF', sun: 'Ca Sáng' },
         'rst-002': { mon: 'Ca Chiều', tue: 'Ca Chiều', wed: 'Ca Đêm', thu: 'Ca Đêm', fri: 'OFF', sat: 'Ca Sáng', sun: 'Ca Chiều' }
-      }
+      },
+      datedRoster: {},
+      datedRosterRaw: {},
+      rosterPeriod: null,
+      shiftCodeMap: [
+        { code: 'M',   systemShift: 'Ca Sáng',  timeRange: '06:00 - 14:00', note: 'Ca Sáng (Morning)' },
+        { code: 'M1',  systemShift: 'Ca Sáng',  timeRange: '06:00 - 14:00', note: 'Ca Sáng 1' },
+        { code: 'M2',  systemShift: 'Ca Sáng',  timeRange: '07:00 - 15:00', note: 'Ca Sáng 2' },
+        { code: 'HC',  systemShift: 'Ca Sáng',  timeRange: '08:00 - 17:00', note: 'Hành chính (Ánh xạ Ca Sáng)' },
+        { code: 'E',   systemShift: 'Ca Chiều', timeRange: '14:00 - 22:00', note: 'Ca Chiều (Evening)' },
+        { code: 'E1',  systemShift: 'Ca Chiều', timeRange: '14:00 - 22:00', note: 'Ca Chiều 1' },
+        { code: 'N',   systemShift: 'Ca Đêm',   timeRange: '22:00 - 06:00', note: 'Ca Đêm (Night)' },
+        { code: 'N1',  systemShift: 'Ca Đêm',   timeRange: '22:00 - 06:00', note: 'Ca Đêm 1' },
+        { code: 'OFF', systemShift: 'OFF',      timeRange: 'Nghỉ',          note: 'Ngày nghỉ tuần' },
+        { code: 'AL',  systemShift: 'OFF',      timeRange: 'Nghỉ',          note: 'Nghỉ phép năm (Annual Leave)' },
+        { code: 'PH',  systemShift: 'OFF',      timeRange: 'Nghỉ',          note: 'Nghỉ lễ (Public Holiday)' },
+        { code: 'RO',  systemShift: 'OFF',      timeRange: 'Nghỉ',          note: 'Nghỉ bù (Roster Off)' }
+      ]
     };
 
     // Chuyển đổi an toàn & luôn bảo vệ tài khoản Admin Tối Cao (shp)
@@ -865,6 +1023,21 @@
         }
       }
       if (!data.weeklyRoster || typeof data.weeklyRoster !== 'object') data.weeklyRoster = {};
+      if (!data.datedRoster || typeof data.datedRoster !== 'object') data.datedRoster = {};
+      if (!data.datedRosterRaw || typeof data.datedRosterRaw !== 'object') data.datedRosterRaw = {};
+      if (!Array.isArray(data.shiftCodeMap) || data.shiftCodeMap.length === 0) {
+        data.shiftCodeMap = (data.shiftCodeMap && typeof data.shiftCodeMap === 'object' && Object.values(data.shiftCodeMap).length > 0)
+          ? Object.values(data.shiftCodeMap)
+          : structuredClone(defaultMaster.shiftCodeMap);
+      }
+      if (!data.rosterPeriod || !data.rosterPeriod.startDate || !data.rosterPeriod.endDate) {
+        const now = new Date();
+        const diffToMon = (now.getDay() + 6) % 7;
+        const mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diffToMon);
+        const sun = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6);
+        const fmt = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        data.rosterPeriod = { startDate: fmt(mon), endDate: fmt(sun) };
+      }
       return data;
     }
 
@@ -884,7 +1057,11 @@
       return JSON.stringify({
         staff: obj.staff || [],
         rosterStaff: obj.rosterStaff || [],
-        weeklyRoster: obj.weeklyRoster || {}
+        weeklyRoster: obj.weeklyRoster || {},
+        datedRoster: obj.datedRoster || {},
+        datedRosterRaw: obj.datedRosterRaw || {},
+        rosterPeriod: obj.rosterPeriod || null,
+        shiftCodeMap: obj.shiftCodeMap || []
       });
     }
 
@@ -952,13 +1129,84 @@
       return 'Ca Đêm';
     }
 
-    // Lấy danh sách nhân sự đang trực ca hiện tại TỪ BẢNG PHÂN CA (không lấy từ bảng tài khoản)
+    // === TIỆN ÍCH NGÀY & GIAI ĐOẠN PHÂN CA ===
+    function parseIsoDateLocal(str) {
+      const m = String(str || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (!m) return null;
+      return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    }
+
+    function formatIsoDateLocal(d) {
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    function formatVnDate(dateStr) {
+      const m = String(dateStr || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      return m ? `${m[3]}/${m[2]}/${m[1]}` : String(dateStr || '');
+    }
+
+    function formatVnShort(dateStr) {
+      const m = String(dateStr || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      return m ? `${m[3]}/${m[2]}` : String(dateStr || '');
+    }
+
+    function getDayKeyOfDate(dateStr) {
+      const d = parseIsoDateLocal(dateStr);
+      if (!d) return 'mon';
+      return ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][d.getDay()];
+    }
+
+    function getDayShortLabel(dateStr) {
+      const d = parseIsoDateLocal(dateStr);
+      if (!d) return '';
+      return ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'][d.getDay()];
+    }
+
+    function getDateRangeArray(startStr, endStr, maxDays = 62) {
+      const s = parseIsoDateLocal(startStr);
+      const e = parseIsoDateLocal(endStr);
+      if (!s || !e || s > e) return [];
+      const arr = [];
+      const cur = new Date(s.getFullYear(), s.getMonth(), s.getDate());
+      while (cur <= e && arr.length < maxDays) {
+        arr.push(formatIsoDateLocal(cur));
+        cur.setDate(cur.getDate() + 1);
+      }
+      return arr;
+    }
+
+    function getActiveRosterPeriod() {
+      const startInp = document.getElementById('rosterStartDate');
+      const endInp = document.getElementById('rosterEndDate');
+      let startDate = (startInp && startInp.value) || masterData.rosterPeriod?.startDate;
+      let endDate = (endInp && endInp.value) || masterData.rosterPeriod?.endDate;
+      if (!startDate || !endDate || startDate > endDate) {
+        const now = new Date();
+        const diffToMon = (now.getDay() + 6) % 7;
+        const mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diffToMon);
+        const sun = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6);
+        startDate = formatIsoDateLocal(mon);
+        endDate = formatIsoDateLocal(sun);
+      }
+      return { startDate, endDate };
+    }
+
+    // Lấy ca làm việc của nhân sự theo ngày cụ thể (ưu tiên lịch giai đoạn datedRoster, sau đó fallback weeklyRoster)
+    function getShiftForStaffOnDate(staffId, dateStr) {
+      const byDate = masterData.datedRoster?.[staffId]?.[dateStr];
+      if (byDate !== undefined) return byDate;
+      const dayKey = getDayKeyOfDate(dateStr);
+      return masterData.weeklyRoster?.[staffId]?.[dayKey] || '';
+    }
+
+    function getRawCodeForStaffOnDate(staffId, dateStr) {
+      return masterData.datedRosterRaw?.[staffId]?.[dateStr] || '';
+    }
+
+    // Lấy danh sách nhân sự đang trực ca hiện tại TỪ BẢNG PHÂN CA (ưu tiên đúng ngày hôm nay)
     function getOnDutyRosterPeople(shiftName = getCurrentShiftByClock()) {
-      const todayKey = getTodayDayKey();
-      return (masterData.rosterStaff || []).filter(r => {
-        const sh = (masterData.weeklyRoster[r.id] || {})[todayKey] || '';
-        return sh === shiftName;
-      });
+      const todayStr = getTodayDateStr();
+      return (masterData.rosterStaff || []).filter(r => getShiftForStaffOnDate(r.id, todayStr) === shiftName);
     }
 
     // Dữ liệu gửi sang Checklist:
@@ -1008,13 +1256,22 @@
       return Array.from(map.values());
     }
 
-    // Lịch phân ca tuần cho Checklist ánh xạ HOÀN TOÀN theo BẢNG PHÂN CA (rosterStaff)
+    // Lịch phân ca tuần cho Checklist ánh xạ theo đúng các ngày trong tuần hiện tại từ BẢNG PHÂN CA
     function buildChecklistWeekly() {
       const dcWeekly = {};
+      const now = new Date();
+      const diffToMon = (now.getDay() + 6) % 7;
+      const mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diffToMon);
+      const weekDates = DAYS.map((_, idx) => {
+        const dt = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + idx);
+        return formatIsoDateLocal(dt);
+      });
       (masterData.rosterStaff || []).forEach(r => {
-        const row = masterData.weeklyRoster[r.id] || {};
         dcWeekly[r.id] = {};
-        DAYS.forEach(d => dcWeekly[r.id][d] = mapToChecklistShift(row[d] || ''));
+        DAYS.forEach((d, idx) => {
+          const sh = getShiftForStaffOnDate(r.id, weekDates[idx]);
+          dcWeekly[r.id][d] = mapToChecklistShift(sh);
+        });
       });
       return dcWeekly;
     }
@@ -1199,16 +1456,17 @@
       const todayStr = getTodayDateStr();
       const currentShift = getCurrentShiftByClock();
 
-      // Lịch trực hôm nay cho Sổ Duty lấy HOÀN TOÀN từ BẢNG PHÂN CA (rosterStaff)
+      // Lịch trực hôm nay cho Sổ Duty lấy HOÀN TOÀN từ BẢNG PHÂN CA (ưu tiên lịch theo ngày)
       const dutyScheduleToday = (masterData.rosterStaff || []).map((r, idx) => {
-        const sh = (masterData.weeklyRoster[r.id] || {})[todayKey] || '';
+        const sh = getShiftForStaffOnDate(r.id, todayStr);
         if (!sh || sh === 'OFF') return null;
+        const rawCode = getRawCodeForStaffOnDate(r.id, todayStr);
         return {
           id: `SCH-SYNC-${idx + 1}`,
           date: todayStr,
           shift: sh,
           staffName: r.name,
-          note: `Phân ca (${r.employeeCode || 'KT'})`
+          note: `Phân ca${rawCode ? ' [' + rawCode + ']' : ''} (${r.employeeCode || 'KT'})`
         };
       }).filter(Boolean);
 
@@ -1452,26 +1710,72 @@
       }).join('');
     }
 
-    // TAB 2: RENDER BẢNG PHÂN CA ĐỘC LẬP (CHỈ LẤY TỪ rosterStaff)
+    // TAB 2: RENDER BẢNG PHÂN CA ĐỘC LẬP THEO GIAI ĐOẠN (NGÀY BẮT ĐẦU → NGÀY KẾT THÚC)
     function renderRosterTable() {
+      const startInp = document.getElementById('rosterStartDate');
+      const endInp = document.getElementById('rosterEndDate');
+      const countEl = document.getElementById('shiftCodeMapCount');
+      if (countEl) countEl.textContent = String((masterData.shiftCodeMap || []).length);
+
+      if (startInp && !startInp.value && masterData.rosterPeriod?.startDate) {
+        startInp.value = masterData.rosterPeriod.startDate;
+      }
+      if (endInp && !endInp.value && masterData.rosterPeriod?.endDate) {
+        endInp.value = masterData.rosterPeriod.endDate;
+      }
+
+      const { startDate, endDate } = getActiveRosterPeriod();
+      if (startInp && startInp.value !== startDate) startInp.value = startDate;
+      if (endInp && endInp.value !== endDate) endInp.value = endDate;
+
+      const dates = getDateRangeArray(startDate, endDate, 62);
+      const todayStr = getTodayDateStr();
+
+      const metaEl = document.getElementById('rosterPeriodMeta');
+      if (metaEl) {
+        metaEl.innerHTML = `Đang hiển thị giai đoạn <b class="text-emerald-300">${formatVnDate(startDate)} → ${formatVnDate(endDate)}</b> (<b class="text-white">${dates.length} ngày</b>) • <b class="text-sky-300">${(masterData.shiftCodeMap || []).length} mã ca</b> đang áp dụng.`;
+      }
+
+      const thead = document.getElementById('rosterTableHead');
+      if (thead) {
+        thead.innerHTML = `<tr>
+          <th class="p-3 sticky left-0 bg-slate-900 z-10 min-w-[175px] border-r border-slate-800">Nhân Sự Trực Ca</th>
+          ${dates.map(dt => {
+            const isToday = dt === todayStr;
+            const dLbl = getDayShortLabel(dt);
+            const isWeekend = dLbl === 'CN' || dLbl === 'T7';
+            return `<th class="p-2.5 text-center whitespace-nowrap min-w-[104px] ${isToday ? 'bg-sky-500/20 text-sky-300' : (isWeekend ? 'text-amber-300/90' : '')}">
+              <div class="font-bold">${dLbl} • ${formatVnShort(dt)}</div>
+              ${isToday ? '<div class="text-[9px] text-sky-400">Hôm nay</div>' : ''}
+            </th>`;
+          }).join('')}
+          <th class="p-3 text-right whitespace-nowrap">Thao Tác</th>
+        </tr>`;
+      }
+
       const tb = document.getElementById('rosterTableBody');
       if (!masterData.rosterStaff || masterData.rosterStaff.length === 0) {
-        tb.innerHTML = `<tr><td colspan="9" class="p-6 text-center text-slate-400">Chưa có nhân sự nào trong bảng phân ca. Bấm <b>Thêm Nhân Sự Phân Ca</b> để bắt đầu.</td></tr>`;
+        tb.innerHTML = `<tr><td colspan="${dates.length + 2}" class="p-6 text-center text-slate-400">Chưa có nhân sự nào trong bảng phân ca. Bấm <b>Thêm Nhân Sự</b> hoặc <b>Nhập Excel</b> để bắt đầu.</td></tr>`;
         return;
       }
+
       tb.innerHTML = masterData.rosterStaff.map(r => {
-        const row = masterData.weeklyRoster[r.id] || {};
         return `<tr class="hover:bg-slate-900/40">
-          <td class="p-3 font-semibold whitespace-nowrap">
+          <td class="p-3 sticky left-0 bg-slate-950/95 backdrop-blur font-semibold whitespace-nowrap border-r border-slate-800/80 z-10">
             <div>${r.name} <span class="text-slate-500 font-normal">(${r.employeeCode})</span></div>
             <div class="text-[10px] text-slate-400">${r.title || 'Kỹ thuật viên'} • ${r.department || 'Kỹ Thuật'}</div>
           </td>
-          ${DAYS.map(d => `
-            <td class="p-2">
-              <select data-uid="${r.id}" data-day="${d}" class="roster-sel w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs">
-                ${SHIFT_OPTS.map(opt => `<option value="${opt}" ${row[d] === opt ? 'selected' : ''}>${opt || '--'}</option>`).join('')}
+          ${dates.map(dt => {
+            const sh = getShiftForStaffOnDate(r.id, dt);
+            const rawCode = getRawCodeForStaffOnDate(r.id, dt);
+            const isToday = dt === todayStr;
+            return `<td class="p-1.5 ${isToday ? 'bg-sky-500/10' : ''}">
+              <select data-uid="${r.id}" data-date="${dt}" class="roster-sel w-full px-1.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-[11px] font-medium focus:border-emerald-400 focus:outline-none">
+                ${SHIFT_OPTS.map(opt => `<option value="${opt}" ${sh === opt ? 'selected' : ''}>${opt || '--'}</option>`).join('')}
               </select>
-            </td>`).join('')}
+              ${rawCode ? `<div class="mt-0.5 text-[9.5px] font-mono text-center text-sky-300/90 truncate" title="Mã ca gốc từ Excel: ${rawCode}">Mã: <b>${rawCode}</b></div>` : ''}
+            </td>`;
+          }).join('')}
           <td class="p-2 text-right whitespace-nowrap space-x-1">
             <button onclick="openRosterMemberModal('${r.id}')" class="px-2 py-1.5 rounded-lg bg-sky-500/15 text-sky-300 hover:bg-sky-500/30 cursor-pointer">Sửa</button>
             <button onclick="deleteRosterMember('${r.id}')" class="px-2 py-1.5 rounded-lg bg-rose-500/15 text-rose-300 hover:bg-rose-500/30 cursor-pointer">Xóa</button>
@@ -1479,6 +1783,47 @@
         </tr>`;
       }).join('');
     }
+
+    window.handleRosterPeriodChange = () => {
+      const startInp = document.getElementById('rosterStartDate');
+      const endInp = document.getElementById('rosterEndDate');
+      if (!startInp || !endInp || !startInp.value || !endInp.value) return;
+      if (startInp.value > endInp.value) {
+        endInp.value = startInp.value;
+      }
+      const dates = getDateRangeArray(startInp.value, endInp.value, 63);
+      if (dates.length > 62) {
+        showToast('Giai đoạn tối đa 62 ngày mỗi lần hiển thị/xuất mẫu!');
+        const s = parseIsoDateLocal(startInp.value);
+        const cap = new Date(s.getFullYear(), s.getMonth(), s.getDate() + 61);
+        endInp.value = formatIsoDateLocal(cap);
+      }
+      masterData.rosterPeriod = { startDate: startInp.value, endDate: endInp.value };
+      renderRosterTable();
+      if (typeof window.renderUserRosterView === 'function') window.renderUserRosterView();
+    };
+
+    window.setRosterPeriodPreset = (preset) => {
+      const now = new Date();
+      let s, e;
+      if (preset === 'week') {
+        const diffToMon = (now.getDay() + 6) % 7;
+        s = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diffToMon);
+        e = new Date(s.getFullYear(), s.getMonth(), s.getDate() + 6);
+      } else if (preset === 'biweek') {
+        const diffToMon = (now.getDay() + 6) % 7;
+        s = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diffToMon);
+        e = new Date(s.getFullYear(), s.getMonth(), s.getDate() + 13);
+      } else {
+        s = new Date(now.getFullYear(), now.getMonth(), 1);
+        e = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      }
+      const startInp = document.getElementById('rosterStartDate');
+      const endInp = document.getElementById('rosterEndDate');
+      if (startInp) startInp.value = formatIsoDateLocal(s);
+      if (endInp) endInp.value = formatIsoDateLocal(e);
+      window.handleRosterPeriodChange();
+    };
 
     // BẢNG PHÂN CA CHỈ XEM DÀNH CHO NHÂN VIÊN (STARDOCK)
     function renderShiftBadge(val) {
@@ -1529,19 +1874,28 @@
         }).join('');
       }
 
-      // Header bảng tuần (làm nổi bật cột hôm nay)
+      const todayStr = getTodayDateStr();
+      const { startDate, endDate } = getActiveRosterPeriod();
+      const periodDates = getDateRangeArray(startDate, endDate, 62);
+      if (subEl) {
+        subEl.textContent = `Hôm nay: ${dayLabels[todayKey]}, ${todayFormatted} • Ca hiện tại: ${currentShift} • Giai đoạn: ${formatVnDate(startDate)} → ${formatVnDate(endDate)}`;
+      }
+
+      // Header bảng giai đoạn (làm nổi bật cột hôm nay)
       const thead = document.getElementById('userRosterThead');
       if (thead) {
         thead.innerHTML = `<tr>
           <th class="p-3 sticky left-0 bg-slate-900 z-10 min-w-[140px]">Nhân Sự</th>
-          ${DAYS.map(d => `
-            <th class="p-3 text-center whitespace-nowrap ${d === todayKey ? 'bg-sky-500/15 text-sky-300' : ''}">
-              ${dayLabels[d]}${d === todayKey ? ' <span class="block text-[9px] text-sky-400">(Hôm nay)</span>' : ''}
-            </th>`).join('')}
+          ${periodDates.map(dt => {
+            const isToday = dt === todayStr;
+            return `<th class="p-2.5 text-center whitespace-nowrap ${isToday ? 'bg-sky-500/15 text-sky-300' : ''}">
+              ${getDayShortLabel(dt)} • ${formatVnShort(dt)}${isToday ? ' <span class="block text-[9px] text-sky-400">(Hôm nay)</span>' : ''}
+            </th>`;
+          }).join('')}
         </tr>`;
       }
 
-      // Nội dung bảng tuần có lọc tìm kiếm
+      // Nội dung bảng giai đoạn có lọc tìm kiếm
       const tbody = document.getElementById('userRosterTbody');
       if (tbody) {
         const q = (document.getElementById('userRosterSearch')?.value || '').trim().toLowerCase();
@@ -1549,19 +1903,23 @@
           !q || (r.name || '').toLowerCase().includes(q) || (r.employeeCode || '').toLowerCase().includes(q)
         );
         if (list.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-slate-400">Không tìm thấy nhân sự phù hợp.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="${periodDates.length + 1}" class="p-6 text-center text-slate-400">Không tìm thấy nhân sự phù hợp.</td></tr>`;
         } else {
           tbody.innerHTML = list.map(r => {
-            const row = masterData.weeklyRoster[r.id] || {};
             return `<tr class="hover:bg-slate-900/40">
               <td class="p-3 sticky left-0 bg-slate-950/95 backdrop-blur font-semibold whitespace-nowrap border-r border-slate-800/70">
                 <div class="text-slate-100">${r.name}</div>
                 <div class="text-[10px] text-slate-400">${r.employeeCode || ''} ${r.title ? '• ' + r.title : ''}</div>
               </td>
-              ${DAYS.map(d => `
-                <td class="p-2.5 text-center ${d === todayKey ? 'bg-sky-500/10' : ''}">
-                  ${renderShiftBadge(row[d] || '')}
-                </td>`).join('')}
+              ${periodDates.map(dt => {
+                const isToday = dt === todayStr;
+                const sh = getShiftForStaffOnDate(r.id, dt);
+                const rawCode = getRawCodeForStaffOnDate(r.id, dt);
+                return `<td class="p-2 text-center ${isToday ? 'bg-sky-500/10' : ''}">
+                  ${renderShiftBadge(sh)}
+                  ${rawCode ? `<div class="text-[9.5px] font-mono text-slate-400 mt-0.5">${rawCode}</div>` : ''}
+                </td>`;
+              }).join('')}
             </tr>`;
           }).join('');
         }
@@ -1854,14 +2212,13 @@
         return { active: false, visible: false, pinned: false, offset: 0 };
       }
       const dock = document.getElementById('userStardock');
-      let dockHeight = 58;
+      let dockHeight = 56;
       if (dock) {
         const rect = dock.getBoundingClientRect();
         if (rect && rect.height > 20) dockHeight = Math.ceil(rect.height);
       }
-      // Khi Stardock hiện: đẩy menu bar module lên cách đáy = chiều cao Stardock + 16px đệm an toàn
-      // Khi Stardock ẩn: chỉ chừa 16px cho vạch xanh nhận diện sát mép dưới
-      const offset = stardockVisible ? (dockHeight + 16) : 16;
+      const isMobile = window.innerWidth < 640;
+      const offset = stardockVisible ? (dockHeight + (isMobile ? 6 : 14)) : 14;
       return {
         active: true,
         visible: stardockVisible,
@@ -1895,8 +2252,8 @@
       if (btn) {
         btn.title = stardockPinned ? 'Đang ghim cố định (Bấm để chuyển Tự ẩn)' : 'Đang Tự ẩn (Bấm để Ghim cố định)';
         btn.className = stardockPinned
-          ? 'w-8 h-8 rounded-xl flex items-center justify-center cursor-pointer transition border border-emerald-200/55 bg-emerald-400/35 text-white hover:bg-emerald-400/50 shrink-0 shadow-inner'
-          : 'w-8 h-8 rounded-xl flex items-center justify-center cursor-pointer transition border border-emerald-200/25 bg-slate-950/45 text-emerald-200/80 hover:bg-slate-900/60 shrink-0';
+          ? 'w-7 h-8 sm:w-8 sm:h-9 rounded-xl flex items-center justify-center cursor-pointer transition border border-emerald-200/55 bg-emerald-400/35 text-white hover:bg-emerald-400/50 shrink-0 shadow-inner'
+          : 'w-7 h-8 sm:w-8 sm:h-9 rounded-xl flex items-center justify-center cursor-pointer transition border border-emerald-200/25 bg-slate-950/45 text-emerald-200/80 hover:bg-slate-900/60 shrink-0';
       }
       lucide.createIcons();
       clearTimeout(stardockHideTimer);
@@ -1991,9 +2348,11 @@
         }, { passive: true });
       }
 
-      window.addEventListener('resize', () => {
-        if (currentUser) broadcastDockState();
-      });
+      const syncDockOnViewport = () => {
+        if (currentUser) requestAnimationFrame(broadcastDockState);
+      };
+      window.addEventListener('resize', syncDockOnViewport);
+      window.addEventListener('orientationchange', () => setTimeout(syncDockOnViewport, 200));
     })();
 
     window.openTab = (tabName) => {
@@ -2027,19 +2386,150 @@
     };
 
     window.saveRosterAndSync = async () => {
+      const { startDate, endDate } = getActiveRosterPeriod();
+      masterData.rosterPeriod = { startDate, endDate };
+      if (!masterData.datedRoster) masterData.datedRoster = {};
+      if (!masterData.datedRosterRaw) masterData.datedRosterRaw = {};
+
       document.querySelectorAll('.roster-sel').forEach(sel => {
-        const uid = sel.dataset.uid, day = sel.dataset.day;
+        const uid = sel.dataset.uid;
+        const dt = sel.dataset.date;
+        const val = sel.value;
+        if (!uid || !dt) return;
+        if (!masterData.datedRoster[uid]) masterData.datedRoster[uid] = {};
+        const prevVal = masterData.datedRoster[uid][dt];
+        masterData.datedRoster[uid][dt] = val;
+        // Nếu người dùng đổi tay sang ca khác thì xóa mã gốc cũ để tránh nhầm lẫn
+        if (prevVal !== val && masterData.datedRosterRaw[uid]) {
+          delete masterData.datedRosterRaw[uid][dt];
+        }
+        // Đồng bộ về weeklyRoster tương ứng thứ trong tuần
+        const dayKey = getDayKeyOfDate(dt);
         if (!masterData.weeklyRoster[uid]) masterData.weeklyRoster[uid] = {};
-        masterData.weeklyRoster[uid][day] = sel.value;
+        masterData.weeklyRoster[uid][dayKey] = val;
       });
+
       updateHeaderUI();
+      renderRosterTable();
+      if (typeof window.renderUserRosterView === 'function') window.renderUserRosterView();
       await pushMasterAndAllBackends();
       broadcastToIframes();
-      showToast('Đã lưu bảng phân ca & ánh xạ sang các tab thực hiện!');
+      showToast('Đã lưu bảng phân ca theo giai đoạn & ánh xạ sang các module!');
     };
 
-    // === NẠP BẢNG PHÂN CA BẰNG EXCEL CHO ADMIN ===
+    // === QUẢN LÝ BẢNG THAM CHIẾU MÃ CA DO NGƯỜI DÙNG QUI ĐỊNH ===
+    let editingShiftCodeMap = [];
+
+    function renderShiftCodeMapRows() {
+      const tb = document.getElementById('shiftCodeMapBody');
+      if (!tb) return;
+      if (editingShiftCodeMap.length === 0) {
+        tb.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400">Chưa có mã ca nào. Hãy thêm mã ca mới ở khung phía trên hoặc bấm <b>Khôi Phục Mặc Định</b>.</td></tr>`;
+        return;
+      }
+      tb.innerHTML = editingShiftCodeMap.map((rule, idx) => `
+        <tr class="hover:bg-slate-900/50">
+          <td class="p-2">
+            <input type="text" value="${(rule.code || '').replace(/"/g, '&quot;')}" onchange="updateShiftCodeField(${idx}, 'code', this.value)"
+              class="w-full px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 font-mono font-bold uppercase text-sky-300 text-xs" />
+          </td>
+          <td class="p-2">
+            <select onchange="updateShiftCodeField(${idx}, 'systemShift', this.value)"
+              class="w-full px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 text-xs font-semibold">
+              <option value="Ca Sáng" ${rule.systemShift === 'Ca Sáng' ? 'selected' : ''}>Ca Sáng (Ca 1)</option>
+              <option value="Ca Chiều" ${rule.systemShift === 'Ca Chiều' ? 'selected' : ''}>Ca Chiều (Ca 2)</option>
+              <option value="Ca Đêm" ${rule.systemShift === 'Ca Đêm' ? 'selected' : ''}>Ca Đêm (Ca 3)</option>
+              <option value="OFF" ${rule.systemShift === 'OFF' ? 'selected' : ''}>OFF (Nghỉ)</option>
+            </select>
+          </td>
+          <td class="p-2">
+            <input type="text" value="${(rule.timeRange || '').replace(/"/g, '&quot;')}" onchange="updateShiftCodeField(${idx}, 'timeRange', this.value)"
+              class="w-full px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 text-xs font-mono" />
+          </td>
+          <td class="p-2">
+            <input type="text" value="${(rule.note || '').replace(/"/g, '&quot;')}" onchange="updateShiftCodeField(${idx}, 'note', this.value)"
+              class="w-full px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 text-xs" />
+          </td>
+          <td class="p-2 text-right">
+            <button type="button" onclick="deleteShiftCodeRule(${idx})" class="p-1.5 rounded-lg bg-rose-500/15 text-rose-300 hover:bg-rose-500/30 cursor-pointer" title="Xóa mã ca">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    window.openShiftCodeMapModal = () => {
+      editingShiftCodeMap = structuredClone(masterData.shiftCodeMap || defaultMaster.shiftCodeMap);
+      renderShiftCodeMapRows();
+      document.getElementById('shiftCodeMapModal').classList.remove('hidden');
+      lucide.createIcons();
+    };
+
+    window.closeShiftCodeMapModal = () => {
+      document.getElementById('shiftCodeMapModal').classList.add('hidden');
+    };
+
+    window.updateShiftCodeField = (idx, field, val) => {
+      if (!editingShiftCodeMap[idx]) return;
+      editingShiftCodeMap[idx][field] = field === 'code' ? String(val || '').trim().toUpperCase() : String(val || '').trim();
+    };
+
+    window.addShiftCodeRule = (event) => {
+      event.preventDefault();
+      const code = document.getElementById('scNewCode').value.trim().toUpperCase();
+      const systemShift = document.getElementById('scNewSystem').value;
+      const timeRange = document.getElementById('scNewTime').value.trim();
+      const note = document.getElementById('scNewNote').value.trim();
+      if (!code) return;
+      const existIdx = editingShiftCodeMap.findIndex(r => String(r.code || '').toUpperCase() === code);
+      const entry = { code, systemShift, timeRange: timeRange || (systemShift === 'OFF' ? 'Nghỉ' : ''), note };
+      if (existIdx >= 0) {
+        editingShiftCodeMap[existIdx] = entry;
+      } else {
+        editingShiftCodeMap.unshift(entry);
+      }
+      document.getElementById('addShiftCodeForm').reset();
+      renderShiftCodeMapRows();
+    };
+
+    window.deleteShiftCodeRule = (idx) => {
+      editingShiftCodeMap.splice(idx, 1);
+      renderShiftCodeMapRows();
+    };
+
+    window.resetDefaultShiftCodeMap = () => {
+      if (!confirm('Khôi phục Bảng Tham Chiếu Mã Ca về danh sách mặc định?')) return;
+      editingShiftCodeMap = structuredClone(defaultMaster.shiftCodeMap);
+      renderShiftCodeMapRows();
+    };
+
+    window.saveShiftCodeMapAndSync = async () => {
+      const cleaned = editingShiftCodeMap
+        .map(r => ({
+          code: String(r.code || '').trim().toUpperCase(),
+          systemShift: SHIFT_OPTS.includes(r.systemShift) ? r.systemShift : 'Ca Sáng',
+          timeRange: String(r.timeRange || '').trim(),
+          note: String(r.note || '').trim()
+        }))
+        .filter(r => r.code);
+
+      if (cleaned.length === 0) {
+        alert('Cần ít nhất 1 mã ca trong bảng tham chiếu!');
+        return;
+      }
+      masterData.shiftCodeMap = cleaned;
+      window.closeShiftCodeMapModal();
+      renderRosterTable();
+      await pushMasterAndAllBackends();
+      broadcastToIframes();
+      showToast(`Đã lưu ${cleaned.length} mã ca tham chiếu & đồng bộ Cloud!`);
+    };
+
+    // === NẠP & XUẤT BẢNG PHÂN CA BẰNG EXCEL THEO GIAI ĐOẠN + ÁNH XẠ BẢNG MÃ CA ===
     let pendingImportedRoster = [];
+    let pendingImportedDates = [];
 
     function normalizeHeaderKey(str) {
       return String(str || '')
@@ -2050,33 +2540,97 @@
         .replace(/[^a-z0-9]/g, '');
     }
 
-    function parseExcelShiftCode(raw) {
-      if (raw === null || raw === undefined) return '';
+    function mapShiftCodeWithTable(raw, extraCodeMap = []) {
+      if (raw === null || raw === undefined) return { rawCode: '', systemShift: '', isUnknown: false };
       const v = String(raw).trim();
-      if (!v) return '';
+      if (!v) return { rawCode: '', systemShift: '', isUnknown: false };
       const up = v.toUpperCase();
       const norm = normalizeHeaderKey(v);
 
-      if (['off', 'nghi', 'x', 'ro', 'al', 'ph', 'nghiphep'].includes(norm) || v === '-') return 'OFF';
-      if (
-        up.startsWith('M') ||
-        ['ca1', '1', 'c1', 'sang', 'casang', 'morning'].includes(norm) ||
-        norm.includes('sang')
-      ) return 'Ca Sáng';
-      if (
-        up.startsWith('E') ||
-        ['ca2', '2', 'c2', 'chieu', 'cachieu', 'afternoon'].includes(norm) ||
-        norm.includes('chieu')
-      ) return 'Ca Chiều';
-      if (
-        up.startsWith('N') ||
-        ['ca3', '3', 'c3', 'dem', 'cadem', 'night'].includes(norm) ||
-        norm.includes('dem')
-      ) return 'Ca Đêm';
-      return '';
+      // 1. Ưu tiên tuyệt đối: Bảng tham chiếu mã ca do người dùng qui định (masterData.shiftCodeMap)
+      const userMap = masterData.shiftCodeMap || [];
+      const exactUser = userMap.find(r => String(r.code || '').trim().toUpperCase() === up);
+      if (exactUser) {
+        return { rawCode: up, systemShift: exactUser.systemShift, isUnknown: false };
+      }
+
+      // 2. Ưu tiên kế tiếp: Bảng mã ca đính kèm trong sheet BangMaCa của file Excel vừa nạp (nếu có)
+      if (Array.isArray(extraCodeMap) && extraCodeMap.length > 0) {
+        const exactSheet = extraCodeMap.find(r => String(r.code || '').trim().toUpperCase() === up);
+        if (exactSheet) {
+          return { rawCode: up, systemShift: exactSheet.systemShift, isUnknown: false };
+        }
+      }
+
+      // 3. Fallback: các tên ca hệ thống tiêu chuẩn
+      if (['off', 'nghi', 'nghiphep'].includes(norm) || v === '-') return { rawCode: up, systemShift: 'OFF', isUnknown: false };
+      if (['ca1', '1', 'c1', 'sang', 'casang', 'morning'].includes(norm) || norm.includes('casang')) return { rawCode: v, systemShift: 'Ca Sáng', isUnknown: false };
+      if (['ca2', '2', 'c2', 'chieu', 'cachieu', 'afternoon'].includes(norm) || norm.includes('cachieu')) return { rawCode: v, systemShift: 'Ca Chiều', isUnknown: false };
+      if (['ca3', '3', 'c3', 'dem', 'cadem', 'night'].includes(norm) || norm.includes('cadem')) return { rawCode: v, systemShift: 'Ca Đêm', isUnknown: false };
+
+      // Không khớp bảng mã ca -> đánh dấu để cảnh báo người dùng
+      return { rawCode: up, systemShift: '', isUnknown: true };
+    }
+
+    function parseExcelDateColumnHeader(headerRaw, fallbackYear) {
+      if (headerRaw === null || headerRaw === undefined) return null;
+      const str = String(headerRaw).trim();
+      if (!str) return null;
+
+      // Dạng YYYY-MM-DD hoặc YYYY/MM/DD (có thể kèm "(T2)")
+      let m = str.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+      if (m) {
+        const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);
+        if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31) {
+          return `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        }
+      }
+
+      // Dạng DD/MM/YYYY hoặc DD-MM-YYYY (có thể kèm "(T2)")
+      m = str.match(/(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);
+      if (m) {
+        const d = Number(m[1]), mo = Number(m[2]), y = Number(m[3]);
+        if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31) {
+          return `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        }
+      }
+
+      // Dạng DD/MM (không có năm, vd "26/11 (T5)")
+      m = str.match(/(?:^|\s)(\d{1,2})[-\/](\d{1,2})(?:\s|\(|$)/);
+      if (m) {
+        const d = Number(m[1]), mo = Number(m[2]), y = fallbackYear || new Date().getFullYear();
+        if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31) {
+          return `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        }
+      }
+
+      // Dạng số serial ngày của Excel (vd 46350)
+      if (/^\d{5}(\.\d+)?$/.test(str) && typeof XLSX !== 'undefined' && XLSX.SSF && XLSX.SSF.parse_date_code) {
+        const num = Number(str);
+        if (num >= 40000 && num <= 60000) {
+          const parsed = XLSX.SSF.parse_date_code(num);
+          if (parsed && parsed.y && parsed.m && parsed.d) {
+            return `${parsed.y}-${String(parsed.m).padStart(2, '0')}-${String(parsed.d).padStart(2, '0')}`;
+          }
+        }
+      }
+      return null;
+    }
+
+    function getDefaultCodeForSystemShift(systemShift) {
+      if (!systemShift) return '';
+      const found = (masterData.shiftCodeMap || []).find(r => r.systemShift === systemShift);
+      return found ? found.code : systemShift;
     }
 
     window.downloadRosterExcelTemplate = () => {
+      const { startDate, endDate } = getActiveRosterPeriod();
+      const dates = getDateRangeArray(startDate, endDate, 62);
+      if (dates.length === 0) {
+        alert('Vui lòng chọn Ngày bắt đầu và Ngày kết thúc hợp lệ (Ngày bắt đầu <= Ngày kết thúc)!');
+        return;
+      }
+
       const source = (masterData.rosterStaff && masterData.rosterStaff.length > 0)
         ? masterData.rosterStaff
         : [
@@ -2085,42 +2639,42 @@
           ];
 
       const rows = source.map((r, idx) => {
-        const w = masterData.weeklyRoster[r.id] || {};
-        return {
+        const obj = {
           'Mã NV': r.employeeCode || `KT-${String(idx + 1).padStart(3, '0')}`,
           'Họ và Tên': r.name,
           'Chức Vụ': r.title || 'Kỹ thuật viên',
-          'Bộ Phận': r.department || 'Kỹ Thuật',
-          'Thứ 2': w.mon || (idx % 2 === 0 ? 'Ca Sáng' : 'Ca Chiều'),
-          'Thứ 3': w.tue || (idx % 2 === 0 ? 'Ca Sáng' : 'Ca Chiều'),
-          'Thứ 4': w.wed || (idx % 2 === 0 ? 'Ca Chiều' : 'Ca Đêm'),
-          'Thứ 5': w.thu || (idx % 2 === 0 ? 'Ca Chiều' : 'Ca Đêm'),
-          'Thứ 6': w.fri || (idx % 2 === 0 ? 'Ca Đêm' : 'OFF'),
-          'Thứ 7': w.sat || (idx % 2 === 0 ? 'OFF' : 'Ca Sáng'),
-          'Chủ Nhật': w.sun || 'Ca Sáng'
+          'Bộ Phận': r.department || 'Kỹ Thuật'
         };
+        dates.forEach(dt => {
+          const colName = `${formatVnDate(dt)} (${getDayShortLabel(dt)})`;
+          const rawCode = getRawCodeForStaffOnDate(r.id, dt);
+          const sh = getShiftForStaffOnDate(r.id, dt);
+          obj[colName] = rawCode || getDefaultCodeForSystemShift(sh);
+        });
+        return obj;
       });
 
-      const guideRows = [
-        { 'Giá trị hợp lệ trong Excel': 'Ca Sáng / Ca 1 / M / M1 / M2 / Sáng', 'Ánh xạ hệ thống': 'Ca Sáng (06:00 - 14:00)' },
-        { 'Giá trị hợp lệ trong Excel': 'Ca Chiều / Ca 2 / E / E1 / E2 / Chiều', 'Ánh xạ hệ thống': 'Ca Chiều (14:00 - 22:00)' },
-        { 'Giá trị hợp lệ trong Excel': 'Ca Đêm / Ca 3 / N / N1 / N2 / Đêm', 'Ánh xạ hệ thống': 'Ca Đêm (22:00 - 06:00)' },
-        { 'Giá trị hợp lệ trong Excel': 'OFF / Nghỉ / X / RO / AL / -', 'Ánh xạ hệ thống': 'OFF (Nghỉ)' },
-        { 'Giá trị hợp lệ trong Excel': '(Để trống)', 'Ánh xạ hệ thống': 'Chưa phân ca (--)' }
-      ];
+      const codeMapRows = (masterData.shiftCodeMap || defaultMaster.shiftCodeMap).map(r => ({
+        'Mã Ca': r.code,
+        'Ca Hệ Thống': r.systemShift,
+        'Khung Giờ': r.timeRange || '',
+        'Ghi Chú': r.note || ''
+      }));
 
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(rows);
       ws['!cols'] = [
-        { wch: 12 }, { wch: 24 }, { wch: 18 }, { wch: 16 },
-        { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }
+        { wch: 11 }, { wch: 24 }, { wch: 18 }, { wch: 15 },
+        ...dates.map(() => ({ wch: 15 }))
       ];
       XLSX.utils.book_append_sheet(wb, ws, 'BangPhanCa');
-      const wsGuide = XLSX.utils.json_to_sheet(guideRows);
-      wsGuide['!cols'] = [{ wch: 40 }, { wch: 28 }];
-      XLSX.utils.book_append_sheet(wb, wsGuide, 'HuongDanMaCa');
-      XLSX.writeFile(wb, `Mau_Bang_Phan_Ca_${getTodayDateStr()}.xlsx`);
-      showToast('Đã tải file Excel mẫu Bảng Phân Ca!');
+
+      const wsMap = XLSX.utils.json_to_sheet(codeMapRows);
+      wsMap['!cols'] = [{ wch: 14 }, { wch: 18 }, { wch: 18 }, { wch: 36 }];
+      XLSX.utils.book_append_sheet(wb, wsMap, 'BangMaCa');
+
+      XLSX.writeFile(wb, `Mau_Phan_Ca_${startDate}_den_${endDate}.xlsx`);
+      showToast(`Đã xuất mẫu Excel giai đoạn ${formatVnDate(startDate)} → ${formatVnDate(endDate)} (${dates.length} ngày)!`);
     };
 
     window.handleRosterExcelFile = (event) => {
@@ -2132,41 +2686,98 @@
         try {
           const data = new Uint8Array(e.target.result);
           const wb = XLSX.read(data, { type: 'array' });
+
+          // Đọc thêm sheet BangMaCa trong file Excel nếu người dùng có chỉnh sửa/bổ sung mã ca trong file
+          const extraCodeMap = [];
+          const mapSheetName = wb.SheetNames.find(n => {
+            const k = normalizeHeaderKey(n);
+            return k.includes('maca') || k.includes('shiftcode') || k.includes('thamchieu');
+          });
+          if (mapSheetName && wb.Sheets[mapSheetName]) {
+            const mapRows = XLSX.utils.sheet_to_json(wb.Sheets[mapSheetName], { defval: '' });
+            mapRows.forEach(mr => {
+              const nm = {};
+              Object.keys(mr).forEach(k => { nm[normalizeHeaderKey(k)] = mr[k]; });
+              const c = String(nm.maca || nm.code || nm.kyhieu || '').trim().toUpperCase();
+              const sysRaw = String(nm.cahethong || nm.anhxacahethong || nm.systemshift || nm.ca || '').trim();
+              if (!c || !sysRaw) return;
+              const sysNorm = normalizeHeaderKey(sysRaw);
+              let sysShift = '';
+              if (sysNorm.includes('sang') || sysNorm.includes('ca1')) sysShift = 'Ca Sáng';
+              else if (sysNorm.includes('chieu') || sysNorm.includes('ca2')) sysShift = 'Ca Chiều';
+              else if (sysNorm.includes('dem') || sysNorm.includes('ca3')) sysShift = 'Ca Đêm';
+              else if (sysNorm.includes('off') || sysNorm.includes('nghi')) sysShift = 'OFF';
+              if (sysShift) extraCodeMap.push({ code: c, systemShift: sysShift });
+            });
+          }
+
           const firstSheet = wb.Sheets[wb.SheetNames[0]];
           const jsonRows = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
-
           if (!jsonRows || jsonRows.length === 0) {
             alert('File Excel trống hoặc không có dòng dữ liệu nào!');
             return;
           }
 
-          const dayKeyMatchers = {
-            mon: ['thu2', 't2', 'mon', 'monday'],
-            tue: ['thu3', 't3', 'tue', 'tuesday'],
-            wed: ['thu4', 't4', 'wed', 'wednesday'],
-            thu: ['thu5', 't5', 'thu', 'thursday'],
-            fri: ['thu6', 't6', 'fri', 'friday'],
-            sat: ['thu7', 't7', 'sat', 'saturday'],
-            sun: ['chunhat', 'cn', 'sun', 'sunday']
-          };
+          const allHeaders = Object.keys(jsonRows[0] || {});
+          const { startDate: uiStart } = getActiveRosterPeriod();
+          const fallbackYear = uiStart ? Number(uiStart.slice(0, 4)) : new Date().getFullYear();
 
+          // Phát hiện các cột ngày theo giai đoạn
+          const dateColumns = [];
+          allHeaders.forEach(h => {
+            const parsedDate = parseExcelDateColumnHeader(h, fallbackYear);
+            if (parsedDate) {
+              dateColumns.push({ header: h, date: parsedDate });
+            }
+          });
+          dateColumns.sort((a, b) => a.date.localeCompare(b.date));
+
+          // Nếu file không có cột ngày cụ thể -> tự động nhận dạng mẫu Thứ 2..CN cũ và ánh xạ vào tuần hiện tại
+          let detectedMode = 'dated';
+          if (dateColumns.length === 0) {
+            detectedMode = 'weekly';
+            const dayKeyMatchers = {
+              mon: ['thu2', 't2', 'mon', 'monday'],
+              tue: ['thu3', 't3', 'tue', 'tuesday'],
+              wed: ['thu4', 't4', 'wed', 'wednesday'],
+              thu: ['thu5', 't5', 'thu', 'thursday'],
+              fri: ['thu6', 't6', 'fri', 'friday'],
+              sat: ['thu7', 't7', 'sat', 'saturday'],
+              sun: ['chunhat', 'cn', 'sun', 'sunday']
+            };
+            const now = new Date();
+            const diffToMon = (now.getDay() + 6) % 7;
+            const mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diffToMon);
+            DAYS.forEach((dKey, idx) => {
+              const matchedHeader = allHeaders.find(h => {
+                const nk = normalizeHeaderKey(h);
+                return dayKeyMatchers[dKey].some(c => nk === c || nk.includes(c));
+              });
+              if (matchedHeader) {
+                const dt = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + idx);
+                dateColumns.push({ header: matchedHeader, date: formatIsoDateLocal(dt) });
+              }
+            });
+          }
+
+          if (dateColumns.length === 0) {
+            alert('Không nhận diện được cột ngày (vd: 26/11/2026) hoặc cột Thứ 2–CN trong file Excel. Hãy bấm "Xuất Mẫu Excel" để lấy đúng định dạng.');
+            return;
+          }
+
+          const unmappedSet = new Set();
           const parsedList = [];
+
           jsonRows.forEach((rawRow, idx) => {
             const normMap = {};
-            Object.keys(rawRow).forEach(k => {
-              normMap[normalizeHeaderKey(k)] = rawRow[k];
-            });
+            Object.keys(rawRow).forEach(k => { normMap[normalizeHeaderKey(k)] = rawRow[k]; });
 
             const pickVal = (candidates) => {
               for (const c of candidates) {
-                if (normMap[c] !== undefined && String(normMap[c]).trim() !== '') {
-                  return String(normMap[c]).trim();
-                }
+                if (normMap[c] !== undefined && String(normMap[c]).trim() !== '') return String(normMap[c]).trim();
               }
               for (const k of Object.keys(normMap)) {
-                if (candidates.some(c => k.includes(c)) && String(normMap[k]).trim() !== '') {
-                  return String(normMap[k]).trim();
-                }
+                if (candidates.some(c => k.includes(c)) && String(normMap[k]).trim() !== '') return String(normMap[k]).trim();
               }
               return '';
             };
@@ -2178,10 +2789,19 @@
             const title = pickVal(['chucvu', 'chucdanh', 'to', 'title', 'position']) || 'Kỹ thuật viên';
             const department = pickVal(['bophan', 'phongban', 'department', 'dept']) || 'Kỹ Thuật';
 
-            const shifts = {};
-            DAYS.forEach(d => {
-              const rawShift = pickVal(dayKeyMatchers[d]);
-              shifts[d] = parseExcelShiftCode(rawShift);
+            const datedShifts = {};
+            const datedRaw = {};
+            const unknownDates = {};
+
+            dateColumns.forEach(col => {
+              const cellRaw = rawRow[col.header];
+              const mapped = mapShiftCodeWithTable(cellRaw, extraCodeMap);
+              datedShifts[col.date] = mapped.systemShift;
+              datedRaw[col.date] = mapped.rawCode;
+              if (mapped.isUnknown && mapped.rawCode) {
+                unknownDates[col.date] = mapped.rawCode;
+                unmappedSet.add(mapped.rawCode);
+              }
             });
 
             const existing = (masterData.rosterStaff || []).find(r =>
@@ -2195,33 +2815,67 @@
               name: name || (existing ? existing.name : code),
               title,
               department,
-              shifts
+              datedShifts,
+              datedRaw,
+              unknownDates
             });
           });
 
           if (parsedList.length === 0) {
-            alert('Không tìm thấy cột "Họ và Tên" hoặc "Mã NV" hợp lệ trong file Excel. Hãy tải File Mẫu để xem đúng định dạng.');
+            alert('Không tìm thấy cột "Họ và Tên" hoặc "Mã NV" hợp lệ trong file Excel.');
             return;
           }
 
           pendingImportedRoster = parsedList;
+          pendingImportedDates = dateColumns.map(c => c.date);
+
           const updateCount = parsedList.filter(x => x.existingId).length;
           const newCount = parsedList.length - updateCount;
+          const firstDt = pendingImportedDates[0];
+          const lastDt = pendingImportedDates[pendingImportedDates.length - 1];
 
           document.getElementById('impRosterFileName').textContent = file.name;
           document.getElementById('impRosterSummary').innerHTML =
-            `Đọc được <b class="text-white">${parsedList.length}</b> nhân sự: <b class="text-sky-300">${updateCount} cập nhật</b> • <b class="text-emerald-300">${newCount} thêm mới</b>.`;
+            `Giai đoạn <b class="text-emerald-300">${formatVnDate(firstDt)} → ${formatVnDate(lastDt)}</b> (${pendingImportedDates.length} ngày${detectedMode === 'weekly' ? ' • mẫu tuần' : ''}) • <b class="text-white">${parsedList.length}</b> nhân sự (<b class="text-sky-300">${updateCount} cập nhật</b>, <b class="text-emerald-300">${newCount} thêm mới</b>).`;
+
+          const unmappedAlert = document.getElementById('impRosterUnmappedAlert');
+          const unmappedText = document.getElementById('impRosterUnmappedText');
+          if (unmappedSet.size > 0) {
+            const listStr = Array.from(unmappedSet).map(c => `<code class="px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-300 font-bold">${c}</code>`).join(', ');
+            unmappedText.innerHTML = `<b>Phát hiện ${unmappedSet.size} mã ca chưa có trong Bảng Tham Chiếu:</b> ${listStr}. Các ô này sẽ tạm để trống nếu bạn chưa thêm chúng vào Bảng Mã Ca.`;
+            unmappedAlert.classList.remove('hidden');
+          } else {
+            unmappedAlert.classList.add('hidden');
+          }
+
+          document.getElementById('impRosterPreviewHead').innerHTML = `<tr>
+            <th class="p-2.5 sticky left-0 bg-slate-900 z-20">Trạng thái</th>
+            <th class="p-2.5">Mã NV</th>
+            <th class="p-2.5 min-w-[140px]">Họ & Tên</th>
+            ${pendingImportedDates.map(dt => `<th class="p-2 text-center whitespace-nowrap">${getDayShortLabel(dt)}<div class="text-[9px] text-slate-400 font-mono">${formatVnShort(dt)}</div></th>`).join('')}
+          </tr>`;
 
           document.getElementById('impRosterPreviewBody').innerHTML = parsedList.map(item => `
             <tr class="hover:bg-slate-900/50">
-              <td class="p-2.5 whitespace-nowrap">
+              <td class="p-2 whitespace-nowrap sticky left-0 bg-slate-950/95">
                 ${item.existingId
                   ? '<span class="px-2 py-0.5 rounded-md bg-sky-500/20 text-sky-300 text-[10px] font-bold">Cập nhật</span>'
                   : '<span class="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">Thêm mới</span>'}
               </td>
-              <td class="p-2.5 font-mono text-sky-300 whitespace-nowrap">${item.employeeCode}</td>
-              <td class="p-2.5 font-semibold whitespace-nowrap">${item.name}</td>
-              ${DAYS.map(d => `<td class="p-2 text-center">${renderShiftBadge(item.shifts[d])}</td>`).join('')}
+              <td class="p-2 font-mono text-sky-300 whitespace-nowrap">${item.employeeCode}</td>
+              <td class="p-2 font-semibold whitespace-nowrap">${item.name}</td>
+              ${pendingImportedDates.map(dt => {
+                const sh = item.datedShifts[dt];
+                const rc = item.datedRaw[dt];
+                const isUnk = Boolean(item.unknownDates[dt]);
+                if (isUnk) {
+                  return `<td class="p-1.5 text-center"><span class="inline-block px-1.5 py-0.5 rounded bg-amber-500/25 text-amber-300 border border-amber-500/40 text-[10px] font-mono font-bold" title="Mã ca chưa qui định trong Bảng Mã Ca">? ${rc}</span></td>`;
+                }
+                return `<td class="p-1.5 text-center">
+                  ${renderShiftBadge(sh)}
+                  ${rc && rc !== sh ? `<div class="text-[9px] font-mono text-slate-400 mt-0.5">${rc}</div>` : ''}
+                </td>`;
+              }).join('')}
             </tr>
           `).join('');
 
@@ -2240,6 +2894,7 @@
     window.closeImportRosterModal = () => {
       document.getElementById('importRosterModal').classList.add('hidden');
       pendingImportedRoster = [];
+      pendingImportedDates = [];
     };
 
     window.confirmImportRosterExcel = async () => {
@@ -2250,6 +2905,20 @@
       if (mode === 'replace') {
         masterData.rosterStaff = [];
         masterData.weeklyRoster = {};
+        masterData.datedRoster = {};
+        masterData.datedRosterRaw = {};
+      }
+      if (!masterData.datedRoster) masterData.datedRoster = {};
+      if (!masterData.datedRosterRaw) masterData.datedRosterRaw = {};
+
+      if (pendingImportedDates.length > 0) {
+        const sDt = pendingImportedDates[0];
+        const eDt = pendingImportedDates[pendingImportedDates.length - 1];
+        masterData.rosterPeriod = { startDate: sDt, endDate: eDt };
+        const sInp = document.getElementById('rosterStartDate');
+        const eInp = document.getElementById('rosterEndDate');
+        if (sInp) sInp.value = sDt;
+        if (eInp) eInp.value = eDt;
       }
 
       pendingImportedRoster.forEach((item, idx) => {
@@ -2274,17 +2943,30 @@
           target.title = item.title;
           target.department = item.department;
         }
-        masterData.weeklyRoster[target.id] = { ...item.shifts };
+
+        if (!masterData.datedRoster[target.id]) masterData.datedRoster[target.id] = {};
+        if (!masterData.datedRosterRaw[target.id]) masterData.datedRosterRaw[target.id] = {};
+        if (!masterData.weeklyRoster[target.id]) masterData.weeklyRoster[target.id] = {};
+
+        pendingImportedDates.forEach(dt => {
+          const sh = item.datedShifts[dt] || '';
+          const rc = item.datedRaw[dt] || '';
+          masterData.datedRoster[target.id][dt] = sh;
+          if (rc) masterData.datedRosterRaw[target.id][dt] = rc;
+          else delete masterData.datedRosterRaw[target.id][dt];
+          masterData.weeklyRoster[target.id][getDayKeyOfDate(dt)] = sh;
+        });
       });
 
       const importedTotal = pendingImportedRoster.length;
+      const daysTotal = pendingImportedDates.length;
       window.closeImportRosterModal();
       renderRosterTable();
       if (typeof window.renderUserRosterView === 'function') window.renderUserRosterView();
       updateHeaderUI();
       await pushMasterAndAllBackends();
       broadcastToIframes();
-      showToast(`Đã nạp thành công bảng phân ca cho ${importedTotal} nhân sự & đồng bộ 3 hệ thống!`);
+      showToast(`Đã nạp bảng phân ca (${importedTotal} nhân sự • ${daysTotal} ngày) & đồng bộ toàn hệ thống!`);
     };
 
     window.exportMasterExcel = () => {
@@ -2293,11 +2975,27 @@
         ? masterData.staff
         : masterData.staff.filter(u => !isSuperAdmin(u));
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(exportableStaff), 'TaiKhoanDangNhap');
-      const rosterRows = masterData.rosterStaff.map(r => ({
-        MaNV: r.employeeCode, HoTen: r.name, ChucVu: r.title, ...(masterData.weeklyRoster[r.id] || {})
-      }));
+
+      const { startDate, endDate } = getActiveRosterPeriod();
+      const dates = getDateRangeArray(startDate, endDate, 62);
+      const rosterRows = masterData.rosterStaff.map(r => {
+        const obj = { MaNV: r.employeeCode, HoTen: r.name, ChucVu: r.title, BoPhan: r.department || 'Kỹ Thuật' };
+        dates.forEach(dt => {
+          const col = `${formatVnDate(dt)} (${getDayShortLabel(dt)})`;
+          const rc = getRawCodeForStaffOnDate(r.id, dt);
+          const sh = getShiftForStaffOnDate(r.id, dt);
+          obj[col] = rc ? `${rc} (${sh || '?'})` : (sh || '');
+        });
+        return obj;
+      });
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rosterRows), 'BangPhanCa');
-      XLSX.writeFile(wb, `Unified_TaiKhoan_PhanCa_${getTodayDateStr()}.xlsx`);
+
+      const mapRows = (masterData.shiftCodeMap || []).map(m => ({
+        MaCa: m.code, CaHeThong: m.systemShift, KhungGio: m.timeRange || '', GhiChu: m.note || ''
+      }));
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(mapRows), 'BangMaCa');
+
+      XLSX.writeFile(wb, `Unified_TaiKhoan_PhanCa_${startDate}_den_${endDate}.xlsx`);
     };
 
     window.addEventListener('DOMContentLoaded', async () => {
