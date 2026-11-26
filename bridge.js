@@ -1,4 +1,4 @@
-/* bridge-v13.js — Chuẩn Hóa Menu Bar Ngang Phía Trên (Checklist Cuộn Tự Nhiên Không Cố Định) + SSO & 5 Module */
+/* bridge-v14.js — Sửa Lỗi Cuộn Trang Kho Vật Tư + Chuẩn Hóa Menu Bar Ngang & SSO 5 Module */
 (function () {
   let isApplyingFromMaster = false;
   let lastMasterData = null;
@@ -493,7 +493,34 @@
   }
 
   // ==================== 5. KHO VẬT TƯ KỸ THUẬT (stock.html) ====================
+  function ensureStockScrollFix() {
+    if (!isStockModule() || document.getElementById('unified-stock-scroll-fix-css')) return;
+    const st = document.createElement('style');
+    st.id = 'unified-stock-scroll-fix-css';
+    st.textContent = `
+      html, body {
+        height: auto !important;
+        min-height: 100% !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+      }
+      main {
+        overflow-x: clip !important;
+        overflow-y: visible !important;
+      }
+      .view-hidden-left {
+        top: 0 !important;
+        left: 0 !important;
+        height: 0 !important;
+        overflow: hidden !important;
+        visibility: hidden !important;
+      }
+    `;
+    document.head.appendChild(st);
+  }
+
   function applyToStock(data) {
+    ensureStockScrollFix();
     if (!isStockModule() || !data || !data.currentUser) return;
     const u = data.currentUser;
     const isAdmin = u.role === 'admin';
@@ -1025,6 +1052,7 @@
   window.addEventListener('load', function () {
     if (isChecklistModule()) standardizeChecklistTopMenuBar();
     if (isBmsLogModule()) standardizeBmsLogTopMenuBar();
+    if (isStockModule()) ensureStockScrollFix();
     if (window.parent && window.parent !== window) {
       window.parent.postMessage({ type: 'MODULE_READY' }, '*');
     }
