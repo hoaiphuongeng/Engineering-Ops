@@ -1450,10 +1450,22 @@
       return masterData.datedRosterRaw?.[staffId]?.[dateStr] || '';
     }
 
-    // Lấy danh sách nhân sự đang trực ĐÚNG ca chỉ định TỪ BẢNG PHÂN CA (không gom nhóm ca khác)
+    // Nhận diện nhân viên có chức danh chứa "Duty" để luôn ưu tiên tự động lựa chọn
+    function hasDutyTitle(member) {
+      if (!member) return false;
+      const t = String(member.title || member.position || '').trim().toLowerCase();
+      return t.includes('duty');
+    }
+
+    function sortRosterPrioritizeDuty(list) {
+      return [...(list || [])].sort((a, b) => Number(hasDutyTitle(b)) - Number(hasDutyTitle(a)));
+    }
+
+    // Lấy danh sách nhân sự đang trực ĐÚNG ca chỉ định TỪ BẢNG PHÂN CA (ưu tiên chức danh có Duty lên đầu)
     function getOnDutyRosterPeople(shiftName = getCurrentShiftByClock()) {
       const todayStr = getTodayDateStr();
-      return (masterData.rosterStaff || []).filter(r => getShiftForStaffOnDate(r.id, todayStr) === shiftName);
+      const onShift = (masterData.rosterStaff || []).filter(r => getShiftForStaffOnDate(r.id, todayStr) === shiftName);
+      return sortRosterPrioritizeDuty(onShift);
     }
 
     // Dữ liệu gửi sang Checklist:
@@ -1462,8 +1474,8 @@
     function buildChecklistEmployees() {
       const map = new Map();
 
-      // Ưu tiên đưa danh sách nhân sự từ BẢNG PHÂN CA lên trước để làm danh sách người thực hiện
-      (masterData.rosterStaff || []).forEach(r => {
+      // Ưu tiên đưa danh sách nhân sự từ BẢNG PHÂN CA (chức danh có Duty lên đầu) để làm danh sách người thực hiện
+      sortRosterPrioritizeDuty(masterData.rosterStaff || []).forEach(r => {
         map.set(r.id, {
           id: r.id,
           employeeCode: r.employeeCode || 'KT',
@@ -1745,8 +1757,8 @@
       const todayStr = getTodayDateStr();
       const currentShift = getCurrentShiftByClock();
 
-      // Lịch trực hôm nay cho Sổ Duty: tách đúng từng ca theo ánh xạ bảng phân ca (không gom chung nhóm)
-      const dutyScheduleToday = (masterData.rosterStaff || []).map((r, idx) => {
+      // Lịch trực hôm nay cho Sổ Duty: tách đúng từng ca theo ánh xạ bảng phân ca (ưu tiên chức danh có Duty lên đầu)
+      const dutyScheduleToday = sortRosterPrioritizeDuty(masterData.rosterStaff || []).map((r, idx) => {
         const sh = getShiftForStaffOnDate(r.id, todayStr);
         if (!sh || sh === 'OFF') return null;
         const rawCode = getRawCodeForStaffOnDate(r.id, todayStr);
@@ -2052,7 +2064,7 @@
         return `<tr class="hover:bg-slate-900/40">
           <td class="p-3 sticky left-0 bg-slate-950/95 backdrop-blur font-semibold whitespace-nowrap border-r border-slate-800/80 z-10">
             <div>${r.name} <span class="text-slate-500 font-normal">(${r.employeeCode})</span></div>
-            <div class="text-[10px] text-slate-400">${r.title || 'Kỹ thuật viên'} • ${r.department || 'Kỹ Thuật'}</div>
+            <div class="text-[10px] text-slate-400 flex items-center gap-1.5"><span>${r.title || 'Kỹ thuật viên'} • ${r.department || 'Kỹ Thuật'}</span>${hasDutyTitle(r) ? '<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-400/35 text-[9px] font-bold" title="Ưu tiên tự động chọn khi thực hiện công việc">★ Ưu tiên Duty</span>' : ''}</div>
           </td>
           ${dates.map(dt => {
             const sh = getShiftForStaffOnDate(r.id, dt);
