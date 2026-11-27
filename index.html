@@ -1115,7 +1115,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
     import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, collection, getDocs, setDoc, writeBatch, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, collection, getDocs, setDoc, writeBatch, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     const dutyConfig = {
       apiKey: "AIzaSyCSGbsD1v5Y_p3bdI51CQU4idBgUSBfYDA",
@@ -1629,7 +1629,7 @@
         if (rawPower) {
           const parsed = JSON.parse(rawPower);
           parsed.users = powerUsers;
-          parsed.lastUpdated = Date.now();
+          // Giữ nguyên parsed.lastUpdated để không chặn power.html đồng bộ dữ liệu thật từ Firebase
           localStorage.setItem(POWER_STATE_KEY, JSON.stringify(parsed));
         }
       } catch {}
@@ -1682,10 +1682,12 @@
       if (powerDb) {
         tasks.push((async () => {
           try {
-            await setDoc(doc(powerDb, 'resortpower_sync', 'main_state_v5'), {
-              users: powerUsers,
-              lastUpdated: Date.now() + 2500
-            }, { merge: true });
+            const pwDocRef = doc(powerDb, 'resortpower_sync', 'main_state_v5');
+            const snap = await getDoc(pwDocRef);
+            if (snap.exists()) {
+              // Chỉ cập nhật danh sách users, không làm thay đổi mốc lastUpdated của dữ liệu điện nước
+              await setDoc(pwDocRef, { users: powerUsers }, { merge: true });
+            }
           } catch (e) {
             console.warn('Power Firestore sync:', e);
           }
