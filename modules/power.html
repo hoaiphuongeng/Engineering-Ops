@@ -1566,6 +1566,7 @@
 
         let app, db;
         let isFirebaseConnected = false;
+        let hasInitialCloudHydrated = false;
         let simulatedOffline = false;
         let unsubscribeRemote = null;
 
@@ -1586,7 +1587,8 @@
 
             return {
                 schemaVersion: 5,
-                lastUpdated: Date.now(),
+                isDefaultSeed: true,
+                lastUpdated: 0,
                 anomalyThresholdPercent: 20,
                 totalResortRooms: 120,
                 electricityTariffVnd: 2850,
@@ -1813,9 +1815,12 @@
                     electricityTariffVnd: state.electricityTariffVnd || std.electricityTariffVnd,
                     waterTariffVnd: state.waterTariffVnd || std.waterTariffVnd,
                     occupancyByDate: { ...std.occupancyByDate, ...(state.occupancyByDate || {}) },
-                    historicalMonthlyBenchmarks: std.historicalMonthlyBenchmarks,
+                    historicalMonthlyBenchmarks: Array.isArray(state.historicalMonthlyBenchmarks) && state.historicalMonthlyBenchmarks.length > 0
+                        ? state.historicalMonthlyBenchmarks
+                        : std.historicalMonthlyBenchmarks,
                     users: preservedUsers,
-                    lastUpdated: Date.now()
+                    isDefaultSeed: Boolean(state.isDefaultSeed),
+                    lastUpdated: typeof state.lastUpdated === 'number' ? state.lastUpdated : 0
                 };
                 localStorage.setItem(STORAGE_KEY_STATE, JSON.stringify(upgraded));
                 return upgraded;
@@ -1933,9 +1938,12 @@
             return initial;
         }
 
-        function saveLocalState(state) {
+        function saveLocalState(state, preserveTimestamp = false) {
             try {
-                state.lastUpdated = Date.now();
+                if (!preserveTimestamp) {
+                    state.isDefaultSeed = false;
+                    state.lastUpdated = Date.now();
+                }
                 localStorage.setItem(STORAGE_KEY_STATE, JSON.stringify(state));
             } catch (e) {}
         }
@@ -2027,16 +2035,33 @@
                 unsubscribeRemote = onSnapshot(stateDocRef, (snapshot) => {
                     if (simulatedOffline) return;
                     isFirebaseConnected = true;
+                    const fromServer = !snapshot.metadata?.fromCache;
+                    if (fromServer) hasInitialCloudHydrated = true;
+
                     if (snapshot.exists()) {
                         const remoteData = snapshot.data();
-                        if (remoteData && remoteData.lastUpdated && remoteData.lastUpdated > (appState.lastUpdated || 0)) {
-                            appState = ensureStandardizedDataUpgraded(remoteData);
+                        const remoteHasMeters = Array.isArray(remoteData?.meters) && remoteData.meters.length > 0;
+                        const remoteTs = Number(remoteData?.lastUpdated) || 0;
+                        const localTs = Number(appState?.lastUpdated) || 0;
+                        const localIsSeed = Boolean(appState?.isDefaultSeed) || localTs === 0;
+
+                        if (remoteHasMeters && (localIsSeed || remoteTs > localTs)) {
+                            const upgradedRemote = ensureStandardizedDataUpgraded(remoteData);
+                            upgradedRemote.isDefaultSeed = false;
+                            upgradedRemote.lastUpdated = remoteTs || Date.now();
+                            appState = upgradedRemote;
                             localStorage.setItem(STORAGE_KEY_STATE, JSON.stringify(appState));
                             refreshAllViews();
                             checkAuthenticationStatus();
                             showToast("Đã đồng bộ dữ liệu thời gian thực từ Firebase!", "blue");
+                        } else if (!remoteHasMeters && Array.isArray(remoteData?.users) && remoteData.users.length > 0) {
+                            // Trường hợp Cloud mới chỉ có danh sách users từ SSO -> chỉ gộp users, tuyệt đối không xóa công tơ/chỉ số
+                            appState.users = remoteData.users;
+                            saveLocalState(appState, true);
+                            checkAuthenticationStatus();
                         }
-                    } else {
+                    } else if (fromServer && !appState.isDefaultSeed) {
+                        // Chỉ đẩy lên Cloud khi chắc chắn server chưa có document và bản local là dữ liệu thật (không phải bản mẫu)
                         pushStateToFirebase(true);
                     }
                     updateSyncBadgeUI();
@@ -2048,7 +2073,26 @@
             }
         }
 
-        async function pushStateToFirebase(silent = false) {
+        async function pushStateToFirebase(silent = false, allowSeedPush = false) {
+            if (appState.isDefaultSeed && !allowSeedPush && !hasInitialCloudHydrated && navigator.onLine && !simulatedOffline && db) {
+                try {
+                    const checkSnap = await getDoc(doc(db, "resortpower_sync", "main_state_v5"));
+                    if (checkSnap.exists()) {
+                        const remoteData = checkSnap.data();
+                        if (Array.isArray(remoteData?.meters) && remoteData.meters.length > 0) {
+                            appState = ensureStandardizedDataUpgraded(remoteData);
+                            appState.isDefaultSeed = false;
+                            localStorage.setItem(STORAGE_KEY_STATE, JSON.stringify(appState));
+                            hasInitialCloudHydrated = true;
+                            refreshAllViews();
+                            showToast("Đã tải dữ liệu thật từ Cloud để tránh ghi đè bản mẫu. Vui lòng thực hiện lại thao tác!", "amber");
+                            return;
+                        }
+                    }
+                    hasInitialCloudHydrated = true;
+                } catch (e) {}
+            }
+
             saveLocalState(appState);
 
             if (!navigator.onLine || simulatedOffline || !db) {
@@ -2111,12 +2155,16 @@
         };
 
         window.applyStandardizedResortTemplate = async function() {
+            if (!confirm("Cảnh báo: Thao tác này sẽ thay thế toàn bộ công tơ, chỉ số và sơ đồ hiện tại bằng dữ liệu mẫu mặc định. Bạn chắc chắn muốn tiếp tục?")) {
+                return;
+            }
             const preservedUsers = appState.users || [];
             appState = createDefaultResortState();
             appState.users = preservedUsers;
+            appState.isDefaultSeed = false;
             appState.lastUpdated = Date.now();
             unsavedMeterInputs = {};
-            await pushStateToFirebase(false);
+            await pushStateToFirebase(false, true);
             refreshAllViews();
             showToast("Đã nạp chuẩn danh mục, công tơ Master/Sub & sơ đồ Resort!", "emerald");
         };
