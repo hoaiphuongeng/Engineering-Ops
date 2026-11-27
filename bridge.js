@@ -299,7 +299,7 @@
         const parsed = JSON.parse(raw);
         localSigBefore = getUsersSignature(parsed.users || [], JSON.parse(localStorage.getItem(POWER_SESSION_KEY) || '{}').username);
         parsed.users = powerUsers;
-        parsed.lastUpdated = Date.now();
+        // Giữ nguyên parsed.lastUpdated để không vô hiệu hóa việc tải dữ liệu từ Firebase của module Điện nước
         localStorage.setItem(POWER_STATE_KEY, JSON.stringify(parsed));
       }
     } catch {}
