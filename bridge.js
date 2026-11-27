@@ -1,4 +1,4 @@
-/* bridge-v15.js — Bỏ Ghim Menu Khi Cuộn Ở Tất Cả Module + Hỗ Trợ Admin Bỏ Qua QR Checklist & SSO 5 Module */
+/* bridge-v17.js — Ưu Tiên Tự Động Chọn Nhân Sự Chức Danh Có "Duty" + Bỏ Ghim Menu + SSO 5 Module */
 (function () {
   let isApplyingFromMaster = false;
   let lastMasterData = null;
@@ -25,6 +25,38 @@
   }
   const POWER_SESSION_KEY = 'RESORT_UTILITY_SESSION_V5';
   const POWER_USER_ALLOWED_PAGES = ['meters', 'equipment'];
+
+  // Ưu tiên nhân viên có chức danh chứa "Duty" khi tự động chọn người thực hiện công việc
+  function hasDutyTitle(member) {
+    if (!member) return false;
+    const t = String(member.title || member.position || '').trim().toLowerCase();
+    return t.includes('duty');
+  }
+
+  function sortMembersPrioritizeDuty(list) {
+    return [...(list || [])].sort((a, b) => Number(hasDutyTitle(b)) - Number(hasDutyTitle(a)));
+  }
+
+  function sortNamesPrioritizeDuty(names, rosterStaff) {
+    const byName = new Map((rosterStaff || []).map(r => [String(r.name || '').trim().toLowerCase(), r]));
+    const uniq = [...new Set((names || []).filter(Boolean))];
+    return uniq.sort((a, b) => {
+      const ma = byName.get(String(a).trim().toLowerCase());
+      const mb = byName.get(String(b).trim().toLowerCase());
+      return Number(hasDutyTitle(mb)) - Number(hasDutyTitle(ma));
+    });
+  }
+
+  function pickPreferredDutyMember(onDutyNow, rosterStaff) {
+    const sortedOnDuty = sortMembersPrioritizeDuty(onDutyNow);
+    const dutyOnShift = sortedOnDuty.find(hasDutyTitle);
+    if (dutyOnShift) return dutyOnShift;
+    if (sortedOnDuty.length > 0) return sortedOnDuty[0];
+    const sortedAll = sortMembersPrioritizeDuty(rosterStaff);
+    const anyDuty = sortedAll.find(hasDutyTitle);
+    if (anyDuty) return anyDuty;
+    return sortedAll[0] || null;
+  }
 
   function getTodayStr() {
     const d = new Date();
@@ -131,13 +163,21 @@
           origUpdateAssignee.apply(this, arguments);
           const sel = document.getElementById('task-assignee');
           if (!sel || !lastMasterData) return;
+          const rosterList = lastMasterData.rosterStaff || [];
           const shift = document.getElementById('task-shift')?.value || '';
           const date = document.getElementById('filter-date')?.value || getTodayStr();
           const scheduled = (appState.schedule || []).filter(s => s.shift === shift && s.date === date).map(s => s.staffName);
-          const allRosterNames = (lastMasterData.rosterStaff || []).map(r => r.name);
-          const names = scheduled.length > 0 ? [...new Set(scheduled)] : [...new Set(allRosterNames)];
+          const allRosterNames = rosterList.map(r => r.name);
+          const rawNames = scheduled.length > 0 ? scheduled : allRosterNames;
+          const names = sortNamesPrioritizeDuty(rawNames, rosterList);
+          const byName = new Map(rosterList.map(r => [String(r.name || '').trim().toLowerCase(), r]));
           if (names.length > 0) {
-            sel.innerHTML = names.map(n => `<option value="${n}">${n}</option>`).join('');
+            sel.innerHTML = names.map(n => {
+              const member = byName.get(String(n).trim().toLowerCase());
+              const tag = hasDutyTitle(member) ? ' ★ (Duty)' : '';
+              return `<option value="${n}">${n}${tag}</option>`;
+            }).join('');
+            sel.value = names[0];
           }
         };
       }
@@ -147,9 +187,11 @@
         window.updateHandoverStaffOptions = function () {
           origUpdateHandover.apply(this, arguments);
           if (!lastMasterData) return;
-          const allRosterNames = (lastMasterData.rosterStaff || []).map(r => r.name);
+          const rosterList = lastMasterData.rosterStaff || [];
+          const allRosterNames = sortNamesPrioritizeDuty(rosterList.map(r => r.name), rosterList);
           if (allRosterNames.length === 0) return;
 
+          const byName = new Map(rosterList.map(r => [String(r.name || '').trim().toLowerCase(), r]));
           const currentShift = appState.activeShiftSession?.shift || 'Ca Sáng';
           const currentDate = appState.activeShiftSession?.date || getTodayStr();
           const nextSession = typeof window.getNextShiftSession === 'function'
@@ -160,15 +202,32 @@
           const nextStaff = (appState.schedule || []).filter(s => s.date === nextSession.date && s.shift === nextSession.shift).map(s => s.staffName);
 
           const buildRosterOptions = (scheduledNames) => {
-            const uniq = [...new Set(scheduledNames)];
+            const uniq = sortNamesPrioritizeDuty(scheduledNames, rosterList);
+            const dutyInShift = uniq.filter(n => hasDutyTitle(byName.get(String(n).trim().toLowerCase())));
+            const nonDutyInShift = uniq.filter(n => !dutyInShift.includes(n));
             let html = '';
-            if (uniq.length > 1) html += `<option value="${uniq.join(', ')}">Cả ca: ${uniq.join(', ')}</option>`;
-            if (uniq.length > 0) {
-              html += `<optgroup label="Đang trực theo Bảng Phân Ca">` + uniq.map(n => `<option value="${n}">${n}</option>`).join('') + `</optgroup>`;
+
+            if (dutyInShift.length > 0) {
+              html += `<optgroup label="★ Ưu tiên chức danh Duty (Đang trực)">` +
+                dutyInShift.map(n => `<option value="${n}">${n} ★ (Duty)</option>`).join('') +
+                `</optgroup>`;
+            }
+            if (uniq.length > 1) {
+              html += `<option value="${uniq.join(', ')}">Cả ca: ${uniq.join(', ')}</option>`;
+            }
+            if (nonDutyInShift.length > 0) {
+              html += `<optgroup label="Đang trực theo Bảng Phân Ca">` +
+                nonDutyInShift.map(n => `<option value="${n}">${n}</option>`).join('') +
+                `</optgroup>`;
             }
             const others = allRosterNames.filter(n => !uniq.includes(n));
             if (others.length > 0) {
-              html += `<optgroup label="Nhân sự khác (Bảng Phân Ca)">` + others.map(n => `<option value="${n}">${n}</option>`).join('') + `</optgroup>`;
+              html += `<optgroup label="Nhân sự khác (Bảng Phân Ca)">` +
+                others.map(n => {
+                  const tag = hasDutyTitle(byName.get(String(n).trim().toLowerCase())) ? ' ★ (Duty)' : '';
+                  return `<option value="${n}">${n}${tag}</option>`;
+                }).join('') +
+                `</optgroup>`;
             }
             return html;
           };
@@ -367,10 +426,11 @@
     const u = data.currentUser;
     const isAdmin = u.role === 'admin';
 
-    // Nếu là tài khoản Duty dùng chung và có nhân sự đang trực ca hiện tại trong Bảng Phân Ca -> tự ánh xạ sang ID nhân sự trực ca đầu tiên (vẫn giữ quyền user)
-    // Nếu chưa có ai trực ca này -> dùng ID tài khoản Duty để mở Checklist
+    // Ưu tiên tự động chọn nhân sự có chức danh chứa "Duty" đang trực ca (hoặc trong Bảng Phân Ca) khi thực hiện Checklist
     const onDutyNow = Array.isArray(data.onDutyNow) ? data.onDutyNow : [];
-    const targetChecklistUserId = (!isAdmin && onDutyNow.length > 0) ? onDutyNow[0].id : u.id;
+    const rosterStaff = Array.isArray(data.rosterStaff) ? data.rosterStaff : [];
+    const preferredInspector = pickPreferredDutyMember(onDutyNow, rosterStaff);
+    const targetChecklistUserId = (!isAdmin && preferredInspector) ? preferredInspector.id : u.id;
 
     const curStoredId = localStorage.getItem('dailycheck_current_user_id_real_v1');
     if (curStoredId !== targetChecklistUserId) {
@@ -473,9 +533,9 @@
       existingCss.remove();
     }
 
-    // 2. Ánh xạ nhân viên thao tác từ BẢNG PHÂN CA (rosterStaff + onDutyNow)
-    const onDutyNow = Array.isArray(data.onDutyNow) ? data.onDutyNow : [];
-    const rosterStaff = Array.isArray(data.rosterStaff) ? data.rosterStaff : [];
+    // 2. Ánh xạ nhân viên thao tác từ BẢNG PHÂN CA (ưu tiên chức danh chứa "Duty")
+    const onDutyNow = sortMembersPrioritizeDuty(Array.isArray(data.onDutyNow) ? data.onDutyNow : []);
+    const rosterStaff = sortMembersPrioritizeDuty(Array.isArray(data.rosterStaff) ? data.rosterStaff : []);
     const currentShift = data.currentShift || '';
 
     let dl = document.getElementById('unified-bms-operators');
@@ -499,15 +559,21 @@
     }
     dl.innerHTML = opts.map(o => `<option value="${o.replace(/"/g, '&quot;')}"></option>`).join('');
 
+    // Ưu tiên tự động điền nhân viên chức danh có "Duty" đang trực ca (hoặc trong Bảng Phân Ca)
+    const preferredOp = pickPreferredDutyMember(onDutyNow, rosterStaff);
+    const isPrefOnShift = preferredOp && onDutyNow.some(r => r.id === preferredOp.id);
+    const defaultOp = (!isAdmin && preferredOp)
+      ? (isPrefOnShift && currentShift ? `${preferredOp.name} (${currentShift})` : preferredOp.name)
+      : (isAdmin ? u.name : '');
+
     ['chiller-operator', 'tank-operator', 'valve-operator'].forEach(id => {
       const inp = document.getElementById(id);
-      if (inp) inp.setAttribute('list', 'unified-bms-operators');
+      if (inp) {
+        inp.setAttribute('list', 'unified-bms-operators');
+        if (defaultOp && !inp.value.trim()) inp.value = defaultOp;
+      }
     });
 
-    // Gợi ý sẵn nhân viên đang trực ca từ Bảng Phân Ca vào localStorage của log.html
-    const defaultOp = (!isAdmin && onDutyNow.length > 0)
-      ? (currentShift ? `${onDutyNow[0].name} (${currentShift})` : onDutyNow[0].name)
-      : (isAdmin ? u.name : '');
     if (defaultOp) {
       try { localStorage.setItem('bms_scada_last_operator_v1', defaultOp); } catch {}
     }
@@ -590,9 +656,9 @@
       existingCss.remove();
     }
 
-    // 2. Đồng bộ danh sách nhân sự từ BẢNG PHÂN CA vào EMPLOYEE_LIST của Kho Vật Tư
-    const onDutyNow = Array.isArray(data.onDutyNow) ? data.onDutyNow : [];
-    const rosterStaff = Array.isArray(data.rosterStaff) ? data.rosterStaff : [];
+    // 2. Đồng bộ danh sách nhân sự từ BẢNG PHÂN CA (ưu tiên chức danh chứa "Duty" lên đầu) vào EMPLOYEE_LIST của Kho Vật Tư
+    const onDutyNow = sortMembersPrioritizeDuty(Array.isArray(data.onDutyNow) ? data.onDutyNow : []);
+    const rosterStaff = sortMembersPrioritizeDuty(Array.isArray(data.rosterStaff) ? data.rosterStaff : []);
     const mergedNames = [];
     const seen = new Set();
 
@@ -612,9 +678,10 @@
       mergedNames.forEach(n => EMPLOYEE_LIST.push(n));
     }
 
-    // 3. Tự động điền sẵn Người thực hiện (theo nhân sự đang trực ca hoặc Admin) nếu ô đang trống
-    const defaultPerformer = (!isAdmin && onDutyNow.length > 0)
-      ? onDutyNow[0].name
+    // 3. Tự động điền sẵn Người thực hiện (ưu tiên nhân sự có chức danh chứa "Duty") nếu ô đang trống
+    const preferredStockStaff = pickPreferredDutyMember(onDutyNow, rosterStaff);
+    const defaultPerformer = (!isAdmin && preferredStockStaff)
+      ? preferredStockStaff.name
       : (isAdmin ? u.name : (mergedNames[0] || ''));
 
     if (defaultPerformer) {
