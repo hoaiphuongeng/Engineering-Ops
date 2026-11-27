@@ -1184,7 +1184,8 @@
     }
 
     const defaultMaster = {
-      updatedAt: 1,
+      isDefaultSeed: true,
+      updatedAt: 0,
       // Bảng 1: Tài khoản đăng nhập (Admin Tối Cao SHP + Admin phụ + Tài khoản Duty dùng chung)
       staff: [
         structuredClone(DEFAULT_SUPER_ADMIN),
@@ -1225,7 +1226,9 @@
 
     // Chuyển đổi an toàn & luôn bảo vệ tài khoản Admin Tối Cao (shp)
     function normalizeMasterData(raw) {
+      const isFromSeed = !raw || raw.isDefaultSeed === true || Number(raw.updatedAt || 0) <= 1;
       const data = raw ? structuredClone(raw) : structuredClone(defaultMaster);
+      data.isDefaultSeed = isFromSeed;
       if (!Array.isArray(data.staff)) data.staff = Object.values(data.staff || {});
       if (data.staff.length === 0) data.staff = structuredClone(defaultMaster.staff);
 
@@ -1284,6 +1287,7 @@
     let masterData = normalizeMasterData(JSON.parse(localStorage.getItem(MASTER_KEY) || 'null'));
     let currentUser = null;
     let lastHash = '';
+    let hasInitialMasterCloudHydrated = false;
     let cloudRef = null;
     let bmsLogRef = null;
     let lastBmsHash = '';
@@ -1561,11 +1565,17 @@
         });
 
         onValue(cloudRef, async (snap) => {
+          hasInitialMasterCloudHydrated = true;
           const remote = snap.val();
           if (remote && remote.staff) {
             const normalizedRemote = normalizeMasterData(remote);
+            normalizedRemote.isDefaultSeed = false;
             const remoteHash = computeHash(normalizedRemote);
-            if (remoteHash !== lastHash && (normalizedRemote.updatedAt || 0) >= (masterData.updatedAt || 0)) {
+            const localIsSeed = Boolean(masterData.isDefaultSeed) || Number(masterData.updatedAt || 0) <= 1;
+            const remoteTs = Number(normalizedRemote.updatedAt || 0);
+            const localTs = Number(masterData.updatedAt || 0);
+
+            if (localIsSeed || (remoteHash !== lastHash && remoteTs >= localTs)) {
               masterData = normalizedRemote;
               lastHash = remoteHash;
               localStorage.setItem(MASTER_KEY, JSON.stringify(masterData));
@@ -1579,12 +1589,13 @@
               }
               renderStaffTable();
               renderRosterTable();
-      if (typeof window.renderUserRosterView === "function") window.renderUserRosterView();
+              if (typeof window.renderUserRosterView === "function") window.renderUserRosterView();
               await syncLocalStorageForAllTabs();
               broadcastToIframes();
               showToast('Đã đồng bộ tài khoản & bảng phân ca từ Cloud!');
             }
-          } else {
+          } else if (!masterData.isDefaultSeed && Number(masterData.updatedAt || 0) > 1) {
+            // Chỉ đẩy lên Cloud nếu Cloud thực sự trống và dữ liệu local là dữ liệu thật
             pushMasterAndAllBackends();
           }
           setCloudUI('online');
@@ -1640,7 +1651,34 @@
       return { dcEmployees, dcWeekly, powerUsers };
     }
 
-    async function pushMasterAndAllBackends() {
+    async function pushMasterAndAllBackends(forceAllowSeed = false) {
+      if (cloudRef && (!hasInitialMasterCloudHydrated || (masterData.isDefaultSeed && !forceAllowSeed))) {
+        try {
+          const checkSnap = await get(cloudRef);
+          hasInitialMasterCloudHydrated = true;
+          if (checkSnap.exists()) {
+            const remote = checkSnap.val();
+            if (remote && remote.staff && Number(remote.updatedAt || 0) > Number(masterData.updatedAt || 0)) {
+              const normalizedRemote = normalizeMasterData(remote);
+              normalizedRemote.isDefaultSeed = false;
+              masterData = normalizedRemote;
+              lastHash = computeHash(masterData);
+              localStorage.setItem(MASTER_KEY, JSON.stringify(masterData));
+              renderStaffTable();
+              renderRosterTable();
+              if (typeof window.renderUserRosterView === 'function') window.renderUserRosterView();
+              await syncLocalStorageForAllTabs();
+              broadcastToIframes();
+              showToast('Đã tải dữ liệu phân ca thật từ Cloud để tránh ghi đè dữ liệu mẫu!');
+              return;
+            }
+          }
+        } catch (e) {
+          console.warn('Pre-write Cloud check skipped:', e);
+        }
+      }
+
+      masterData.isDefaultSeed = false;
       masterData.updatedAt = Date.now();
       lastHash = computeHash(masterData);
       localStorage.setItem(MASTER_KEY, JSON.stringify(masterData));
@@ -1868,7 +1906,7 @@
       if (typeof window.renderUserRosterView === "function") window.renderUserRosterView();
 
       await syncLocalStorageForAllTabs();
-      pushMasterAndAllBackends();
+      // Không gọi pushMasterAndAllBackends() khi đăng nhập để tuyệt đối không ghi đè dữ liệu phân ca trên Cloud bằng dữ liệu mẫu/local cũ
 
       ['frame-checklist', 'frame-duty', 'frame-power', 'frame-log', 'frame-stock'].forEach(id => {
         const fr = document.getElementById(id);
@@ -3748,6 +3786,31 @@
       lucide.createIcons();
       lastHash = computeHash(masterData);
       initCloudConnections();
+
+      // Chờ tải dữ liệu tài khoản & nhân viên trực ca mới nhất từ Cloud (tối đa 1.8s) trước khi tự đăng nhập
+      if (cloudRef) {
+        try {
+          const initialSnap = await Promise.race([
+            get(cloudRef),
+            new Promise(resolve => setTimeout(() => resolve(null), 1800))
+          ]);
+          if (initialSnap && initialSnap.exists()) {
+            const remote = initialSnap.val();
+            if (remote && remote.staff) {
+              hasInitialMasterCloudHydrated = true;
+              const normalizedRemote = normalizeMasterData(remote);
+              normalizedRemote.isDefaultSeed = false;
+              const localIsSeed = Boolean(masterData.isDefaultSeed) || Number(masterData.updatedAt || 0) <= 1;
+              if (localIsSeed || Number(normalizedRemote.updatedAt || 0) >= Number(masterData.updatedAt || 0)) {
+                masterData = normalizedRemote;
+                lastHash = computeHash(masterData);
+                localStorage.setItem(MASTER_KEY, JSON.stringify(masterData));
+              }
+            }
+          }
+        } catch (e) {}
+      }
+
       const saved = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
       if (saved) {
         const found = masterData.staff.find(u => u.id === saved.id);
