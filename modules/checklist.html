@@ -678,6 +678,12 @@ const h9e=({templates:t,records:e,onStartInspection:r,onViewRecord:n,onOpenExpor
       function fmtVn(iso) { const p = String(iso || '').split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : iso; }
       function fmtVnDash(iso) { const p = String(iso || '').split('-'); return p.length === 3 ? `${p[2]}-${p[1]}-${p[0]}` : iso; }
 
+      function getDayOfWeekVn(iso) {
+        const d = new Date(iso + 'T00:00:00');
+        if (isNaN(d.getTime())) return '';
+        return ['CN', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'][d.getDay()];
+      }
+
       function normShiftKey(s) {
         const v = String(s || '').toLowerCase();
         if (v.includes('ca 1') || v.includes('sáng')) return 'Ca 1';
@@ -686,43 +692,43 @@ const h9e=({templates:t,records:e,onStartInspection:r,onViewRecord:n,onOpenExpor
         return 'Ca 1';
       }
 
-      function getRangeInfo(periodType, baseDateStr, baseMonthStr) {
-        const today = fmtIso(new Date());
-        if (periodType === 'day') {
-          const d = baseDateStr || today;
-          return { dates: [d], label: `Ngày ${fmtVn(d)}`, fileSuffix: `Ngày ${fmtVnDash(d)}`, orientation: 'portrait' };
+      function getPresetDates(preset, anchorIso) {
+        const base = new Date((anchorIso || fmtIso(new Date())) + 'T00:00:00');
+        if (isNaN(base.getTime())) {
+          const t = fmtIso(new Date());
+          return { startDate: t, endDate: t };
         }
-        if (periodType === 'week') {
-          const base = new Date((baseDateStr || today) + 'T00:00:00');
+        if (preset === 'day') {
+          const s = fmtIso(base);
+          return { startDate: s, endDate: s };
+        }
+        if (preset === 'week') {
           const diffToMon = (base.getDay() + 6) % 7;
           const mon = new Date(base.getFullYear(), base.getMonth(), base.getDate() - diffToMon);
-          const dates = [];
-          for (let i = 0; i < 7; i++) {
-            const dt = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i);
-            dates.push(fmtIso(dt));
-          }
-          const s = dates[0], e = dates[6];
-          return {
-            dates,
-            label: `Tuần ${fmtVn(s)} – ${fmtVn(e)}`,
-            fileSuffix: `Tuần ${s.slice(8, 10)}-${s.slice(5, 7)} đến ${fmtVnDash(e)}`,
-            orientation: 'landscape'
-          };
+          const sun = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6);
+          return { startDate: fmtIso(mon), endDate: fmtIso(sun) };
         }
-        const ym = (baseMonthStr || today.slice(0, 7)).split('-');
-        const y = Number(ym[0]) || new Date().getFullYear();
-        const m = Number(ym[1]) || (new Date().getMonth() + 1);
-        const daysInMonth = new Date(y, m, 0).getDate();
+        if (preset === 'month') {
+          const first = new Date(base.getFullYear(), base.getMonth(), 1);
+          const last = new Date(base.getFullYear(), base.getMonth() + 1, 0);
+          return { startDate: fmtIso(first), endDate: fmtIso(last) };
+        }
+        return { startDate: fmtIso(base), endDate: fmtIso(base) };
+      }
+
+      function getDatesBetween(startIso, endIso, maxDays = 62) {
+        if (!startIso || !endIso) return [];
+        let s = new Date(startIso + 'T00:00:00');
+        let e = new Date(endIso + 'T00:00:00');
+        if (isNaN(s.getTime()) || isNaN(e.getTime())) return [];
+        if (s > e) { const tmp = s; s = e; e = tmp; }
         const dates = [];
-        for (let day = 1; day <= daysInMonth; day++) {
-          dates.push(`${y}-${pad2(m)}-${pad2(day)}`);
+        const cur = new Date(s.getFullYear(), s.getMonth(), s.getDate());
+        while (cur <= e && dates.length < maxDays) {
+          dates.push(fmtIso(cur));
+          cur.setDate(cur.getDate() + 1);
         }
-        return {
-          dates,
-          label: `Tháng ${pad2(m)}/${y}`,
-          fileSuffix: `Tháng ${pad2(m)}-${y}`,
-          orientation: 'landscape'
-        };
+        return dates;
       }
 
       function formatAnswerShort(item, ans, showValues) {
@@ -767,125 +773,98 @@ const h9e=({templates:t,records:e,onStartInspection:r,onViewRecord:n,onOpenExpor
         return item.description || '';
       }
 
-      function buildDocTitle(selectedTemplates, periodInfo, dept) {
+      function buildDocTitle(selectedTemplates, dates, dept) {
+        const s = dates[0] || fmtIso(new Date());
+        const e = dates[dates.length - 1] || s;
+        const suffix = s === e
+          ? `Ngày ${fmtVnDash(s)}`
+          : `Từ ${fmtVnDash(s)} đến ${fmtVnDash(e)}`;
         if (selectedTemplates.length === 1) {
           const t = selectedTemplates[0];
-          return sanitizeFileName(`${t.title || t.code || 'Biểu mẫu'} - ${periodInfo.fileSuffix}`);
+          return sanitizeFileName(`${t.title || t.code || 'Biểu mẫu'} - ${suffix}`);
         }
         const prefix = dept && dept !== 'all' ? `Biểu mẫu ${dept}` : 'Tất cả biểu mẫu';
-        return sanitizeFileName(`${prefix} - ${periodInfo.fileSuffix}`);
+        return sanitizeFileName(`${prefix} - ${suffix}`);
       }
 
-      function buildPrintableHtml(opts) {
-        const { templates, records, periodType, periodInfo, dense, pageBreakEach, showValues, docTitle } = opts;
-        const isLandscape = periodInfo.orientation === 'landscape';
-        // Theo Tuần và Tháng: BỎ QUA tính năng gom vào 1 trang -> mỗi mẫu luôn sang trang riêng & phân trang tự nhiên
-        const effectivePageBreak = (periodType === 'week' || periodType === 'month') ? true : Boolean(pageBreakEach);
-
-        const fontSize = periodType === 'month'
-          ? (dense ? '7.2pt' : '7.8pt')
-          : periodType === 'week'
-            ? (dense ? '7.6pt' : '8.2pt')
-            : (dense ? '7.8pt' : '8.6pt');
-        const cellPad = periodType === 'month'
-          ? (dense ? '2px 1.5px' : '2.5px 2px')
-          : (dense ? '2px 3px' : '3px 4px');
-
-        const sectionsHtml = templates.map((tpl, idx) => {
-          const tplRecords = records.filter(r =>
-            (r.templateId === tpl.id || r.templateCode === tpl.code) &&
-            r.date >= periodInfo.dates[0] && r.date <= periodInfo.dates[periodInfo.dates.length - 1]
-          );
-
-          const recMap = {};
-          tplRecords.forEach(r => {
+      function buildDailyRecordMap(tpl, records, startDate, endDate) {
+        const recMap = {};
+        records.forEach(r => {
+          if ((r.templateId === tpl.id || r.templateCode === tpl.code) && r.date >= startDate && r.date <= endDate) {
             if (!recMap[r.date]) recMap[r.date] = {};
             const sk = normShiftKey(r.shift);
             if (!recMap[r.date][sk] || String(r.time || '') >= String(recMap[r.date][sk].time || '')) {
               recMap[r.date][sk] = r;
             }
+          }
+        });
+        return recMap;
+      }
+
+      function collectDailySheets(opts) {
+        const { templates, records, dates, onlyWithData } = opts;
+        const startDate = dates[0];
+        const endDate = dates[dates.length - 1];
+        const sheets = [];
+        templates.forEach(tpl => {
+          const recMap = buildDailyRecordMap(tpl, records, startDate, endDate);
+          dates.forEach(d => {
+            const dayRecs = recMap[d] || {};
+            const hasData = Boolean(dayRecs['Ca 1'] || dayRecs['Ca 2'] || dayRecs['Ca 3']);
+            if (onlyWithData && !hasData) return;
+            sheets.push({ tpl, date: d, dayRecs, hasData });
           });
+        });
+        return sheets;
+      }
 
+      // Áp dụng thống nhất cấu trúc Phiếu Ngày cho cả Ngày, Tuần, Tháng và khoảng ngày tùy chọn
+      function buildPrintableHtml(opts) {
+        const { dense, pageBreakEach, showValues, docTitle } = opts;
+        const sheets = collectDailySheets(opts);
+        const fontSize = dense ? '7.6pt' : '8.5pt';
+        const cellPad = dense ? '1.8px 3px' : '2.8px 4px';
+
+        const sectionsHtml = sheets.map((entry, idx) => {
+          const { tpl, date: d, dayRecs } = entry;
+          const r1 = dayRecs['Ca 1'], r2 = dayRecs['Ca 2'], r3 = dayRecs['Ca 3'];
           const items = Array.isArray(tpl.items) ? tpl.items : [];
-          const breakCls = (idx > 0 && effectivePageBreak) ? 'page-break' : '';
-          let tableHtml = '';
+          const breakCls = (idx > 0 && pageBreakEach) ? 'page-break' : '';
 
-          if (periodType === 'day') {
-            const d = periodInfo.dates[0];
-            const r1 = recMap[d]?.['Ca 1'], r2 = recMap[d]?.['Ca 2'], r3 = recMap[d]?.['Ca 3'];
-            const rows = items.map((it, i) => {
-              const a1 = formatAnswerShort(it, r1?.answers?.[it.id], showValues);
-              const a2 = formatAnswerShort(it, r2?.answers?.[it.id], showValues);
-              const a3 = formatAnswerShort(it, r3?.answers?.[it.id], showValues);
-              const notes = [r1?.answers?.[it.id]?.note, r2?.answers?.[it.id]?.note, r3?.answers?.[it.id]?.note].filter(Boolean).join(' | ');
-              return `<tr>
-                <td class="c">${i + 1}</td>
-                <td><b>${escHtml(it.title)}</b></td>
-                <td class="muted">${escHtml(formatStandardShort(it))}</td>
-                <td class="c ${a1.cls}">${escHtml(a1.text)}</td>
-                <td class="c ${a2.cls}">${escHtml(a2.text)}</td>
-                <td class="c ${a3.cls}">${escHtml(a3.text)}</td>
-                <td>${escHtml(notes)}</td>
-              </tr>`;
-            }).join('');
-            tableHtml = `<table>
+          const rows = items.map((it, i) => {
+            const a1 = formatAnswerShort(it, r1?.answers?.[it.id], showValues);
+            const a2 = formatAnswerShort(it, r2?.answers?.[it.id], showValues);
+            const a3 = formatAnswerShort(it, r3?.answers?.[it.id], showValues);
+            const notes = [r1?.answers?.[it.id]?.note, r2?.answers?.[it.id]?.note, r3?.answers?.[it.id]?.note].filter(Boolean).join(' | ');
+            return `<tr>
+              <td class="c">${i + 1}</td>
+              <td><b>${escHtml(it.title)}</b></td>
+              <td class="muted">${escHtml(formatStandardShort(it))}</td>
+              <td class="c ${a1.cls}">${escHtml(a1.text)}</td>
+              <td class="c ${a2.cls}">${escHtml(a2.text)}</td>
+              <td class="c ${a3.cls}">${escHtml(a3.text)}</td>
+              <td>${escHtml(notes)}</td>
+            </tr>`;
+          }).join('');
+
+          const dayLbl = `${getDayOfWeekVn(d)}, ${fmtVn(d)}`;
+          return `<section class="sheet-block ${breakCls}">
+            <div class="hdr">
+              <div><b>${escHtml(tpl.title || '')}</b> <span class="code">[${escHtml(tpl.code || '')}]</span></div>
+              <div class="meta">${escHtml(tpl.department || '')}${tpl.equipmentOrArea ? ' • ' + escHtml(tpl.equipmentOrArea) : ''} • <b>${escHtml(dayLbl)}</b></div>
+            </div>
+            <table>
               <thead><tr>
-                <th style="width:24px">STT</th>
+                <th style="width:22px">STT</th>
                 <th>Hạng mục kiểm tra</th>
-                <th style="width:20%">Tiêu chuẩn</th>
+                <th style="width:19%">Tiêu chuẩn</th>
                 <th style="width:11%">Ca 1<div class="sub">${escHtml(r1?.inspectorName || '')}</div></th>
                 <th style="width:11%">Ca 2<div class="sub">${escHtml(r2?.inspectorName || '')}</div></th>
                 <th style="width:11%">Ca 3<div class="sub">${escHtml(r3?.inspectorName || '')}</div></th>
                 <th style="width:16%">Ghi chú</th>
               </tr></thead>
               <tbody>${rows}</tbody>
-            </table>`;
-          } else if (periodType === 'week') {
-            const dayNames = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
-            const topCols = periodInfo.dates.map((d, i) => `<th colspan="3">${dayNames[i]} (${d.slice(8, 10)}/${d.slice(5, 7)})</th>`).join('');
-            const subCols = periodInfo.dates.map(() => `<th class="wcol">1</th><th class="wcol">2</th><th class="wcol">3</th>`).join('');
-            const rows = items.map((it, i) => {
-              const cells = periodInfo.dates.map(d => {
-                return ['Ca 1', 'Ca 2', 'Ca 3'].map(sk => {
-                  const a = formatAnswerShort(it, recMap[d]?.[sk]?.answers?.[it.id], false);
-                  return `<td class="c wcol ${a.cls}">${escHtml(a.text)}</td>`;
-                }).join('');
-              }).join('');
-              return `<tr><td class="c">${i + 1}</td><td><b>${escHtml(it.title)}</b></td>${cells}</tr>`;
-            }).join('');
-            tableHtml = `<table>
-              <thead>
-                <tr><th rowspan="2" style="width:22px">STT</th><th rowspan="2" style="width:26%">Hạng mục kiểm tra</th>${topCols}</tr>
-                <tr>${subCols}</tr>
-              </thead>
-              <tbody>${rows}</tbody>
-            </table>`;
-          } else {
-            const dayCols = periodInfo.dates.map(d => `<th class="mcol">${Number(d.slice(8, 10))}</th>`).join('');
-            const rows = items.map((it, i) => {
-              const cells = periodInfo.dates.map(d => {
-                const shifts = ['Ca 1', 'Ca 2', 'Ca 3'].map(sk => recMap[d]?.[sk]?.answers?.[it.id]).filter(Boolean);
-                if (!shifts.length) return `<td class="c mcol"></td>`;
-                const hasFail = shifts.some(a => a.status === 'fail');
-                const hasWarn = shifts.some(a => a.status === 'warning');
-                const sym = hasFail ? '✗' : hasWarn ? '!' : '✓';
-                const cls = hasFail ? 'st-fail' : hasWarn ? 'st-warn' : 'st-ok';
-                return `<td class="c mcol ${cls}">${sym}</td>`;
-              }).join('');
-              return `<tr><td class="c">${i + 1}</td><td><b>${escHtml(it.title)}</b></td>${cells}</tr>`;
-            }).join('');
-            tableHtml = `<table>
-              <thead><tr><th style="width:20px">STT</th><th style="width:27%">Hạng mục kiểm tra</th>${dayCols}</tr></thead>
-              <tbody>${rows}</tbody>
-            </table>`;
-          }
-
-          return `<section class="sheet-block ${breakCls}">
-            <div class="hdr">
-              <div><b>${escHtml(tpl.title || '')}</b> <span class="code">[${escHtml(tpl.code || '')}]</span></div>
-              <div class="meta">${escHtml(tpl.department || '')} • ${escHtml(tpl.equipmentOrArea || '')} • <b>${escHtml(periodInfo.label)}</b></div>
-            </div>
-            ${tableHtml}
+            </table>
             <div class="foot">
               <span>Ký hiệu: <b>✓</b> Đạt | <b>!</b> Cảnh báo | <b>✗</b> Không đạt</span>
               <span>Người KT: ..................... &nbsp;&nbsp; Giám sát: ..................... &nbsp;&nbsp; Quản lý: .....................</span>
@@ -894,114 +873,89 @@ const h9e=({templates:t,records:e,onStartInspection:r,onViewRecord:n,onOpenExpor
         }).join('');
 
         return `<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>${escHtml(docTitle)}</title><style>
-          @page { size: A4 ${isLandscape ? 'landscape' : 'portrait'}; margin: ${isLandscape ? '6mm' : '6mm 7mm'}; }
+          @page { size: A4 portrait; margin: 6mm 7mm; }
           * { box-sizing: border-box; }
-          body { font-family: Arial, Helvetica, sans-serif; color: #111; margin: 0; font-size: ${fontSize}; line-height: 1.22; }
-          .sheet-block { margin-bottom: 10px; }
+          body { font-family: Arial, Helvetica, sans-serif; color: #111; margin: 0; font-size: ${fontSize}; line-height: 1.2; }
+          .sheet-block { margin-bottom: ${dense ? '8px' : '12px'}; }
           .page-break { page-break-before: always; break-before: page; }
-          .hdr { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1.2pt solid #111; padding-bottom: 3px; margin-bottom: 5px; gap: 8px; }
-          .hdr b { font-size: ${dense ? '9.8pt' : '10.8pt'}; }
-          .code { font-family: monospace; font-size: 8pt; color: #333; }
-          .meta { font-size: 7.8pt; color: #333; text-align: right; }
+          .hdr { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1.2pt solid #111; padding-bottom: 2px; margin-bottom: 4px; gap: 8px; }
+          .hdr b { font-size: ${dense ? '9.5pt' : '10.5pt'}; }
+          .code { font-family: monospace; font-size: 7.8pt; color: #333; }
+          .meta { font-size: 7.5pt; color: #333; text-align: right; }
           table { width: 100%; border-collapse: collapse; table-layout: fixed; }
           thead { display: table-header-group; }
-          tfoot { display: table-footer-group; }
           th, td { border: 0.5pt solid #444; padding: ${cellPad}; word-wrap: break-word; overflow-wrap: anywhere; }
           th { background: #f1f5f9; font-weight: 700; text-align: center; }
           tr { page-break-inside: avoid; break-inside: avoid; }
           .c { text-align: center; }
-          .wcol { width: 9mm; padding: 1.5px 1px; }
-          .mcol { width: 5.9mm; padding: 1.5px 0.5px; }
-          .sub { font-weight: 400; font-size: 6.8pt; color: #444; }
-          .muted { color: #444; font-size: 7.2pt; }
+          .sub { font-weight: 400; font-size: 6.5pt; color: #444; }
+          .muted { color: #444; font-size: 7pt; }
           .st-ok { color: #047857; font-weight: 700; }
           .st-warn { color: #b45309; font-weight: 700; background: #fffbeb; }
           .st-fail { color: #b91c1c; font-weight: 700; background: #fef2f2; }
-          .foot { display: flex; justify-content: space-between; margin-top: 5px; font-size: 7.2pt; color: #333; page-break-inside: avoid; }
+          .foot { display: flex; justify-content: space-between; margin-top: 4px; font-size: 7pt; color: #333; page-break-inside: avoid; }
           @media print { * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } }
         </style></head><body>${sectionsHtml}</body></html>`;
       }
 
       function exportExcelSheets(opts) {
         if (!window.XLSX) { alert('Chưa tải thư viện Excel (SheetJS)!'); return; }
-        const { templates, records, periodType, periodInfo, docTitle } = opts;
+        const { templates, records, dates, onlyWithData, showValues, docTitle } = opts;
+        const startDate = dates[0];
+        const endDate = dates[dates.length - 1];
         const wb = XLSX.utils.book_new();
         const usedNames = new Set();
+        let sheetCount = 0;
 
         templates.forEach((tpl, idx) => {
-          const tplRecords = records.filter(r =>
-            (r.templateId === tpl.id || r.templateCode === tpl.code) &&
-            r.date >= periodInfo.dates[0] && r.date <= periodInfo.dates[periodInfo.dates.length - 1]
-          );
-          const recMap = {};
-          tplRecords.forEach(r => {
-            if (!recMap[r.date]) recMap[r.date] = {};
-            const sk = normShiftKey(r.shift);
-            if (!recMap[r.date][sk] || String(r.time || '') >= String(recMap[r.date][sk].time || '')) {
-              recMap[r.date][sk] = r;
-            }
-          });
+          const recMap = buildDailyRecordMap(tpl, records, startDate, endDate);
+          const aoa = [];
+          let addedDays = 0;
 
-          const aoa = [
-            [`${tpl.title || ''} [${tpl.code || ''}] — ${periodInfo.label}`],
-            [`Bộ phận: ${tpl.department || ''} | Khu vực: ${tpl.equipmentOrArea || ''}`]
-          ];
-          let cols = [];
+          dates.forEach(d => {
+            const dayRecs = recMap[d] || {};
+            const r1 = dayRecs['Ca 1'], r2 = dayRecs['Ca 2'], r3 = dayRecs['Ca 3'];
+            const hasData = Boolean(r1 || r2 || r3);
+            if (onlyWithData && !hasData) return;
 
-          if (periodType === 'day') {
-            const d = periodInfo.dates[0];
-            aoa.push(['STT', 'Hạng mục kiểm tra', 'Tiêu chuẩn', 'Ca 1', 'Ca 2', 'Ca 3', 'Ghi chú']);
+            if (addedDays > 0) aoa.push([]);
+            addedDays++;
+            aoa.push([`${tpl.title || ''} [${tpl.code || ''}] — ${getDayOfWeekVn(d)}, ${fmtVn(d)}`]);
+            aoa.push([`Bộ phận: ${tpl.department || ''} | Khu vực: ${tpl.equipmentOrArea || ''}`]);
+            aoa.push([
+              'STT',
+              'Hạng mục kiểm tra',
+              'Tiêu chuẩn',
+              `Ca 1${r1?.inspectorName ? ' (' + r1.inspectorName + ')' : ''}`,
+              `Ca 2${r2?.inspectorName ? ' (' + r2.inspectorName + ')' : ''}`,
+              `Ca 3${r3?.inspectorName ? ' (' + r3.inspectorName + ')' : ''}`,
+              'Ghi chú'
+            ]);
+
             (tpl.items || []).forEach((it, i) => {
-              const a1 = formatAnswerShort(it, recMap[d]?.['Ca 1']?.answers?.[it.id], true).text;
-              const a2 = formatAnswerShort(it, recMap[d]?.['Ca 2']?.answers?.[it.id], true).text;
-              const a3 = formatAnswerShort(it, recMap[d]?.['Ca 3']?.answers?.[it.id], true).text;
-              const notes = ['Ca 1', 'Ca 2', 'Ca 3'].map(sk => recMap[d]?.[sk]?.answers?.[it.id]?.note).filter(Boolean).join(' | ');
+              const a1 = formatAnswerShort(it, r1?.answers?.[it.id], showValues).text;
+              const a2 = formatAnswerShort(it, r2?.answers?.[it.id], showValues).text;
+              const a3 = formatAnswerShort(it, r3?.answers?.[it.id], showValues).text;
+              const notes = [r1?.answers?.[it.id]?.note, r2?.answers?.[it.id]?.note, r3?.answers?.[it.id]?.note].filter(Boolean).join(' | ');
               aoa.push([i + 1, it.title, formatStandardShort(it), a1, a2, a3, notes]);
             });
-            cols = [{ wch: 5 }, { wch: 36 }, { wch: 22 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 22 }];
-          } else if (periodType === 'week') {
-            const hdr = ['STT', 'Hạng mục kiểm tra'];
-            periodInfo.dates.forEach(d => {
-              const lbl = `${d.slice(8, 10)}/${d.slice(5, 7)}`;
-              hdr.push(`${lbl} C1`, `${lbl} C2`, `${lbl} C3`);
-            });
-            aoa.push(hdr);
-            (tpl.items || []).forEach((it, i) => {
-              const row = [i + 1, it.title];
-              periodInfo.dates.forEach(d => {
-                ['Ca 1', 'Ca 2', 'Ca 3'].forEach(sk => {
-                  row.push(formatAnswerShort(it, recMap[d]?.[sk]?.answers?.[it.id], false).text);
-                });
-              });
-              aoa.push(row);
-            });
-            cols = [{ wch: 4 }, { wch: 32 }, ...Array(21).fill({ wch: 5 })];
-          } else {
-            aoa.push(['STT', 'Hạng mục kiểm tra', ...periodInfo.dates.map(d => Number(d.slice(8, 10)))]);
-            (tpl.items || []).forEach((it, i) => {
-              const row = [i + 1, it.title];
-              periodInfo.dates.forEach(d => {
-                const shifts = ['Ca 1', 'Ca 2', 'Ca 3'].map(sk => recMap[d]?.[sk]?.answers?.[it.id]).filter(Boolean);
-                if (!shifts.length) row.push('');
-                else if (shifts.some(a => a.status === 'fail')) row.push('✗');
-                else if (shifts.some(a => a.status === 'warning')) row.push('!');
-                else row.push('✓');
-              });
-              aoa.push(row);
-            });
-            cols = [{ wch: 4 }, { wch: 30 }, ...periodInfo.dates.map(() => ({ wch: 3.6 }))];
-          }
+          });
 
+          if (addedDays === 0) return;
           const ws = XLSX.utils.aoa_to_sheet(aoa);
-          ws['!cols'] = cols;
-          // Vừa chiều ngang 1 trang, KHÔNG ép co chiều dọc vào 1 trang
-          ws['!pageSetup'] = { orientation: periodInfo.orientation, fitToWidth: 1, fitToHeight: 0, paperSize: 9 };
+          ws['!cols'] = [{ wch: 5 }, { wch: 36 }, { wch: 22 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 22 }];
+          ws['!pageSetup'] = { orientation: 'portrait', fitToWidth: 1, fitToHeight: 0, paperSize: 9 };
           let sName = sanitizeFileName(tpl.code || tpl.title || `Mau_${idx + 1}`).replace(/[\[\]\*\?\/\\:]/g, '-').slice(0, 28);
           if (usedNames.has(sName)) sName = `${sName.slice(0, 24)}_${idx + 1}`;
           usedNames.add(sName);
           XLSX.utils.book_append_sheet(wb, ws, sName);
+          sheetCount++;
         });
 
+        if (sheetCount === 0) {
+          alert('Không có ngày nào có dữ liệu kiểm tra trong khoảng thời gian đã chọn!');
+          return;
+        }
         XLSX.writeFile(wb, `${docTitle}.xlsx`);
       }
 
@@ -1012,6 +966,7 @@ const h9e=({templates:t,records:e,onStartInspection:r,onViewRecord:n,onOpenExpor
         const data = getLiveData();
         const templates = data.templates || [];
         const today = fmtIso(new Date());
+        const weekRange = getPresetDates('week', today);
         const depts = [...new Set(templates.map(t => t.department).filter(Boolean))];
         const isDark = document.documentElement.classList.contains('dark');
         const cardBg = isDark ? '#1c1c1e' : '#ffffff';
@@ -1028,28 +983,27 @@ const h9e=({templates:t,records:e,onStartInspection:r,onViewRecord:n,onOpenExpor
           <div style="width:100%;max-width:740px;max-height:92vh;overflow:auto;background:${cardBg};color:${cardFg};border:1px solid ${inpBd};border-radius:20px;padding:18px;box-shadow:0 24px 60px rgba(0,0,0,.45);font-family:inherit;">
             <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid ${inpBd};padding-bottom:10px;margin-bottom:12px;gap:8px;">
               <div>
-                <div style="font-weight:800;font-size:15px;">🖨️ Xuất Phiếu In Tiết Kiệm Giấy (Ngày / Tuần / Tháng)</div>
-                <div style="font-size:11px;color:${subFg};margin-top:2px;">Tối ưu hàng cột A4, tên tệp tải về lấy đúng tên phiếu. Tuần &amp; Tháng tự tách trang riêng theo từng mẫu.</div>
+                <div style="font-weight:800;font-size:15px;">🖨️ Xuất Phiếu In Theo Mẫu Ngày (Ngày / Tuần / Tháng)</div>
+                <div style="font-size:11px;color:${subFg};margin-top:2px;">Giữ nguyên cấu trúc Phiếu Ngày (A4 Dọc — 3 Ca), chọn linh hoạt Từ ngày → Đến ngày, tên tệp theo đúng tên phiếu.</div>
               </div>
               <button id="dc-sp-close" style="border:1px solid ${inpBd};background:${boxBg};color:${cardFg};border-radius:10px;padding:6px 12px;font-weight:700;font-size:12px;cursor:pointer;">Đóng</button>
             </div>
 
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;font-size:12px;">
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;font-size:11.5px;">
+              <span style="font-weight:700;color:${subFg};align-self:center;margin-right:4px;">Chọn nhanh kỳ:</span>
+              <button type="button" data-sp-preset="day" class="dc-sp-preset-btn" style="padding:5px 11px;border-radius:9px;border:1px solid ${inpBd};background:${boxBg};color:${cardFg};font-weight:700;cursor:pointer;">Hôm nay (Ngày)</button>
+              <button type="button" data-sp-preset="week" class="dc-sp-preset-btn" style="padding:5px 11px;border-radius:9px;border:1px solid #2563eb;background:#2563eb;color:#fff;font-weight:700;cursor:pointer;">Tuần này (T2→CN)</button>
+              <button type="button" data-sp-preset="month" class="dc-sp-preset-btn" style="padding:5px 11px;border-radius:9px;border:1px solid ${inpBd};background:${boxBg};color:${cardFg};font-weight:700;cursor:pointer;">Tháng này</button>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;font-size:12px;">
               <div>
-                <label style="font-weight:700;display:block;margin-bottom:4px;">Kỳ xuất phiếu</label>
-                <select id="dc-sp-period" style="width:100%;padding:8px 10px;border:1px solid ${inpBd};background:${inpBg};color:${cardFg};border-radius:10px;font-weight:600;">
-                  <option value="day">Theo Ngày (A4 Dọc — 3 Ca)</option>
-                  <option value="week">Theo Tuần (A4 Ngang — Ma trận T2→CN)</option>
-                  <option value="month" selected>Theo Tháng (A4 Ngang — Ma trận 1→31)</option>
-                </select>
+                <label style="font-weight:700;display:block;margin-bottom:4px;">Từ ngày (Ngày bắt đầu)</label>
+                <input id="dc-sp-start" type="date" value="${weekRange.startDate}" style="width:100%;padding:7px 10px;border:1px solid ${inpBd};background:${inpBg};color:${cardFg};border-radius:10px;font-weight:600;">
               </div>
-              <div id="dc-sp-date-wrap" style="display:none;">
-                <label style="font-weight:700;display:block;margin-bottom:4px;">Chọn ngày (hoặc ngày trong tuần)</label>
-                <input id="dc-sp-date" type="date" value="${today}" style="width:100%;padding:7px 10px;border:1px solid ${inpBd};background:${inpBg};color:${cardFg};border-radius:10px;font-weight:600;">
-              </div>
-              <div id="dc-sp-month-wrap">
-                <label style="font-weight:700;display:block;margin-bottom:4px;">Chọn tháng</label>
-                <input id="dc-sp-month" type="month" value="${today.slice(0, 7)}" style="width:100%;padding:7px 10px;border:1px solid ${inpBd};background:${inpBg};color:${cardFg};border-radius:10px;font-weight:600;">
+              <div>
+                <label style="font-weight:700;display:block;margin-bottom:4px;">Đến ngày (Ngày kết thúc)</label>
+                <input id="dc-sp-end" type="date" value="${weekRange.endDate}" style="width:100%;padding:7px 10px;border:1px solid ${inpBd};background:${inpBg};color:${cardFg};border-radius:10px;font-weight:600;">
               </div>
               <div>
                 <label style="font-weight:700;display:block;margin-bottom:4px;">Bộ phận</label>
@@ -1067,11 +1021,11 @@ const h9e=({templates:t,records:e,onStartInspection:r,onViewRecord:n,onOpenExpor
               </div>
             </div>
 
-            <div style="display:flex;flex-wrap:wrap;gap:14px;margin:12px 0;padding:10px 12px;background:${boxBg};border:1px solid ${inpBd};border-radius:12px;font-size:12px;">
+            <div style="display:flex;flex-wrap:wrap;gap:12px 16px;margin:12px 0;padding:10px 12px;background:${boxBg};border:1px solid ${inpBd};border-radius:12px;font-size:12px;">
               <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;"><input id="dc-sp-dense" type="checkbox" checked> Cỡ chữ &amp; lề gọn (tiết kiệm giấy)</label>
-              <label id="dc-sp-break-wrap" style="display:none;align-items:center;gap:6px;cursor:pointer;"><input id="dc-sp-break" type="checkbox"> Mỗi mẫu sang trang mới (chỉ áp dụng theo Ngày)</label>
-              <label id="dc-sp-vals-wrap" style="display:none;align-items:center;gap:6px;cursor:pointer;"><input id="dc-sp-vals" type="checkbox" checked> Hiện trị số đo (khi in Ngày)</label>
-              <span id="dc-sp-wm-note" style="color:${subFg};font-size:11px;">• Tuần &amp; Tháng: mỗi biểu mẫu in tách trang riêng, tự phân trang thoáng rõ, không gom ép vào 1 trang.</span>
+              <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;"><input id="dc-sp-break" type="checkbox"> Mỗi phiếu ngày sang trang mới</label>
+              <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;"><input id="dc-sp-vals" type="checkbox" checked> Hiện trị số đo thực tế</label>
+              <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;"><input id="dc-sp-onlydata" type="checkbox"> Chỉ in ngày có dữ liệu (bỏ qua ngày trống)</label>
             </div>
 
             <div id="dc-sp-filename" style="font-size:11.5px;color:${isDark ? '#7dd3fc' : '#0369a1'};background:${isDark ? 'rgba(14,165,233,.14)' : '#f0f9ff'};border:1px solid ${isDark ? 'rgba(56,189,248,.35)' : '#bae6fd'};padding:8px 12px;border-radius:10px;margin-bottom:12px;font-family:monospace;word-break:break-word;"></div>
@@ -1084,6 +1038,15 @@ const h9e=({templates:t,records:e,onStartInspection:r,onViewRecord:n,onOpenExpor
           </div>
         `;
         document.body.appendChild(wrap);
+
+        const setPresetBtnActive = (activePreset) => {
+          wrap.querySelectorAll('.dc-sp-preset-btn').forEach(b => {
+            const isAct = b.getAttribute('data-sp-preset') === activePreset;
+            b.style.background = isAct ? '#2563eb' : boxBg;
+            b.style.color = isAct ? '#fff' : cardFg;
+            b.style.borderColor = isAct ? '#2563eb' : inpBd;
+          });
+        };
 
         const refreshTplDropdown = () => {
           const live = getLiveData();
@@ -1099,41 +1062,54 @@ const h9e=({templates:t,records:e,onStartInspection:r,onViewRecord:n,onOpenExpor
 
         const getOpts = () => {
           const live = getLiveData();
-          const periodType = document.getElementById('dc-sp-period').value;
-          const baseDate = document.getElementById('dc-sp-date').value;
-          const baseMonth = document.getElementById('dc-sp-month').value;
+          let startDate = document.getElementById('dc-sp-start').value || today;
+          let endDate = document.getElementById('dc-sp-end').value || startDate;
+          if (startDate > endDate) {
+            endDate = startDate;
+            document.getElementById('dc-sp-end').value = endDate;
+          }
+          const dates = getDatesBetween(startDate, endDate, 62);
           const dept = document.getElementById('dc-sp-dept').value;
           const tplId = document.getElementById('dc-sp-tpl').value;
-          const periodInfo = getRangeInfo(periodType, baseDate, baseMonth);
           let selTpls = (live.templates || []).filter(t => dept === 'all' || t.department === dept);
           if (tplId !== 'ALL') selTpls = selTpls.filter(t => t.id === tplId);
-          const docTitle = buildDocTitle(selTpls, periodInfo, dept);
+          const docTitle = buildDocTitle(selTpls, dates, dept);
           return {
             templates: selTpls,
             records: live.records || [],
-            periodType,
-            periodInfo,
+            dates,
             dense: document.getElementById('dc-sp-dense').checked,
             pageBreakEach: document.getElementById('dc-sp-break').checked,
             showValues: document.getElementById('dc-sp-vals').checked,
+            onlyWithData: document.getElementById('dc-sp-onlydata').checked,
             docTitle
           };
         };
 
         const syncUi = () => {
-          const p = document.getElementById('dc-sp-period').value;
-          const isDay = p === 'day';
-          document.getElementById('dc-sp-date-wrap').style.display = p === 'month' ? 'none' : '';
-          document.getElementById('dc-sp-month-wrap').style.display = p === 'month' ? '' : 'none';
-          document.getElementById('dc-sp-break-wrap').style.display = isDay ? 'inline-flex' : 'none';
-          document.getElementById('dc-sp-vals-wrap').style.display = isDay ? 'inline-flex' : 'none';
-          document.getElementById('dc-sp-wm-note').style.display = isDay ? 'none' : '';
           const opts = getOpts();
-          document.getElementById('dc-sp-filename').textContent = `Tên tệp tải về: ${opts.docTitle} (${opts.templates.length} mẫu)`;
+          const sheets = collectDailySheets(opts);
+          const withDataCnt = sheets.filter(s => s.hasData).length;
+          document.getElementById('dc-sp-filename').textContent =
+            `Tên tệp: ${opts.docTitle} • ${opts.dates.length} ngày × ${opts.templates.length} mẫu = ${sheets.length} phiếu ngày (${withDataCnt} phiếu có dữ liệu)`;
         };
 
+        wrap.querySelectorAll('.dc-sp-preset-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const preset = btn.getAttribute('data-sp-preset');
+            const rng = getPresetDates(preset, today);
+            document.getElementById('dc-sp-start').value = rng.startDate;
+            document.getElementById('dc-sp-end').value = rng.endDate;
+            setPresetBtnActive(preset);
+            syncUi();
+          });
+        });
+
         document.getElementById('dc-sp-dept').addEventListener('change', () => { refreshTplDropdown(); syncUi(); });
-        ['dc-sp-period', 'dc-sp-date', 'dc-sp-month', 'dc-sp-tpl'].forEach(id => {
+        ['dc-sp-start', 'dc-sp-end'].forEach(id => {
+          document.getElementById(id).addEventListener('change', () => { setPresetBtnActive(''); syncUi(); });
+        });
+        ['dc-sp-tpl', 'dc-sp-onlydata'].forEach(id => {
           document.getElementById(id).addEventListener('change', syncUi);
         });
         syncUi();
@@ -1143,7 +1119,8 @@ const h9e=({templates:t,records:e,onStartInspection:r,onViewRecord:n,onOpenExpor
 
         document.getElementById('dc-sp-print').onclick = () => {
           const opts = getOpts();
-          if (!opts.templates.length) { alert('Không có biểu mẫu nào phù hợp!'); return; }
+          const sheets = collectDailySheets(opts);
+          if (!sheets.length) { alert('Không có phiếu in nào phù hợp (thử bỏ chọn "Chỉ in ngày có dữ liệu" hoặc chọn khoảng ngày khác)!'); return; }
           const html = buildPrintableHtml(opts);
           const win = window.open('', '_blank', 'width=1100,height=800');
           if (win) {
@@ -1170,7 +1147,8 @@ const h9e=({templates:t,records:e,onStartInspection:r,onViewRecord:n,onOpenExpor
 
         document.getElementById('dc-sp-html').onclick = () => {
           const opts = getOpts();
-          if (!opts.templates.length) { alert('Không có biểu mẫu nào phù hợp!'); return; }
+          const sheets = collectDailySheets(opts);
+          if (!sheets.length) { alert('Không có phiếu in nào phù hợp!'); return; }
           const blob = new Blob([buildPrintableHtml(opts)], { type: 'text/html;charset=utf-8' });
           const a = document.createElement('a');
           a.href = URL.createObjectURL(blob);
